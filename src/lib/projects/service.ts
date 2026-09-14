@@ -51,6 +51,27 @@ export async function listProjects(
   return data ?? [];
 }
 
+// Used by the dashboard project list, which shows each project's services
+// in scope as icon chips — a single embedded-select query rather than N+1
+// calls to getServicesForProject.
+export async function listProjectsWithServices(
+  supabase: SupabaseClient,
+): Promise<ProjectWithServices[]> {
+  const { data, error } = await supabase
+    .from("projects")
+    .select("*, project_services(service_type)")
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+
+  return (data ?? []).map((row) => {
+    const { project_services, ...project } = row as ProjectRow & {
+      project_services: { service_type: ServiceType }[];
+    };
+    return { ...project, services: project_services.map((s) => s.service_type) };
+  });
+}
+
 export async function getProject(
   supabase: SupabaseClient,
   projectId: string,

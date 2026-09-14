@@ -1,13 +1,31 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { DELIVERABLE_LABELS } from "@/lib/domain/labels";
+import { DELIVERABLE_LABELS, DELIVERABLE_CATEGORY } from "@/lib/domain/labels";
 import type { DeliverableWithContent } from "@/lib/generation/deliverables";
 import { saveEditedVersionAction, type EditFormState } from "./edit-actions";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert } from "@/components/ui/alert";
 import { Button, buttonClasses } from "@/components/ui/button";
+import {
+  DocxIcon,
+  PdfIcon,
+  PptxIcon,
+  CoreDeliverableIcon,
+  DesignDeliverableIcon,
+  ProcessDeliverableIcon,
+  ComplianceDeliverableIcon,
+} from "@/components/icons";
+import type { ComponentType, SVGProps } from "react";
+import type { DeliverableCategory } from "@/lib/domain/labels";
+
+const CATEGORY_ICONS: Record<DeliverableCategory, ComponentType<SVGProps<SVGSVGElement>>> = {
+  core: CoreDeliverableIcon,
+  design: DesignDeliverableIcon,
+  process: ProcessDeliverableIcon,
+  compliance: ComplianceDeliverableIcon,
+};
 
 const initialState: EditFormState = {};
 
@@ -30,11 +48,16 @@ export function DeliverableView({
     setIsEditing(false);
   }
 
+  const CategoryIcon = CATEGORY_ICONS[DELIVERABLE_CATEGORY[deliverable.type]];
+
   if (deliverable.status === "failed") {
     return (
       <Card>
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-          <h3 className="font-semibold">{DELIVERABLE_LABELS[deliverable.type]}</h3>
+          <h3 className="flex items-center gap-2 font-semibold">
+            <CategoryIcon className="h-4 w-4 text-muted" />
+            {DELIVERABLE_LABELS[deliverable.type]}
+          </h3>
           <Badge tone="error">Failed</Badge>
         </div>
         <p className="text-sm text-error-text">Generation failed. Try again above.</p>
@@ -49,24 +72,30 @@ export function DeliverableView({
   return (
     <Card>
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="font-semibold">{DELIVERABLE_LABELS[deliverable.type]}</h3>
+        <h3 className="flex items-center gap-2 font-semibold">
+          <CategoryIcon className="h-4 w-4 text-muted" />
+          {DELIVERABLE_LABELS[deliverable.type]}
+        </h3>
         <div className="flex items-center gap-2">
           <a
             className={buttonClasses("secondary", "sm")}
             href={`/api/projects/${projectId}/deliverables/${deliverable.id}/export?format=docx`}
           >
+            <DocxIcon className="h-3.5 w-3.5" />
             DOCX
           </a>
           <a
             className={buttonClasses("secondary", "sm")}
             href={`/api/projects/${projectId}/deliverables/${deliverable.id}/export?format=pdf`}
           >
+            <PdfIcon className="h-3.5 w-3.5" />
             PDF
           </a>
           <a
             className={buttonClasses("secondary", "sm")}
             href={`/api/projects/${projectId}/deliverables/${deliverable.id}/export?format=pptx`}
           >
+            <PptxIcon className="h-3.5 w-3.5" />
             PPTX
           </a>
           {!isEditing && (
