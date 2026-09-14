@@ -28,6 +28,14 @@ Legend: ✅ Live-tested · ⚠️ Built + DB/logic-verified, not live-tested · 
 - ⚠️ Stripe Customer Portal — same blocker
 - ⚠️ Webhook signature verification — can't test without a real Stripe webhook secret and an actual Stripe-signed request
 
+## UI theme (this pass)
+
+Replaced the untouched `create-next-app` scaffold (literal "Create Next App" browser tab title, no color beyond black/white/gray) with a real navy/slate theme, a shared `Header`/`Logo`, and reusable `Button`/`Card`/`Badge`/`Alert` components used consistently across every page. Not pulled from bravocg.com's actual brand — that domain is blocked by this sandbox's network egress policy (same restriction noted elsewhere in this doc), so the palette is a professional-services approximation with clearly-named CSS variables (`--brand`, `--brand-dark` in `globals.css`) for an easy swap once we have Bravo's real hex values.
+
+- ✅ Login page — screenshotted via a local dev server + Playwright; renders correctly (navy button, card layout, focus states)
+- ✅ Signup page — same, screenshotted mid-flow
+- ⚠️ Every authenticated page (dashboard, project detail, billing, admin KB) — restyled with the same shared components verified above, not itself screenshotted: signing up a live test account to reach them hit the same Supabase-egress block noted elsewhere in this doc (`POST /signup` got a non-JSON "Host not in..." response from the sandbox's own proxy, not a bug in the signup code). `tsc`/`lint`/`build` all pass and no raw pre-theme classes (`bg-black`, `text-gray-*`, `bg-red-*`, etc.) remain anywhere in `src/app` or `src/components` — confirmed by grep — but the actual rendered layout on these pages hasn't been eyeballed.
+
 ## Things to specifically check once we do test
 
 - Does a failed generation leave the UI in a sane state (no stuck "Generating…" button)?

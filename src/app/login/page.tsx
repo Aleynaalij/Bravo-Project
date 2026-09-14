@@ -1,5 +1,9 @@
 import Link from "next/link";
 import { signInWithPassword, signInWithMicrosoft } from "./actions";
+import { Logo } from "@/components/logo";
+import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
+import { Card } from "@/components/ui/card";
 
 export default async function LoginPage({
   searchParams,
@@ -10,57 +14,47 @@ export default async function LoginPage({
 
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 px-4">
-      <h1 className="text-2xl font-semibold">Log in to PurviewPilot</h1>
+      <div className="flex justify-center">
+        <Logo href="/login" />
+      </div>
 
-      {message && (
-        <p className="rounded-md bg-blue-50 px-3 py-2 text-sm text-blue-800">
-          {message}
+      <Card className="flex flex-col gap-6">
+        <h1 className="text-xl font-semibold">Log in</h1>
+
+        {message && <Alert variant="info">{message}</Alert>}
+        {error && <Alert variant="error">{error}</Alert>}
+
+        <form action={signInWithPassword} className="flex flex-col gap-3">
+          <input
+            name="email"
+            type="email"
+            placeholder="Email"
+            required
+            className="rounded-md border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none"
+          />
+          <input
+            name="password"
+            type="password"
+            placeholder="Password"
+            required
+            className="rounded-md border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none"
+          />
+          <Button type="submit">Log in</Button>
+        </form>
+
+        <form action={signInWithMicrosoft}>
+          <Button type="submit" variant="secondary" className="w-full">
+            Continue with Microsoft
+          </Button>
+        </form>
+
+        <p className="text-sm text-muted">
+          No account?{" "}
+          <Link href="/signup" className="text-brand hover:underline">
+            Sign up
+          </Link>
         </p>
-      )}
-      {error && (
-        <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">
-          {error}
-        </p>
-      )}
-
-      <form action={signInWithPassword} className="flex flex-col gap-3">
-        <input
-          name="email"
-          type="email"
-          placeholder="Email"
-          required
-          className="rounded-md border px-3 py-2"
-        />
-        <input
-          name="password"
-          type="password"
-          placeholder="Password"
-          required
-          className="rounded-md border px-3 py-2"
-        />
-        <button
-          type="submit"
-          className="rounded-md bg-black px-3 py-2 text-white"
-        >
-          Log in
-        </button>
-      </form>
-
-      <form action={signInWithMicrosoft}>
-        <button
-          type="submit"
-          className="w-full rounded-md border px-3 py-2"
-        >
-          Continue with Microsoft
-        </button>
-      </form>
-
-      <p className="text-sm text-gray-600">
-        No account?{" "}
-        <Link href="/signup" className="underline">
-          Sign up
-        </Link>
-      </p>
+      </Card>
     </main>
   );
 }

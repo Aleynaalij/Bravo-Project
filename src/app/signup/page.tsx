@@ -1,5 +1,9 @@
 import Link from "next/link";
 import { signUpWithPassword } from "../login/actions";
+import { Logo } from "@/components/logo";
+import { Button } from "@/components/ui/button";
+import { Alert } from "@/components/ui/alert";
+import { Card } from "@/components/ui/card";
 
 export default async function SignupPage({
   searchParams,
@@ -10,44 +14,41 @@ export default async function SignupPage({
 
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-6 px-4">
-      <h1 className="text-2xl font-semibold">Create your PurviewPilot account</h1>
+      <div className="flex justify-center">
+        <Logo href="/signup" />
+      </div>
 
-      {error && (
-        <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">
-          {error}
+      <Card className="flex flex-col gap-6">
+        <h1 className="text-xl font-semibold">Create your account</h1>
+
+        {error && <Alert variant="error">{error}</Alert>}
+
+        <form action={signUpWithPassword} className="flex flex-col gap-3">
+          <input
+            name="email"
+            type="email"
+            placeholder="Email"
+            required
+            className="rounded-md border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none"
+          />
+          <input
+            name="password"
+            type="password"
+            placeholder="Password"
+            required
+            minLength={8}
+            className="rounded-md border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none"
+          />
+          <Button type="submit">Sign up</Button>
+        </form>
+
+        <p className="text-sm text-muted">
+          Already have an account?{" "}
+          <Link href="/login" className="text-brand hover:underline">
+            Log in
+          </Link>
         </p>
-      )}
-
-      <form action={signUpWithPassword} className="flex flex-col gap-3">
-        <input
-          name="email"
-          type="email"
-          placeholder="Email"
-          required
-          className="rounded-md border px-3 py-2"
-        />
-        <input
-          name="password"
-          type="password"
-          placeholder="Password"
-          required
-          minLength={8}
-          className="rounded-md border px-3 py-2"
-        />
-        <button
-          type="submit"
-          className="rounded-md bg-black px-3 py-2 text-white"
-        >
-          Sign up
-        </button>
-      </form>
-
-      <p className="text-sm text-gray-600">
-        Already have an account?{" "}
-        <Link href="/login" className="underline">
-          Log in
-        </Link>
-      </p>
+      </Card>
     </main>
   );
 }
