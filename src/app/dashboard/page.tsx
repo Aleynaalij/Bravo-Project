@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { signOut } from "../login/actions";
+import { Header } from "@/components/header";
+import { LinkButton } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -13,61 +15,43 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  const [{ data: projects }, { data: userRow }] = await Promise.all([
-    supabase
-      .from("projects")
-      .select("id, customer_name, industry, created_at")
-      .order("created_at", { ascending: false }),
-    supabase.from("users").select("is_platform_admin").eq("id", user.id).single(),
-  ]);
+  const { data: projects } = await supabase
+    .from("projects")
+    .select("id, customer_name, industry, created_at")
+    .order("created_at", { ascending: false });
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10">
-      <div className="mb-8 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Projects</h1>
-        <div className="flex items-center gap-4">
-          {userRow?.is_platform_admin && (
-            <Link href="/admin/knowledge-base" className="text-sm underline">
-              Knowledge Base
-            </Link>
-          )}
-          <Link href="/dashboard/billing" className="text-sm underline">
-            Billing
-          </Link>
-          <Link href="/dashboard/new" className="text-sm underline">
-            New project
-          </Link>
-          <form action={signOut}>
-            <button type="submit" className="text-sm underline">
-              Sign out
-            </button>
-          </form>
+    <>
+      <Header />
+      <main className="mx-auto max-w-3xl px-4 py-10">
+        <div className="mb-8 flex items-center justify-between">
+          <h1 className="text-2xl font-semibold">Projects</h1>
+          <LinkButton href="/dashboard/new">New project</LinkButton>
         </div>
-      </div>
 
-      {!projects || projects.length === 0 ? (
-        <p className="text-gray-600">
-          No projects yet.{" "}
-          <Link href="/dashboard/new" className="underline">
-            Start an intake
-          </Link>
-          .
-        </p>
-      ) : (
-        <ul className="flex flex-col gap-2">
-          {projects.map((project) => (
-            <li key={project.id}>
-              <Link
-                href={`/dashboard/${project.id}`}
-                className="block rounded-md border px-4 py-3 hover:bg-gray-50"
-              >
-                <div className="font-medium">{project.customer_name}</div>
-                <div className="text-sm text-gray-600">{project.industry}</div>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-    </main>
+        {!projects || projects.length === 0 ? (
+          <Card className="text-sm text-muted">
+            No projects yet.{" "}
+            <Link href="/dashboard/new" className="text-brand hover:underline">
+              Start an intake
+            </Link>
+            .
+          </Card>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {projects.map((project) => (
+              <li key={project.id}>
+                <Link href={`/dashboard/${project.id}`}>
+                  <Card className="transition-colors hover:border-brand hover:bg-surface-hover">
+                    <div className="font-medium">{project.customer_name}</div>
+                    <div className="text-sm text-muted">{project.industry}</div>
+                  </Card>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </main>
+    </>
   );
 }

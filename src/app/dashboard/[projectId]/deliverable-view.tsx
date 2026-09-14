@@ -4,6 +4,10 @@ import { useActionState, useState } from "react";
 import { DELIVERABLE_LABELS } from "@/lib/domain/labels";
 import type { DeliverableWithContent } from "@/lib/generation/deliverables";
 import { saveEditedVersionAction, type EditFormState } from "./edit-actions";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Alert } from "@/components/ui/alert";
+import { Button, buttonClasses } from "@/components/ui/button";
 
 const initialState: EditFormState = {};
 
@@ -28,13 +32,13 @@ export function DeliverableView({
 
   if (deliverable.status === "failed") {
     return (
-      <div className="rounded-md border px-4 py-4">
+      <Card>
         <div className="mb-2 flex items-center justify-between">
           <h3 className="font-semibold">{DELIVERABLE_LABELS[deliverable.type]}</h3>
-          <span className="text-xs uppercase text-gray-500">failed</span>
+          <Badge tone="error">Failed</Badge>
         </div>
-        <p className="text-sm text-red-700">Generation failed. Try again above.</p>
-      </div>
+        <p className="text-sm text-error-text">Generation failed. Try again above.</p>
+      </Card>
     );
   }
 
@@ -43,47 +47,47 @@ export function DeliverableView({
   }
 
   return (
-    <div className="rounded-md border px-4 py-4">
-      <div className="mb-2 flex items-center justify-between">
+    <Card>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h3 className="font-semibold">{DELIVERABLE_LABELS[deliverable.type]}</h3>
-        <div className="flex items-center gap-3 text-xs">
+        <div className="flex items-center gap-2">
           <a
-            className="underline"
+            className={buttonClasses("secondary", "sm")}
             href={`/api/projects/${projectId}/deliverables/${deliverable.id}/export?format=docx`}
           >
-            Download DOCX
+            DOCX
           </a>
           <a
-            className="underline"
+            className={buttonClasses("secondary", "sm")}
             href={`/api/projects/${projectId}/deliverables/${deliverable.id}/export?format=pdf`}
           >
-            Download PDF
+            PDF
           </a>
           <a
-            className="underline"
+            className={buttonClasses("secondary", "sm")}
             href={`/api/projects/${projectId}/deliverables/${deliverable.id}/export?format=pptx`}
           >
-            Download PPTX
+            PPTX
           </a>
           {!isEditing && (
-            <button type="button" className="underline" onClick={() => setIsEditing(true)}>
+            <Button type="button" variant="ghost" size="sm" onClick={() => setIsEditing(true)}>
               Edit
-            </button>
+            </Button>
           )}
         </div>
       </div>
 
-      <p className="mb-3 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-900">
+      <Alert variant="warning" className="mb-3">
         AI-generated draft — review before sending to a client. Not certified compliance advice.
-      </p>
+      </Alert>
 
       {!isEditing ? (
         <div className="flex flex-col gap-4">
           {deliverable.content.sections.map((section, i) => (
             <div key={i}>
-              <h4 className="mb-1 text-sm font-semibold">{section.heading}</h4>
+              <h4 className="mb-1 text-sm font-semibold text-brand-dark">{section.heading}</h4>
               {section.paragraphs.map((p, j) => (
-                <p key={j} className="mb-1 text-sm text-gray-700">
+                <p key={j} className="mb-1 text-sm text-foreground/80">
                   {p}
                 </p>
               ))}
@@ -100,39 +104,35 @@ export function DeliverableView({
               <input
                 name="heading"
                 defaultValue={section.heading}
-                className="rounded-md border px-2 py-1 text-sm font-semibold"
+                className="rounded-md border border-border px-2 py-1 text-sm font-semibold focus:border-brand focus:outline-none"
               />
               <textarea
                 name="paragraphs"
                 defaultValue={section.paragraphs.join("\n\n")}
                 rows={Math.max(3, section.paragraphs.length * 2)}
-                className="rounded-md border px-2 py-1 text-sm"
+                className="rounded-md border border-border px-2 py-1 text-sm focus:border-brand focus:outline-none"
               />
-              <span className="text-xs text-gray-500">Separate paragraphs with a blank line</span>
+              <span className="text-xs text-muted">Separate paragraphs with a blank line</span>
             </div>
           ))}
 
-          {state.error && <p className="text-sm text-red-700">{state.error}</p>}
+          {state.error && <Alert variant="error">{state.error}</Alert>}
 
           <div className="flex items-center gap-3">
-            <button
-              type="submit"
-              disabled={isPending}
-              className="w-fit rounded-md bg-black px-4 py-2 text-sm text-white disabled:opacity-60"
-            >
+            <Button type="submit" disabled={isPending} className="w-fit">
               {isPending ? "Saving…" : "Save edits"}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
-              className="text-sm underline"
+              variant="ghost"
               onClick={() => setIsEditing(false)}
               disabled={isPending}
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       )}
-    </div>
+    </Card>
   );
 }
