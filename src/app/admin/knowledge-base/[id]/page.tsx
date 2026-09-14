@@ -26,7 +26,7 @@ export default async function EditKnowledgeBaseEntryPage({
           &larr; Back to Knowledge Base
         </Link>
 
-        <div className="mb-6 mt-4 flex items-center justify-between">
+        <div className="mb-6 mt-4 flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-2xl font-semibold">Edit entry</h1>
           <form action={deleteEntryAction}>
             <input type="hidden" name="id" value={entry.id} />

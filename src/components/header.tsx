@@ -23,9 +23,9 @@ export async function Header() {
 
   return (
     <header className="border-b border-border bg-surface">
-      <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+      <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
         <Logo />
-        <nav className="flex items-center gap-4 text-sm">
+        <nav className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
           <Link href="/dashboard" className="text-muted hover:text-foreground">
             Projects
           </Link>

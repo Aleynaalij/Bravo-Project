@@ -24,7 +24,7 @@ export default async function DashboardPage() {
     <>
       <Header />
       <main className="mx-auto max-w-3xl px-4 py-10">
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-2xl font-semibold">Projects</h1>
           <LinkButton href="/dashboard/new">New project</LinkButton>
         </div>
