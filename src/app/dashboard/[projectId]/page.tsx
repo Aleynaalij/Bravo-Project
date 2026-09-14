@@ -2,9 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getProject } from "@/lib/projects/service";
-import { SERVICE_TYPES } from "@/lib/domain/enums";
-import { SERVICE_LABELS } from "@/lib/domain/labels";
-import { updateServicesAction } from "./actions";
+import { ServicesForm } from "./services-form";
 
 export default async function ProjectDetailPage({
   params,
@@ -51,26 +49,7 @@ export default async function ProjectDetailPage({
       )}
 
       <h2 className="mb-3 mt-8 text-lg font-semibold">Services in scope</h2>
-      <form action={updateServicesAction} className="flex flex-col gap-2">
-        <input type="hidden" name="projectId" value={project.id} />
-        {SERVICE_TYPES.map((service) => (
-          <label key={service} className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              name="services"
-              value={service}
-              defaultChecked={project.services.includes(service)}
-            />
-            {SERVICE_LABELS[service]}
-          </label>
-        ))}
-        <button
-          type="submit"
-          className="mt-2 w-fit rounded-md bg-black px-4 py-2 text-sm text-white"
-        >
-          Save services
-        </button>
-      </form>
+      <ServicesForm projectId={project.id} currentServices={project.services} />
 
       <div className="mt-10 rounded-md border border-dashed px-4 py-6 text-sm text-gray-600">
         Deliverable generation (Epic D) isn&apos;t built yet — this is where

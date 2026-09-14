@@ -2,7 +2,7 @@ import type { ServiceType } from "./enums";
 
 export const SERVICE_LABELS: Record<ServiceType, string> = {
   dlp: "Data Loss Prevention (DLP)",
-  retention: "Retention Policies",
+  retention: "Retention Policies / Records Management",
   sensitivity_labels: "Sensitivity Labels",
   data_lifecycle_management: "Data Lifecycle Management",
   insider_risk_management: "Insider Risk Management",

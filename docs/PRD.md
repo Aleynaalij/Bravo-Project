@@ -108,3 +108,12 @@ Target elapsed time: 30-60 minutes total (matches vision doc), with MVP focused 
 - Exact Knowledge Base sourcing process at launch (who authors/reviews the first version of reference content)?
 - Branding/white-label requirements for MSP/Partner tier — how soon is this needed?
 - Regulatory review process: should a compliance SME review Knowledge Base content before it ships, given healthcare/gov/defense use cases?
+
+## 11. Design Partner Notes — Bravo Consulting Group
+
+[bravocg.com](https://bravocg.com) is the reference customer this MVP is being validated against: an 11-50 person Microsoft Solutions Partner (Modern Work) in Leesburg, VA, doing Cloud Migration, App Modernization, SharePoint, Data Security (Purview + Azure Policy + Defender for Cloud), Records Management, and Analytics/AI work for federal, defense, intelligence, and commercial clients. Two things from their profile feed directly back into MVP scope:
+
+- **Federal/defense compliance frameworks take priority in the Epic C Knowledge Base.** Bravo's client base is federal/IC-heavy, not just commercial. KB seed content (docs/sprint-1-plan.md Epic C) should lead with FedRAMP, NIST 800-53, CMMC, and FISMA reference material alongside commercial frameworks (HIPAA, GDPR) — not commercial-only. The intake form's compliance notes field already reflects this (placeholder text updated).
+- **Multi-seat is a real gap for a firm this size, not just a Phase 2 nicety.** A ~46-person firm getting one individual MVP account doesn't get the firm using the product. Decision: MVP stays single-seat as planned (§9) — Bravo pilots via one or two individual consultant accounts rather than a firm-wide rollout. Multi-seat/Partner tier remains Phase 2, but revisit this timeline if the pilot needs the whole team on one account sooner.
+
+Security/compliance documentation is one service line among several at a firm like Bravo (Cloud Migration and SharePoint look like bigger practice areas) — the MVP covers a slice of a design partner's engagement types by design, not their whole practice.
