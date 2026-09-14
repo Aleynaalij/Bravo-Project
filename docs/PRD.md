@@ -80,7 +80,7 @@ Target elapsed time: 30-60 minutes total (matches vision doc), with MVP focused 
 ### 6.6 Accounts & Billing
 - FR-14: Email/password and SSO (Google, Microsoft) sign-up and login.
 - FR-15: Stripe-based subscription billing with Consultant ($49/mo) and Professional ($99/mo) tiers at MVP (Partner/Enterprise tiers deferred until multi-seat support exists).
-- FR-16: Usage limits per tier (e.g., number of projects or generations per month) enforced server-side.
+- FR-16: Usage limits per tier (e.g., number of projects or generations per month) enforced server-side. **Deliberately deferred (decision, not an oversight):** Stripe billing tracks plan/subscription status (Sprint 2), but no numeric limits are enforced — every account has unlimited access regardless of plan. Holding off until there's real usage data to size limits against, rather than guessing numbers now.
 
 ## 7. Non-Functional Requirements
 
