@@ -116,4 +116,19 @@ Target elapsed time: 30-60 minutes total (matches vision doc), with MVP focused 
 - **Federal/defense compliance frameworks take priority in the Epic C Knowledge Base.** Bravo's client base is federal/IC-heavy, not just commercial. KB seed content (docs/sprint-1-plan.md Epic C) should lead with FedRAMP, NIST 800-53, CMMC, and FISMA reference material alongside commercial frameworks (HIPAA, GDPR) — not commercial-only. The intake form's compliance notes field already reflects this (placeholder text updated).
 - **Multi-seat is a real gap for a firm this size, not just a Phase 2 nicety.** A ~46-person firm getting one individual MVP account doesn't get the firm using the product. Decision: MVP stays single-seat as planned (§9) — Bravo pilots via one or two individual consultant accounts rather than a firm-wide rollout. Multi-seat/Partner tier remains Phase 2, but revisit this timeline if the pilot needs the whole team on one account sooner.
 
-Security/compliance documentation is one service line among several at a firm like Bravo (Cloud Migration and SharePoint look like bigger practice areas) — the MVP covers a slice of a design partner's engagement types by design, not their whole practice.
+Security/compliance documentation is one service line among several at a firm like Bravo (Cloud Migration and SharePoint look like bigger practice areas) — the MVP covered a slice of a design partner's engagement types by design, not their whole practice. **Decision (post-MVP): expand to the whole practice.** Mike asked explicitly for the platform to cover everything sweepable from bravocg.com, not just the Purview slice — see §12.
+
+## 12. Bravo Practice-Area Expansion
+
+The platform originally covered only Bravo's Data Security & Compliance practice (Microsoft Purview — the 8 original service types). This expansion adds one service per Bravo's other named practice areas, so the platform reflects the whole firm's Microsoft expertise rather than one service line.
+
+Sourced from bravocg.com via web search (this environment's network egress policy blocks directly fetching bravocg.com itself, so this is search-indexed content, not a live site crawl — worth a direct pass once that's unblocked to confirm nothing changed or was missed):
+
+- **Cloud Migration** (`cloud_migration`) — Bravo's "Cloud Services" / "Cloud Migration" pages: Microsoft 365 & Azure migration, described as "secure migration to AI-powered collaboration."
+- **App Modernization** (`app_modernization`) — Power Platform (low-code) + Azure DevOps, "transforms legacy applications into scalable, AI-ready solutions."
+- **SharePoint** (`sharepoint`) — "end-to-end SharePoint services, from strategy to governance," explicitly named as security/compliance/productivity-focused, not just migration.
+- **Analytics, Data & AI** (`analytics_ai`) — Azure, Microsoft Fabric, Purview (data-governance angle, distinct from the Purview *security* services already covered), and Microsoft Copilot integration/governance.
+
+Firm facts surfaced along the way, useful for Knowledge Base tone/positioning: Microsoft Solutions Partner (Modern Work) *and* a Certified AvePoint Professional Services (CAPS) Partner; founded 2007; offices in Virginia, West Virginia, and El Salvador; 3M+ users across client environments, 30 of 50 US states; Minority-Owned Small Business with a federal/defense/intelligence government-contracting track record (separate from the Modern Work partner status).
+
+Each new practice area gets exactly one flagship deliverable type (`cloud_migration_plan`, `app_modernization_plan`, `sharepoint_governance_plan`, `data_analytics_strategy`), gated to its service the same way DLP Design is gated to `dlp` — matching Purview's per-service "design" deliverable pattern rather than the deeper 3-4-deliverable depth Purview itself got. Revisit if a practice area needs Testing Guide/Runbooks-level depth later; the existing "always offered, itemize by service" documents (SOW, Testing Guide, UAT Plan, etc.) already generalize across all 12 services without needing practice-area-specific versions.

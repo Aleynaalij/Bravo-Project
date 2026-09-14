@@ -15,6 +15,10 @@ export const DELIVERABLE_LABELS: Record<DeliverableType, string> = {
   cab_request: "CAB Request",
   change_management: "Change Management Plan",
   compliance_report: "Compliance Report",
+  cloud_migration_plan: "Cloud Migration Plan",
+  app_modernization_plan: "App Modernization Plan",
+  sharepoint_governance_plan: "SharePoint Governance Plan",
+  data_analytics_strategy: "Data & Analytics Strategy",
 };
 
 // Deliverable types that only make sense when a specific service is in
@@ -26,6 +30,10 @@ export const DELIVERABLE_REQUIRES_SERVICE: Partial<Record<DeliverableType, Servi
   dlp_design: "dlp",
   retention_strategy: "retention",
   sensitivity_labeling_plan: "sensitivity_labels",
+  cloud_migration_plan: "cloud_migration",
+  app_modernization_plan: "app_modernization",
+  sharepoint_governance_plan: "sharepoint",
+  data_analytics_strategy: "analytics_ai",
 };
 
 export const DELIVERABLE_CATEGORIES = ["core", "design", "process", "compliance"] as const;
@@ -39,7 +47,10 @@ export const DELIVERABLE_CATEGORY_LABELS: Record<DeliverableCategory, string> = 
 };
 
 // Groups the catalog for the generate form's module-card layout — purely
-// presentational, doesn't affect what gets generated or how.
+// presentational, doesn't affect what gets generated or how. The 4 new
+// practice-area flagship deliverables slot into "design" alongside DLP
+// Design/LLD — same role (a deep per-service planning/design artifact),
+// just for a different practice area.
 export const DELIVERABLE_CATEGORY: Record<DeliverableType, DeliverableCategory> = {
   executive_summary: "core",
   statement_of_work: "core",
@@ -55,6 +66,10 @@ export const DELIVERABLE_CATEGORY: Record<DeliverableType, DeliverableCategory> 
   cab_request: "process",
   change_management: "process",
   compliance_report: "compliance",
+  cloud_migration_plan: "design",
+  app_modernization_plan: "design",
+  sharepoint_governance_plan: "design",
+  data_analytics_strategy: "design",
 };
 
 export const SERVICE_LABELS: Record<ServiceType, string> = {
@@ -66,6 +81,48 @@ export const SERVICE_LABELS: Record<ServiceType, string> = {
   ediscovery: "eDiscovery",
   information_protection: "Information Protection",
   communication_compliance: "Communication Compliance",
+  cloud_migration: "Cloud Migration (M365 & Azure)",
+  app_modernization: "App Modernization (Power Platform & Azure DevOps)",
+  sharepoint: "SharePoint (Strategy, Governance & Migration)",
+  analytics_ai: "Analytics, Data & AI (Fabric, Copilot)",
+};
+
+// Bravo's practice areas (docs/PRD.md design-partner notes) — Data
+// Security & Compliance is the original Purview-based scope; the rest
+// were added so the platform reflects Bravo's whole Microsoft practice,
+// not just Purview. Purely presentational (groups the services checklist
+// and intake form the same way DELIVERABLE_CATEGORY groups deliverables);
+// no DB column backs this.
+export const PRACTICE_AREAS = [
+  "data_security_compliance",
+  "cloud_migration",
+  "app_modernization",
+  "sharepoint",
+  "analytics_ai",
+] as const;
+export type PracticeArea = (typeof PRACTICE_AREAS)[number];
+
+export const PRACTICE_AREA_LABELS: Record<PracticeArea, string> = {
+  data_security_compliance: "Data Security & Compliance",
+  cloud_migration: "Cloud Migration",
+  app_modernization: "App Modernization",
+  sharepoint: "SharePoint",
+  analytics_ai: "Analytics, Data & AI",
+};
+
+export const SERVICE_PRACTICE_AREA: Record<ServiceType, PracticeArea> = {
+  dlp: "data_security_compliance",
+  retention: "data_security_compliance",
+  sensitivity_labels: "data_security_compliance",
+  data_lifecycle_management: "data_security_compliance",
+  insider_risk_management: "data_security_compliance",
+  ediscovery: "data_security_compliance",
+  information_protection: "data_security_compliance",
+  communication_compliance: "data_security_compliance",
+  cloud_migration: "cloud_migration",
+  app_modernization: "app_modernization",
+  sharepoint: "sharepoint",
+  analytics_ai: "analytics_ai",
 };
 
 export const INDUSTRY_OPTIONS = [

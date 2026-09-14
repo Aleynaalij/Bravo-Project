@@ -29,9 +29,14 @@ export {
   SlideTextRegular as PptxIcon,
   SparkleRegular as SparkleIcon,
   BuildingGovernmentRegular as ProjectIcon,
+  CloudArrowUpRegular as CloudMigrationIcon,
+  RocketRegular as AppModernizationIcon,
+  LibraryRegular as SharePointIcon,
+  DataTrendingRegular as AnalyticsAiIcon,
 } from "@fluentui/react-icons";
 
 import type { ServiceType } from "@/lib/domain/enums";
+import type { PracticeArea } from "@/lib/domain/labels";
 import type { ComponentType, SVGProps } from "react";
 import {
   ShieldTaskRegular,
@@ -42,7 +47,19 @@ import {
   DocumentSearchRegular,
   LockClosedRegular,
   ChatWarningRegular,
+  CloudArrowUpRegular,
+  RocketRegular,
+  LibraryRegular,
+  DataTrendingRegular,
 } from "@fluentui/react-icons";
+
+export const PRACTICE_AREA_ICONS: Record<PracticeArea, ComponentType<SVGProps<SVGSVGElement>>> = {
+  data_security_compliance: ShieldTaskRegular,
+  cloud_migration: CloudArrowUpRegular,
+  app_modernization: RocketRegular,
+  sharepoint: LibraryRegular,
+  analytics_ai: DataTrendingRegular,
+};
 
 export const SERVICE_ICONS: Record<ServiceType, ComponentType<SVGProps<SVGSVGElement>>> = {
   dlp: ShieldTaskRegular,
@@ -53,6 +70,10 @@ export const SERVICE_ICONS: Record<ServiceType, ComponentType<SVGProps<SVGSVGEle
   ediscovery: DocumentSearchRegular,
   information_protection: LockClosedRegular,
   communication_compliance: ChatWarningRegular,
+  cloud_migration: CloudArrowUpRegular,
+  app_modernization: RocketRegular,
+  sharepoint: LibraryRegular,
+  analytics_ai: DataTrendingRegular,
 };
 
 // A Server Component must not destructure SERVICE_ICONS and render the
@@ -65,5 +86,16 @@ export const SERVICE_ICONS: Record<ServiceType, ComponentType<SVGProps<SVGSVGEle
 // themselves.
 export function ServiceIcon({ service, className }: { service: ServiceType; className?: string }) {
   const Icon = SERVICE_ICONS[service];
+  return <Icon className={className} />;
+}
+
+export function PracticeAreaIcon({
+  area,
+  className,
+}: {
+  area: PracticeArea;
+  className?: string;
+}) {
+  const Icon = PRACTICE_AREA_ICONS[area];
   return <Icon className={className} />;
 }
