@@ -1,24 +1,41 @@
-import { AzureOpenAI } from "openai";
+import OpenAI, { AzureOpenAI } from "openai";
 
-// Thin wrapper around Azure OpenAI (TDD §2.5) — kept behind this one
-// function so swapping providers later only touches this file.
+// Isolated behind this one function per TDD §2.5, so the provider can be
+// swapped without touching call sites. Currently defaults to a standard
+// OpenAI API key (temporary — see docs/TDD.md §2.5) and falls back to
+// Azure OpenAI if OPENAI_API_KEY isn't set. Revert to Azure OpenAI before
+// this goes near a real federal customer (data residency / enterprise
+// terms) — see docs/PRD.md §11.
 export async function generateCompletion(prompt: string): Promise<string> {
+  const openaiApiKey = process.env.OPENAI_API_KEY;
+
+  if (openaiApiKey) {
+    const client = new OpenAI({ apiKey: openaiApiKey });
+    const model = process.env.OPENAI_MODEL || "gpt-4o";
+
+    const response = await client.chat.completions.create({
+      model,
+      messages: [{ role: "system", content: prompt }],
+      response_format: { type: "json_object" },
+      temperature: 0.3,
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) throw new Error("OpenAI returned an empty completion");
+    return content;
+  }
+
   const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
   const apiKey = process.env.AZURE_OPENAI_API_KEY;
   const deployment = process.env.AZURE_OPENAI_DEPLOYMENT_NAME;
 
   if (!endpoint || !apiKey || !deployment) {
     throw new Error(
-      "Azure OpenAI is not configured — set AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_KEY, and AZURE_OPENAI_DEPLOYMENT_NAME",
+      "No AI provider configured — set OPENAI_API_KEY, or AZURE_OPENAI_ENDPOINT/AZURE_OPENAI_API_KEY/AZURE_OPENAI_DEPLOYMENT_NAME",
     );
   }
 
-  const client = new AzureOpenAI({
-    endpoint,
-    apiKey,
-    deployment,
-    apiVersion: "2024-10-21",
-  });
+  const client = new AzureOpenAI({ endpoint, apiKey, deployment, apiVersion: "2024-10-21" });
 
   const response = await client.chat.completions.create({
     model: deployment,
@@ -28,9 +45,6 @@ export async function generateCompletion(prompt: string): Promise<string> {
   });
 
   const content = response.choices[0]?.message?.content;
-  if (!content) {
-    throw new Error("Azure OpenAI returned an empty completion");
-  }
-
+  if (!content) throw new Error("Azure OpenAI returned an empty completion");
   return content;
 }

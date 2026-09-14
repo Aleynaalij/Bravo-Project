@@ -51,13 +51,14 @@ Module boundaries (below) are designed so the MVP backend logic can be lifted in
 - Target architecture swaps/extends this to **Microsoft Entra ID** (including Entra ID B2C or workforce tenant SSO) once Partner/Enterprise customers need enterprise SSO and conditional access — the auth provider is isolated behind a thin adapter in `lib/auth/` for exactly this reason.
 
 ### 2.5 AI Generation Engine
-- **Azure OpenAI (GPT-4o or later)** from day one, not a generic OpenAI API key — customers in healthcare/gov/defense care about data residency and Microsoft's enterprise data handling terms, and this is a differentiator worth having even at MVP.
-- Generation flow:
-  1. Route Handler receives a "generate deliverable" request → enqueues a job (see below) → returns job id immediately.
-  2. Worker assembles a prompt from: intake data (structured) + selected services + deliverable-specific prompt template (versioned, stored in DB/repo) + relevant Knowledge Base snippets (retrieved by service/industry tags — simple filtered query at MVP, not a vector store; revisit if KB grows large enough to need semantic retrieval).
-  3. Worker calls Azure OpenAI, parses the structured response (JSON matching the deliverable's section schema — see §2.6), stores it as a new deliverable version.
-  4. Client polls or subscribes (Supabase Realtime) for job completion.
-- Queue: **Supabase's `pgmq` (Postgres-native queue)** or a simple `jobs` table polled by a lightweight worker (Vercel Cron + Route Handler, or a small always-on Node worker) — deliberately avoiding a dedicated Redis/queue service at MVP scale. Revisit if job volume demands it.
+- **Azure OpenAI (GPT-4o or later)** is the target provider, not a generic OpenAI API key — customers in healthcare/gov/defense care about data residency and Microsoft's enterprise data handling terms, and this is a differentiator worth having.
+  - **Implemented (Epic D):** provider is isolated behind one function, `src/lib/ai/provider.ts`. It currently defaults to a standard OpenAI API key (`OPENAI_API_KEY`) as a temporary substitute to unblock testing without an Azure subscription, falling back to Azure OpenAI if that key isn't set. **Revert to Azure OpenAI before any real federal customer** (Bravo Consulting Group, PRD §11) — data residency and Microsoft enterprise terms don't apply to a standard OpenAI key. Switching is an env var change, not a code change.
+- Generation flow (as implemented):
+  1. Route Handler / Server Action receives a "generate deliverable" request.
+  2. Assembles a prompt from: intake data (structured) + selected services + deliverable-specific prompt template (versioned, stored in `prompt_templates`) + relevant Knowledge Base snippets (retrieved by service/industry tags — simple filtered query at MVP, not a vector store; revisit if KB grows large enough to need semantic retrieval).
+  3. Calls the AI provider, parses the structured response (JSON matching the deliverable's section schema — see §2.6), stores it as a new deliverable version.
+  4. Runs synchronously within the request (see `src/lib/generation/run.ts`'s docstring) rather than through a separate worker — `generation_jobs` and `deliverables.status` still track state accurately, so this is swappable for a real queue later without changing the write shape.
+- Queue: **not yet built.** Fine at MVP's 1-3 deliverables-per-request scale; revisit (Supabase `pgmq`, or a `jobs` table polled by Vercel Cron) once generation needs to run outside the request/response cycle (e.g., generating the full Phase-2 deliverable catalog at once).
 
 ### 2.6 Deliverable / Document Templates
 - Each deliverable type (Executive Summary, SOW, HLD at MVP) has a **structured template**: a fixed set of sections, each with its own prompt fragment and expected output schema (e.g., `{ heading: string, paragraphs: string[] }[]`).
