@@ -44,15 +44,15 @@ Out of scope (explicitly deferred):
 | B4 | Project list/dashboard view | Server Component, paginated |
 
 ### Epic C — Knowledge Base Seed & Prompt Templates
-| # | Task | Notes |
-|---|---|---|
-| C1 | Draft prompt template + section schema for Executive Summary | Owner: Claude (first draft), reviewed by Mike; stored in `prompt_templates` |
-| C2 | Draft prompt template + section schema for Statement of Work | Same |
-| C3 | Draft prompt template + section schema for High-Level Design | Same — HLD sections should vary by services in scope (e.g., DLP section only if DLP selected) |
-| C4 | Seed `knowledge_base_entries` with initial reference content per service type | Minimum: 1-2 entries per service type selected in Sprint 1 test projects. **Lead with federal/defense frameworks (FedRAMP, NIST 800-53, CMMC, FISMA) alongside commercial ones (HIPAA, GDPR)** — see docs/PRD.md §11, driven by the Bravo Consulting Group design-partner profile (federal/IC-heavy client base) |
-| C5 | Seed migration + admin script to load C1-C4 into the DB | No admin UI yet — direct SQL/seed script |
+| # | Task | Status | Notes |
+|---|---|---|---|
+| C1 | Draft prompt template + section schema for Executive Summary | ✅ Done | `supabase/migrations/0005_epic_c_seed.sql`, v1, active |
+| C2 | Draft prompt template + section schema for Statement of Work | ✅ Done | Same migration, v1, active |
+| C3 | Draft prompt template + section schema for High-Level Design | ✅ Done | Same migration, v1, active — 8 of 14 sections are conditional on services in scope |
+| C4 | Seed `knowledge_base_entries` with initial reference content per service type | ✅ Done | 13 entries: one commercial + one Government/federal-framework entry (FedRAMP, NIST 800-53, CMMC, NISPOM) for the 5 services where that distinction matters most (DLP, retention, sensitivity labels, insider risk, information protection); one commercial-only entry for the remaining 3 |
+| C5 | Seed migration + admin script to load C1-C4 into the DB | ✅ Done | Applied to the live Supabase project and verified via query |
 
-Content drafted by Claude is a first pass, not a substitute for compliance review before any of it reaches a real client — see PRD §10 open question on regulatory review process.
+Content is Claude's first pass, not a substitute for compliance review before any of it reaches a real client — see PRD §10 open question on regulatory review process. Epic D (AI Generation Pipeline) is what actually calls these templates — not built yet.
 
 ### Epic D — AI Generation Pipeline
 | # | Task | Notes |
