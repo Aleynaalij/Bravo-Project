@@ -65,8 +65,11 @@ export default async function BillingPage({
         ) : (
           <div className="flex flex-col gap-3">
             {PLANS.map((plan) => (
-              <Card key={plan.id} className="flex items-center justify-between">
-                <form action={startCheckoutAction} className="flex w-full items-center justify-between">
+              <Card key={plan.id}>
+                <form
+                  action={startCheckoutAction}
+                  className="flex w-full flex-wrap items-center justify-between gap-3"
+                >
                   <input type="hidden" name="plan" value={plan.id} />
                   <div>
                     <div className="font-medium">{plan.name}</div>

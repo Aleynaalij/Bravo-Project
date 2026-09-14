@@ -33,7 +33,7 @@ export function DeliverableView({
   if (deliverable.status === "failed") {
     return (
       <Card>
-        <div className="mb-2 flex items-center justify-between">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <h3 className="font-semibold">{DELIVERABLE_LABELS[deliverable.type]}</h3>
           <Badge tone="error">Failed</Badge>
         </div>
