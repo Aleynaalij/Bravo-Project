@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "../login/actions";
 
@@ -21,23 +22,37 @@ export default async function DashboardPage() {
     <main className="mx-auto max-w-3xl px-4 py-10">
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Projects</h1>
-        <form action={signOut}>
-          <button type="submit" className="text-sm underline">
-            Sign out
-          </button>
-        </form>
+        <div className="flex items-center gap-4">
+          <Link href="/dashboard/new" className="text-sm underline">
+            New project
+          </Link>
+          <form action={signOut}>
+            <button type="submit" className="text-sm underline">
+              Sign out
+            </button>
+          </form>
+        </div>
       </div>
 
       {!projects || projects.length === 0 ? (
         <p className="text-gray-600">
-          No projects yet. Project intake (Epic B) creates the first one.
+          No projects yet.{" "}
+          <Link href="/dashboard/new" className="underline">
+            Start an intake
+          </Link>
+          .
         </p>
       ) : (
         <ul className="flex flex-col gap-2">
           {projects.map((project) => (
-            <li key={project.id} className="rounded-md border px-4 py-3">
-              <div className="font-medium">{project.customer_name}</div>
-              <div className="text-sm text-gray-600">{project.industry}</div>
+            <li key={project.id}>
+              <Link
+                href={`/dashboard/${project.id}`}
+                className="block rounded-md border px-4 py-3 hover:bg-gray-50"
+              >
+                <div className="font-medium">{project.customer_name}</div>
+                <div className="text-sm text-gray-600">{project.industry}</div>
+              </Link>
             </li>
           ))}
         </ul>
