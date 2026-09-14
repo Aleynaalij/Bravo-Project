@@ -28,6 +28,35 @@ export const DELIVERABLE_REQUIRES_SERVICE: Partial<Record<DeliverableType, Servi
   sensitivity_labeling_plan: "sensitivity_labels",
 };
 
+export const DELIVERABLE_CATEGORIES = ["core", "design", "process", "compliance"] as const;
+export type DeliverableCategory = (typeof DELIVERABLE_CATEGORIES)[number];
+
+export const DELIVERABLE_CATEGORY_LABELS: Record<DeliverableCategory, string> = {
+  core: "Core",
+  design: "Design",
+  process: "Testing & Change",
+  compliance: "Compliance",
+};
+
+// Groups the catalog for the generate form's module-card layout — purely
+// presentational, doesn't affect what gets generated or how.
+export const DELIVERABLE_CATEGORY: Record<DeliverableType, DeliverableCategory> = {
+  executive_summary: "core",
+  statement_of_work: "core",
+  high_level_design: "core",
+  dlp_design: "design",
+  retention_strategy: "design",
+  sensitivity_labeling_plan: "design",
+  low_level_design: "design",
+  testing_guide: "process",
+  uat_plan: "process",
+  rollback_procedures: "process",
+  runbooks: "process",
+  cab_request: "process",
+  change_management: "process",
+  compliance_report: "compliance",
+};
+
 export const SERVICE_LABELS: Record<ServiceType, string> = {
   dlp: "Data Loss Prevention (DLP)",
   retention: "Retention Policies / Records Management",

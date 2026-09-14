@@ -1,11 +1,15 @@
 @import "tailwindcss";
 
 /*
- * Bravo-inspired theme — deep navy brand color for a federal/enterprise
- * security-consulting tone, not a startup-bright palette. bravocg.com
- * itself isn't reachable from this environment (network egress policy),
- * so these are not their literal brand hex values — swap --brand/
- * --brand-dark below for an exact match if/when we have them.
+ * Fluent-inspired theme: this product drafts Microsoft Purview
+ * deliverables, so it should feel like it belongs next to Purview/Learn/
+ * the M365 admin centers rather than a generic navy B2B SaaS. --brand is
+ * Fluent 2's brand blue; --gradient-brand pairs it with a Purview-flavored
+ * purple for hero/personality moments (used sparingly, not on every
+ * surface — a gradient everywhere reads as decoration, not identity).
+ * bravocg.com itself isn't reachable from this environment (network
+ * egress policy), so if Bravo's own brand should take priority over the
+ * Microsoft-product-family look, swap the values below.
  *
  * Committing to a single light theme rather than a light+dark pair: this
  * is an internal consulting tool, not a consumer app, and a half-themed
@@ -20,9 +24,11 @@
   --surface: #ffffff;
   --surface-hover: #f0f3f6;
 
-  --brand: #1c3d5a;
-  --brand-dark: #12293f;
-  --brand-light: #eaf0f5;
+  --brand: #0f6cbd;
+  --brand-dark: #0c3b5e;
+  --brand-light: #ebf3fc;
+  --accent-purple: #742774;
+  --gradient-brand: linear-gradient(135deg, #0f6cbd 0%, #742774 100%);
 
   --success-bg: #ecfdf5;
   --success-text: #047857;
@@ -48,6 +54,7 @@
   --color-brand: var(--brand);
   --color-brand-dark: var(--brand-dark);
   --color-brand-light: var(--brand-light);
+  --color-accent-purple: var(--accent-purple);
 
   --color-success-bg: var(--success-bg);
   --color-success-text: var(--success-text);

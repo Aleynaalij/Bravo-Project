@@ -6,6 +6,7 @@ import { SERVICE_LABELS, INDUSTRY_OPTIONS, LICENSING_TIER_OPTIONS } from "@/lib/
 import { createProjectAction, type IntakeFormState } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
+import { SERVICE_ICONS } from "@/components/icons";
 
 const initialState: IntakeFormState = {};
 
@@ -125,12 +126,21 @@ export function IntakeForm() {
 
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-1 text-sm font-medium">Services in scope</legend>
-        {SERVICE_TYPES.map((service) => (
-          <label key={service} className="flex items-center gap-2 text-sm">
-            <input type="checkbox" name="services" value={service} className="accent-brand" />
-            {SERVICE_LABELS[service]}
-          </label>
-        ))}
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {SERVICE_TYPES.map((service) => {
+            const Icon = SERVICE_ICONS[service];
+            return (
+              <label
+                key={service}
+                className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm transition-colors has-[:checked]:border-brand has-[:checked]:bg-brand-light hover:bg-surface-hover"
+              >
+                <input type="checkbox" name="services" value={service} className="accent-brand" />
+                <Icon className="h-4 w-4 shrink-0 text-brand-dark" />
+                {SERVICE_LABELS[service]}
+              </label>
+            );
+          })}
+        </div>
       </fieldset>
 
       <Button type="submit" disabled={isPending} className="w-fit">
