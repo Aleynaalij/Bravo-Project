@@ -520,8 +520,23 @@ components:
 
     DeliverableType:
       type: string
-      enum: [executive_summary, statement_of_work, high_level_design]
-      description: MVP supports these three; catalog expands in Phase 2.
+      enum:
+        [
+          executive_summary,
+          statement_of_work,
+          high_level_design,
+          dlp_design,
+          retention_strategy,
+          sensitivity_labeling_plan,
+          low_level_design,
+          testing_guide,
+          uat_plan,
+          rollback_procedures,
+        ]
+      description: >
+        MVP shipped the first three; Sprint 2 (Phase 2, docs/PRD.md §9)
+        added the rest. Remaining Phase 2 catalog (Runbooks, CAB Requests,
+        Change Management, Compliance Reports) not yet added.
 
     ProjectCreate:
       type: object
