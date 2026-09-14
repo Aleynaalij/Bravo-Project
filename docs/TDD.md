@@ -36,7 +36,7 @@ Module boundaries (below) are designed so the MVP backend logic can be lifted in
 ### 2.1 Frontend
 - **Next.js 14+ (App Router), TypeScript, Tailwind CSS, shadcn/ui.**
 - Server Components for data-heavy views (project list, deliverable viewer); Client Components for the intake wizard and rich-text editor.
-- Rich text editing for deliverable review via TipTap (ProseMirror-based) — clean HTML/JSON output that maps predictably into DOCX export.
+- Rich text editing for deliverable review: **implemented as plain heading/paragraph fields (Epic E)** rather than TipTap — our content model is already structured (`{ heading, paragraphs: string[] }[]`, §2.6), and the deliverables generated so far are plain prose with no inline formatting need, so a full ProseMirror-based editor would have added real complexity (HTML↔JSON↔section-schema conversion) for a requirement that doesn't exist yet. Revisit TipTap if/when a deliverable type needs inline formatting (bold, links, tables) that plain fields can't express — the storage shape doesn't need to change either way.
 
 ### 2.2 Backend
 - MVP backend logic lives in **Next.js Route Handlers and Server Actions** — no separate service to deploy/operate at MVP scale. All business logic (generation orchestration, template rendering, export) is organized into a `lib/` module layer with no framework dependencies, so it can be extracted into a standalone API service later with minimal churn.
@@ -63,12 +63,13 @@ Module boundaries (below) are designed so the MVP backend logic can be lifted in
 ### 2.6 Deliverable / Document Templates
 - Each deliverable type (Executive Summary, SOW, HLD at MVP) has a **structured template**: a fixed set of sections, each with its own prompt fragment and expected output schema (e.g., `{ heading: string, paragraphs: string[] }[]`).
 - AI output is validated against this schema (Zod) before being accepted — this is what keeps generated docs formatted consistently rather than free-form prose, per PRD FR-11.
-- **DOCX export:** `docx` npm package, populating a firm-branded template (logo/colors read from account settings).
-- **PDF export:** Server-side render of the same structured content to HTML/CSS, converted via Puppeteer (headless Chromium) — reuses one rendering path for both DOCX section content and PDF/print view.
+- **DOCX export:** `docx` npm package (`src/lib/export/docx.ts`), populating a firm-branded template (logo/colors read from `branding` if set — no settings UI exists yet to set it, so this is forward-compatible rather than exercised today).
+- **PDF export:** `@react-pdf/renderer` (`src/lib/export/pdf.tsx`) rather than the Puppeteer approach originally planned here — a pure-JS renderer avoids bundling headless Chromium into a Vercel serverless function, a real deployment-size/cold-start risk. Revisit if a future deliverable type needs HTML/CSS fidelity this can't express.
+- **Download flow (implemented, Epic E):** `GET /api/projects/{id}/deliverables/{deliverableId}/export?format=docx|pdf` streams the file directly rather than uploading to Storage first — exports are cheap to regenerate from `deliverable_versions.content` on every request, so the Storage/signed-URL round trip in §2.7 below isn't needed for this. `docs/openapi.yaml` updated to match.
 - **PPTX export:** deferred to Phase 2 (`pptxgenjs` when needed).
 
 ### 2.7 Storage
-- **Supabase Storage** for generated DOCX/PDF files and uploaded assets (firm logos), with per-account access policies. Swappable for Azure Blob Storage later behind a thin storage adapter (`lib/storage/`).
+- **Supabase Storage** for uploaded assets (firm logos) and any future case where a file needs to persist rather than be regenerated on demand, with per-account access policies. Swappable for Azure Blob Storage later behind a thin storage adapter (`lib/storage/`). Not used for DOCX/PDF exports — see §2.6.
 
 ### 2.8 Billing
 - **Stripe** subscriptions (Checkout + Customer Portal + webhooks) for Consultant/Professional tiers.

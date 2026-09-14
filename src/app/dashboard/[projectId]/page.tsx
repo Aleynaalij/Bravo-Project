@@ -3,9 +3,9 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getProject } from "@/lib/projects/service";
 import { listDeliverablesWithContent } from "@/lib/generation/deliverables";
-import { DELIVERABLE_LABELS } from "@/lib/domain/labels";
 import { ServicesForm } from "./services-form";
 import { GenerateForm } from "./generate-form";
+import { DeliverableView } from "./deliverable-view";
 
 export default async function ProjectDetailPage({
   params,
@@ -61,37 +61,7 @@ export default async function ProjectDetailPage({
 
       <div className="mt-6 flex flex-col gap-6">
         {deliverables.map((deliverable) => (
-          <div key={deliverable.id} className="rounded-md border px-4 py-4">
-            <div className="mb-2 flex items-center justify-between">
-              <h3 className="font-semibold">{DELIVERABLE_LABELS[deliverable.type]}</h3>
-              <span className="text-xs uppercase text-gray-500">{deliverable.status}</span>
-            </div>
-
-            {deliverable.status === "ready" && deliverable.content && (
-              <>
-                <p className="mb-3 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-900">
-                  AI-generated draft — review before sending to a client. Not certified compliance
-                  advice.
-                </p>
-                <div className="flex flex-col gap-4">
-                  {deliverable.content.sections.map((section, i) => (
-                    <div key={i}>
-                      <h4 className="mb-1 text-sm font-semibold">{section.heading}</h4>
-                      {section.paragraphs.map((p, j) => (
-                        <p key={j} className="mb-1 text-sm text-gray-700">
-                          {p}
-                        </p>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-
-            {deliverable.status === "failed" && (
-              <p className="text-sm text-red-700">Generation failed. Try again above.</p>
-            )}
-          </div>
+          <DeliverableView key={deliverable.id} projectId={project.id} deliverable={deliverable} />
         ))}
       </div>
     </main>

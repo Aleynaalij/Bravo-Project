@@ -55,24 +55,26 @@ Out of scope (explicitly deferred):
 Content is Claude's first pass, not a substitute for compliance review before any of it reaches a real client — see PRD §10 open question on regulatory review process. Epic D (AI Generation Pipeline) is what actually calls these templates — not built yet.
 
 ### Epic D — AI Generation Pipeline
-| # | Task | Notes |
-|---|---|---|
-| D1 | Azure OpenAI resource provisioning + API wiring | Store key in Vercel env vars |
-| D2 | `generation_jobs` table + simple queue (Postgres-polled worker or Vercel Cron) | Per TDD §2.5 |
-| D3 | `POST /api/projects/{id}/generate` — enqueue job(s) | |
-| D4 | Worker: assemble prompt (intake + services + template + KB snippets), call Azure OpenAI, validate response against section schema (Zod), write `deliverable_versions` row | Core of the product — needs the most testing |
-| D5 | `GET /api/generation-jobs/{id}` polling endpoint (or Supabase Realtime subscription) | |
-| D6 | Error handling: failed generation surfaces a clear error, job marked `failed`, does not silently create a broken deliverable | |
+| # | Task | Status | Notes |
+|---|---|---|---|
+| D1 | Azure OpenAI resource provisioning + API wiring | ⚠️ Temp substitute | Using a standard `OPENAI_API_KEY` for now (falls back to Azure OpenAI automatically if unset) — see docs/TDD.md §2.5. Revert to Azure OpenAI before any real federal customer |
+| D2 | `generation_jobs` table + simple queue (Postgres-polled worker or Vercel Cron) | ✅ Done (no separate worker) | Table exists since Epic A; runs synchronously in-request rather than through a queue — fine at MVP scale, see `run.ts` docstring |
+| D3 | `POST /api/projects/{id}/generate` — enqueue job(s) | ✅ Done | |
+| D4 | Worker: assemble prompt (intake + services + template + KB snippets), call Azure OpenAI, validate response against section schema (Zod), write `deliverable_versions` row | ✅ Built, ⚠️ not live-tested | Every write verified against the live DB; the actual AI call itself is untested pending a working API key |
+| D5 | `GET /api/generation-jobs/{id}` polling endpoint (or Supabase Realtime subscription) | ✅ Done | |
+| D6 | Error handling: failed generation surfaces a clear error, job marked `failed`, does not silently create a broken deliverable | ✅ Done | |
 
 ### Epic E — Deliverable Review, Edit & Export
-| # | Task | Notes |
-|---|---|---|
-| E1 | Deliverable viewer UI rendering structured section content | |
-| E2 | TipTap rich-text editor for inline edits | Saves as new `deliverable_versions` row, `source = consultant_edited` |
-| E3 | AI-disclaimer banner on every generated deliverable | FR-7 — non-negotiable, ships with E1 |
-| E4 | DOCX export via `docx` npm package, using branding if set | `POST /api/projects/{id}/deliverables/{id}/export` |
-| E5 | PDF export via Puppeteer render of the same section content | |
-| E6 | Download flow (signed Supabase Storage URL) | |
+| # | Task | Status | Notes |
+|---|---|---|---|
+| E1 | Deliverable viewer UI rendering structured section content | ✅ Done | |
+| E2 | Inline editor for deliverable content | ✅ Done (not TipTap) | Plain heading/paragraph fields instead of TipTap — see docs/TDD.md §2.1 for why. Saves as new `deliverable_versions` row, `source = consultant_edited` |
+| E3 | AI-disclaimer banner on every generated deliverable | ✅ Done | FR-7 |
+| E4 | DOCX export via `docx` npm package, using branding if set | ✅ Done | `GET /api/projects/{id}/deliverables/{id}/export?format=docx` (GET + direct file, not the POST + signed-URL shape originally spec'd — see docs/TDD.md §2.6) |
+| E5 | PDF export via Puppeteer render of the same section content | ✅ Done (not Puppeteer) | `@react-pdf/renderer` instead — see docs/TDD.md §2.6 |
+| E6 | Download flow (signed Supabase Storage URL) | ✅ Done (no Storage) | Direct file streaming instead — exports are cheap to regenerate on demand |
+
+Both DOCX and PDF builders were sanity-checked directly (valid ZIP/PDF binary output, sample files reviewed) — not yet tested through the full generate → review → download flow live, since that needs a working AI provider key.
 
 ## Suggested Sequencing (2-week sprint)
 
@@ -84,10 +86,10 @@ Content is Claude's first pass, not a substitute for compliance review before an
 
 ## Definition of Done (Sprint 1)
 
-- A new user can sign up, create a project, select services, generate all 3 MVP deliverable types, see the AI disclaimer, edit content inline, and download both DOCX and PDF.
-- RLS verified: one account cannot see another account's projects/deliverables via API or direct DB query.
-- Generation failures are handled gracefully (visible error, no orphaned/broken deliverable records).
-- Core flow deployed to a staging Vercel environment connected to a staging Supabase project.
+- A new user can sign up, create a project, select services, generate all 3 MVP deliverable types, see the AI disclaimer, edit content inline, and download both DOCX and PDF. **Everything up to "generate" is built and deployed live; generation itself and everything after it is built and DB-verified but not yet exercised end-to-end live, pending a working AI provider key.**
+- RLS verified: one account cannot see another account's projects/deliverables via API or direct DB query. ✅ Verified for accounts/projects (Epic A/B); not re-verified for the newer deliverables/generation_jobs tables specifically, though they use the same policy pattern.
+- Generation failures are handled gracefully (visible error, no orphaned/broken deliverable records). ✅ Built (Epic D D6) — status transitions verified against the live DB, not yet exercised via a real failure live.
+- Core flow deployed to a staging Vercel environment connected to a staging Supabase project. ✅ Deployed to `purviewpilot-live.vercel.app` / the `purviewpilot` Supabase project — not a separate staging environment, this is what we have today.
 
 ## Risks / Things to Watch
 
