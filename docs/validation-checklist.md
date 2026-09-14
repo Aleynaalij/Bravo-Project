@@ -14,6 +14,7 @@ Legend: ✅ Live-tested · ⚠️ Built + DB/logic-verified, not live-tested · 
 - ⚠️ Inline editing of generated deliverable content — depends on the above producing real content first
 - ⚠️ DOCX export — builder verified standalone (valid file, sample sent to Mike), not exercised through the actual app/download flow
 - ⚠️ PDF export — same as DOCX
+- ⚠️ PPTX export — builder verified standalone (valid file, opens correctly), not exercised through the actual app/download flow
 - ⚠️ Error surfacing on a failed generation (does the on-screen error message actually show what's useful) — untested since no live generation has been attempted yet
 
 ## Knowledge Base admin

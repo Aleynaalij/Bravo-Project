@@ -59,6 +59,12 @@ export function DeliverableView({
           >
             Download PDF
           </a>
+          <a
+            className="underline"
+            href={`/api/projects/${projectId}/deliverables/${deliverable.id}/export?format=pptx`}
+          >
+            Download PPTX
+          </a>
           {!isEditing && (
             <button type="button" className="underline" onClick={() => setIsEditing(true)}>
               Edit
