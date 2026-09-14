@@ -31,6 +31,9 @@ export default async function DashboardPage() {
               Knowledge Base
             </Link>
           )}
+          <Link href="/dashboard/billing" className="text-sm underline">
+            Billing
+          </Link>
           <Link href="/dashboard/new" className="text-sm underline">
             New project
           </Link>
