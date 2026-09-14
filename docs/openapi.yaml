@@ -532,11 +532,14 @@ components:
           testing_guide,
           uat_plan,
           rollback_procedures,
+          runbooks,
+          cab_request,
+          change_management,
+          compliance_report,
         ]
       description: >
         MVP shipped the first three; Sprint 2 (Phase 2, docs/PRD.md §9)
-        added the rest. Remaining Phase 2 catalog (Runbooks, CAB Requests,
-        Change Management, Compliance Reports) not yet added.
+        added the rest across three batches. Full Phase 2 catalog complete.
 
     ProjectCreate:
       type: object
