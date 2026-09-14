@@ -247,25 +247,28 @@ paths:
       - $ref: "#/components/parameters/DeliverableId"
     get:
       tags: [Deliverables]
-      summary: Export the deliverable's current version as DOCX or PDF
+      summary: Export the deliverable's current version as DOCX, PDF, or PPTX
       description: >
         Implemented as a GET returning the file directly, not the
         POST + signed-URL shape originally spec'd here. Exports are cheap
         to regenerate from deliverable_versions.content on every request,
         so there's no need for a Storage/signed-URL round trip at MVP
-        scale — see docs/TDD.md §2.6.
+        scale — see docs/TDD.md §2.6. PPTX renders as a slide deck (title
+        slide + one or more content slides per section), not a literal
+        reflow of the DOCX/PDF page layout.
       security: [{ bearerAuth: [] }]
       parameters:
         - in: query
           name: format
           required: true
-          schema: { type: string, enum: [docx, pdf] }
+          schema: { type: string, enum: [docx, pdf, pptx] }
       responses:
         "200":
           description: The exported file
           content:
             application/vnd.openxmlformats-officedocument.wordprocessingml.document: {}
             application/pdf: {}
+            application/vnd.openxmlformats-officedocument.presentationml.presentation: {}
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }
         "422": { $ref: "#/components/responses/ValidationError" }

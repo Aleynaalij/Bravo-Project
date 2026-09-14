@@ -6,6 +6,7 @@ import { getDeliverableWithContent } from "@/lib/generation/deliverables";
 import { getBranding } from "@/lib/export/branding";
 import { buildDocx } from "@/lib/export/docx";
 import { buildPdf } from "@/lib/export/pdf";
+import { buildPptx } from "@/lib/export/pptx";
 
 type Params = { params: Promise<{ id: string; deliverableId: string }> };
 
@@ -18,9 +19,9 @@ export async function GET(request: Request, { params }: Params) {
   const { id: projectId, deliverableId } = await params;
   const format = new URL(request.url).searchParams.get("format");
 
-  if (format !== "docx" && format !== "pdf") {
+  if (format !== "docx" && format !== "pdf" && format !== "pptx") {
     return NextResponse.json(
-      { code: "validation_error", message: "format must be 'docx' or 'pdf'" },
+      { code: "validation_error", message: "format must be 'docx', 'pdf', or 'pptx'" },
       { status: 422 },
     );
   }
@@ -62,11 +63,21 @@ export async function GET(request: Request, { params }: Params) {
     });
   }
 
-  const buffer = await buildPdf(deliverable.type, project.customer_name, deliverable.content, branding);
+  if (format === "pdf") {
+    const buffer = await buildPdf(deliverable.type, project.customer_name, deliverable.content, branding);
+    return new NextResponse(new Uint8Array(buffer), {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="${filenameBase}.pdf"`,
+      },
+    });
+  }
+
+  const buffer = await buildPptx(deliverable.type, project.customer_name, deliverable.content, branding);
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="${filenameBase}.pdf"`,
+      "Content-Type": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      "Content-Disposition": `attachment; filename="${filenameBase}.pptx"`,
     },
   });
 }
