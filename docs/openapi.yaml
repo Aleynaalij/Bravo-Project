@@ -404,6 +404,28 @@ paths:
       responses:
         "200": { description: Acknowledged }
 
+  /billing/portal:
+    post:
+      tags: [Billing]
+      summary: Create a Stripe Customer Portal session (manage/cancel subscription, update card, view invoices)
+      description: >
+        Not in the original spec — added alongside checkout-session since
+        it's the natural pairing (Stripe's hosted Customer Portal covers
+        cancel/update/invoices with no extra UI to build). Requires an
+        existing Stripe customer, i.e. at least one prior checkout.
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Portal session URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  portalUrl: { type: string, format: uri }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
 components:
   securitySchemes:
     bearerAuth:

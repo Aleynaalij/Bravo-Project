@@ -72,7 +72,10 @@ Module boundaries (below) are designed so the MVP backend logic can be lifted in
 - **Supabase Storage** for uploaded assets (firm logos) and any future case where a file needs to persist rather than be regenerated on demand, with per-account access policies. Swappable for Azure Blob Storage later behind a thin storage adapter (`lib/storage/`). Not used for DOCX/PDF exports — see §2.6.
 
 ### 2.8 Billing
-- **Stripe** subscriptions (Checkout + Customer Portal + webhooks) for Consultant/Professional tiers.
+- **Stripe** subscriptions (Checkout + Customer Portal + webhooks) for Consultant/Professional tiers. **Implemented (Sprint 2).**
+- `subscriptions` is read-only for the account under RLS (docs/ERD.md) — writes happen server-side via `src/lib/supabase/admin.ts`, a service-role client that bypasses RLS entirely. This is the app's first use of the service role; used only in the checkout/portal Route Handlers and the Stripe webhook handler (which has no user session to write under at all). Never import this client into a Client Component or otherwise expose the key to the browser.
+- Price IDs (`STRIPE_PRICE_ID_CONSULTANT`/`STRIPE_PRICE_ID_PROFESSIONAL`) come from Products/Prices created in the Stripe Dashboard — this app can't provision those itself, same class of external-account dependency as the Azure OpenAI deployment (docs/PRD.md §11).
+- Usage limits per tier (PRD FR-16) are **not implemented** — no numeric limits have been decided yet (how many projects/generations per plan). Everything up through Stripe subscription tracking is built; enforcing limits is a separate follow-up once those numbers are chosen.
 
 ### 2.9 Hosting & Ops
 - **Vercel** for the Next.js app (frontend + Route Handlers).
