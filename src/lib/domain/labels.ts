@@ -7,6 +7,10 @@ export const DELIVERABLE_LABELS: Record<DeliverableType, string> = {
   dlp_design: "DLP Design",
   retention_strategy: "Retention Strategy",
   sensitivity_labeling_plan: "Sensitivity Labeling Plan",
+  low_level_design: "Low-Level Design",
+  testing_guide: "Testing Guide",
+  uat_plan: "UAT Plan",
+  rollback_procedures: "Rollback Procedures",
 };
 
 // Deliverable types that only make sense when a specific service is in
