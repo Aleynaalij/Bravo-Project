@@ -1,4 +1,10 @@
-import type { ServiceType } from "./enums";
+import type { DeliverableType, ServiceType } from "./enums";
+
+export const DELIVERABLE_LABELS: Record<DeliverableType, string> = {
+  executive_summary: "Executive Summary",
+  statement_of_work: "Statement of Work",
+  high_level_design: "High-Level Design",
+};
 
 export const SERVICE_LABELS: Record<ServiceType, string> = {
   dlp: "Data Loss Prevention (DLP)",

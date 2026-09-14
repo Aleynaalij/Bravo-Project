@@ -2,7 +2,10 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getProject } from "@/lib/projects/service";
+import { listDeliverablesWithContent } from "@/lib/generation/deliverables";
+import { DELIVERABLE_LABELS } from "@/lib/domain/labels";
 import { ServicesForm } from "./services-form";
+import { GenerateForm } from "./generate-form";
 
 export default async function ProjectDetailPage({
   params,
@@ -23,6 +26,8 @@ export default async function ProjectDetailPage({
   if (!project) {
     notFound();
   }
+
+  const deliverables = await listDeliverablesWithContent(supabase, projectId);
 
   return (
     <main className="mx-auto max-w-xl px-4 py-10">
@@ -51,9 +56,43 @@ export default async function ProjectDetailPage({
       <h2 className="mb-3 mt-8 text-lg font-semibold">Services in scope</h2>
       <ServicesForm projectId={project.id} currentServices={project.services} />
 
-      <div className="mt-10 rounded-md border border-dashed px-4 py-6 text-sm text-gray-600">
-        Deliverable generation (Epic D) isn&apos;t built yet — this is where
-        Executive Summary, SOW, and High-Level Design drafts will appear.
+      <h2 className="mb-3 mt-10 text-lg font-semibold">Deliverables</h2>
+      <GenerateForm projectId={project.id} />
+
+      <div className="mt-6 flex flex-col gap-6">
+        {deliverables.map((deliverable) => (
+          <div key={deliverable.id} className="rounded-md border px-4 py-4">
+            <div className="mb-2 flex items-center justify-between">
+              <h3 className="font-semibold">{DELIVERABLE_LABELS[deliverable.type]}</h3>
+              <span className="text-xs uppercase text-gray-500">{deliverable.status}</span>
+            </div>
+
+            {deliverable.status === "ready" && deliverable.content && (
+              <>
+                <p className="mb-3 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                  AI-generated draft — review before sending to a client. Not certified compliance
+                  advice.
+                </p>
+                <div className="flex flex-col gap-4">
+                  {deliverable.content.sections.map((section, i) => (
+                    <div key={i}>
+                      <h4 className="mb-1 text-sm font-semibold">{section.heading}</h4>
+                      {section.paragraphs.map((p, j) => (
+                        <p key={j} className="mb-1 text-sm text-gray-700">
+                          {p}
+                        </p>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {deliverable.status === "failed" && (
+              <p className="text-sm text-red-700">Generation failed. Try again above.</p>
+            )}
+          </div>
+        ))}
       </div>
     </main>
   );
