@@ -1,16 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useActionState, useState } from "react";
 import { SERVICE_TYPES } from "@/lib/domain/enums";
 import { SERVICE_LABELS, INDUSTRY_OPTIONS, LICENSING_TIER_OPTIONS } from "@/lib/domain/labels";
-import { createProjectAction } from "./actions";
+import { createProjectAction, type IntakeFormState } from "./actions";
+
+const initialState: IntakeFormState = {};
 
 export function IntakeForm() {
   const [industry, setIndustry] = useState("");
   const [licensingTier, setLicensingTier] = useState("");
+  const [state, formAction, isPending] = useActionState(createProjectAction, initialState);
 
   return (
-    <form action={createProjectAction} className="flex flex-col gap-6">
+    <form action={formAction} className="flex flex-col gap-6">
+      {state.error && (
+        <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">{state.error}</p>
+      )}
+
       <div className="flex flex-col gap-1">
         <label className="text-sm font-medium" htmlFor="customerName">
           Customer name
@@ -120,7 +127,7 @@ export function IntakeForm() {
           id="complianceNotes"
           name="complianceNotes"
           rows={3}
-          placeholder="e.g. HIPAA, FedRAMP, GDPR requirements"
+          placeholder="e.g. HIPAA, FedRAMP, NIST 800-53, CMMC, GDPR requirements"
           className="rounded-md border px-3 py-2"
         />
       </div>
@@ -135,8 +142,12 @@ export function IntakeForm() {
         ))}
       </fieldset>
 
-      <button type="submit" className="rounded-md bg-black px-4 py-2 text-white">
-        Create project
+      <button
+        type="submit"
+        disabled={isPending}
+        className="rounded-md bg-black px-4 py-2 text-white disabled:opacity-60"
+      >
+        {isPending ? "Creating…" : "Create project"}
       </button>
     </form>
   );

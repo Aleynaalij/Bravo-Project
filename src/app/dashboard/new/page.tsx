@@ -3,12 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { IntakeForm } from "./intake-form";
 
-export default async function NewProjectPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ error?: string }>;
-}) {
-  const { error } = await searchParams;
+export default async function NewProjectPage() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -25,10 +20,6 @@ export default async function NewProjectPage({
       </Link>
 
       <h1 className="mb-6 mt-4 text-2xl font-semibold">New project</h1>
-
-      {error && (
-        <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-800">{error}</p>
-      )}
 
       <IntakeForm />
     </main>

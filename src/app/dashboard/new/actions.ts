@@ -6,7 +6,17 @@ import { requireAccountId } from "@/lib/auth/session";
 import { createProject, setProjectServices } from "@/lib/projects/service";
 import { projectCreateSchema, projectServicesSchema } from "@/lib/validation/project";
 
-export async function createProjectAction(formData: FormData) {
+export interface IntakeFormState {
+  error?: string;
+}
+
+// Returns state instead of redirecting on failure, so useActionState in the
+// client form can show the error without a full page reload — a reload was
+// wiping out everything the consultant had typed.
+export async function createProjectAction(
+  _prevState: IntakeFormState,
+  formData: FormData,
+): Promise<IntakeFormState> {
   const supabase = await createClient();
   const accountId = await requireAccountId(supabase);
 
@@ -35,14 +45,13 @@ export async function createProjectAction(formData: FormData) {
   });
 
   if (!parsed.success) {
-    const message = encodeURIComponent(parsed.error.issues[0]?.message ?? "Invalid input");
-    redirect(`/dashboard/new?error=${message}`);
+    return { error: parsed.error.issues[0]?.message ?? "Check the form for errors" };
   }
 
   const services = formData.getAll("services").map(String);
   const parsedServices = projectServicesSchema.safeParse({ services });
   if (!parsedServices.success) {
-    redirect(`/dashboard/new?error=${encodeURIComponent("Select at least one service in scope")}`);
+    return { error: "Select at least one service in scope" };
   }
 
   const project = await createProject(supabase, accountId, parsed.data);
