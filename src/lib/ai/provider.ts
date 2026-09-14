@@ -28,6 +28,10 @@ export async function generateCompletion(prompt: string): Promise<string> {
   const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
   const apiKey = process.env.AZURE_OPENAI_API_KEY;
   const deployment = process.env.AZURE_OPENAI_DEPLOYMENT_NAME;
+  // No confident default exists for very recent model families — get the
+  // exact value from Azure OpenAI Studio's "View Code" sample for this
+  // deployment if generation fails with a version/model-support error.
+  const apiVersion = process.env.AZURE_OPENAI_API_VERSION || "2024-10-21";
 
   if (!endpoint || !apiKey || !deployment) {
     throw new Error(
@@ -35,13 +39,18 @@ export async function generateCompletion(prompt: string): Promise<string> {
     );
   }
 
-  const client = new AzureOpenAI({ endpoint, apiKey, deployment, apiVersion: "2024-10-21" });
+  const client = new AzureOpenAI({ endpoint, apiKey, deployment, apiVersion });
 
   const response = await client.chat.completions.create({
     model: deployment,
     messages: [{ role: "system", content: prompt }],
     response_format: { type: "json_object" },
-    temperature: 0.3,
+    // Omitted (not set to a fixed value) for the Azure path: reasoning-tier
+    // "-mini" model deployments have historically rejected a non-default
+    // temperature outright (400 error) — safer to take the model's default
+    // than guess, since we can't confirm this model family's exact
+    // constraints. Standard OpenAI path above keeps temperature since
+    // gpt-4o-class chat models support it fine.
   });
 
   const content = response.choices[0]?.message?.content;

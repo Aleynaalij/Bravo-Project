@@ -4,10 +4,11 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAndRunJob } from "@/lib/generation/jobs";
 import { generateRequestSchema } from "@/lib/validation/deliverable";
+import { DELIVERABLE_LABELS } from "@/lib/domain/labels";
 
 export interface GenerateFormState {
   error?: string;
-  failedTypes?: string[];
+  failedResults?: { deliverableType: string; errorMessage: string }[];
   completedAt?: number;
 }
 
@@ -24,12 +25,18 @@ export async function generateDeliverablesAction(
   }
 
   const supabase = await createClient();
-  const failedTypes: string[] = [];
+  const failedResults: { deliverableType: string; errorMessage: string }[] = [];
 
   for (const deliverableType of parsed.data.deliverableTypes) {
     const job = await createAndRunJob(supabase, projectId, deliverableType);
     if (job.status === "failed") {
-      failedTypes.push(deliverableType);
+      failedResults.push({
+        deliverableType: DELIVERABLE_LABELS[deliverableType] ?? deliverableType,
+        // Surfaced directly in the UI so a failure can be diagnosed from
+        // what the consultant sees on screen, without needing separate
+        // access to server/runtime logs.
+        errorMessage: job.error_message ?? "Unknown error",
+      });
     }
   }
 
@@ -37,6 +44,6 @@ export async function generateDeliverablesAction(
 
   return {
     completedAt: Date.now(),
-    failedTypes: failedTypes.length > 0 ? failedTypes : undefined,
+    failedResults: failedResults.length > 0 ? failedResults : undefined,
   };
 }
