@@ -21,13 +21,18 @@ export function GenerateForm({ projectId }: { projectId: string }) {
       ))}
 
       {state.error && <p className="text-sm text-red-700">{state.error}</p>}
-      {!isPending && state.completedAt && !state.failedTypes && (
+      {!isPending && state.completedAt && !state.failedResults && (
         <p className="text-sm text-green-700">Generation complete.</p>
       )}
-      {!isPending && state.failedTypes && (
-        <p className="text-sm text-red-700">
-          Failed to generate: {state.failedTypes.map((t) => DELIVERABLE_LABELS[t as keyof typeof DELIVERABLE_LABELS] ?? t).join(", ")}
-        </p>
+      {!isPending && state.failedResults && (
+        <div className="flex flex-col gap-2 rounded-md bg-red-50 px-3 py-2">
+          {state.failedResults.map((result) => (
+            <div key={result.deliverableType} className="text-sm text-red-800">
+              <span className="font-medium">{result.deliverableType} failed:</span>{" "}
+              <span className="font-mono text-xs">{result.errorMessage}</span>
+            </div>
+          ))}
+        </div>
       )}
 
       <button
