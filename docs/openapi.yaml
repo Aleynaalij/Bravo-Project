@@ -1,0 +1,611 @@
+openapi: 3.1.0
+info:
+  title: PurviewPilot.ai API
+  description: >
+    MVP REST API for PurviewPilot.ai — project intake, AI-generated deliverables,
+    and knowledge base administration. Auth is handled by Supabase Auth; this
+    surface covers application resources built on top of it.
+  version: 0.1.0-mvp
+servers:
+  - url: https://app.purviewpilot.ai/api
+    description: Production
+  - url: http://localhost:3000/api
+    description: Local development
+
+tags:
+  - name: Accounts
+  - name: Projects
+  - name: Deliverables
+  - name: Generation
+  - name: KnowledgeBase
+  - name: Billing
+
+paths:
+  /accounts/me:
+    get:
+      tags: [Accounts]
+      summary: Get the current authenticated account and its subscription tier
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Account details
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Account" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /accounts/me/branding:
+    put:
+      tags: [Accounts]
+      summary: Update firm branding used in exported deliverables (logo, colors)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BrandingUpdate" }
+      responses:
+        "200":
+          description: Updated branding
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Branding" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /projects:
+    get:
+      tags: [Projects]
+      summary: List projects owned by the current account
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: pageSize
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        "200":
+          description: Paginated list of projects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Project" }
+                  page: { type: integer }
+                  pageSize: { type: integer }
+                  total: { type: integer }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      tags: [Projects]
+      summary: Create a new project (intake)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProjectCreate" }
+      responses:
+        "201":
+          description: Created project
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Project" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /projects/{projectId}:
+    parameters:
+      - $ref: "#/components/parameters/ProjectId"
+    get:
+      tags: [Projects]
+      summary: Get a project by id
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Project details
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Project" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      tags: [Projects]
+      summary: Update intake fields on a project
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProjectUpdate" }
+      responses:
+        "200":
+          description: Updated project
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Project" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+    delete:
+      tags: [Projects]
+      summary: Delete a project and its deliverables
+      security: [{ bearerAuth: [] }]
+      responses:
+        "204": { description: Deleted }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /projects/{projectId}/services:
+    parameters:
+      - $ref: "#/components/parameters/ProjectId"
+    put:
+      tags: [Projects]
+      summary: Set the services in scope for a project (DLP, Retention, Sensitivity Labels, etc.)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [services]
+              properties:
+                services:
+                  type: array
+                  items: { $ref: "#/components/schemas/ServiceType" }
+      responses:
+        "200":
+          description: Updated services in scope
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ServiceType" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /projects/{projectId}/deliverables:
+    parameters:
+      - $ref: "#/components/parameters/ProjectId"
+    get:
+      tags: [Deliverables]
+      summary: List deliverables generated for a project
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: List of deliverables
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Deliverable" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /projects/{projectId}/deliverables/{deliverableId}:
+    parameters:
+      - $ref: "#/components/parameters/ProjectId"
+      - $ref: "#/components/parameters/DeliverableId"
+    get:
+      tags: [Deliverables]
+      summary: Get a deliverable, including its current content
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Deliverable details
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Deliverable" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /projects/{projectId}/deliverables/{deliverableId}/versions:
+    parameters:
+      - $ref: "#/components/parameters/ProjectId"
+      - $ref: "#/components/parameters/DeliverableId"
+    get:
+      tags: [Deliverables]
+      summary: List all versions of a deliverable (AI-generated and edited)
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: List of deliverable versions
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/DeliverableVersion" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    post:
+      tags: [Deliverables]
+      summary: Save a new edited version of a deliverable (consultant edits)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DeliverableVersionCreate" }
+      responses:
+        "201":
+          description: New version created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeliverableVersion" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /projects/{projectId}/deliverables/{deliverableId}/export:
+    parameters:
+      - $ref: "#/components/parameters/ProjectId"
+      - $ref: "#/components/parameters/DeliverableId"
+    post:
+      tags: [Deliverables]
+      summary: Export the current (or specified) version as DOCX or PDF
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [format]
+              properties:
+                versionId:
+                  type: string
+                  format: uuid
+                  description: Defaults to the latest version if omitted
+                format:
+                  type: string
+                  enum: [docx, pdf]
+      responses:
+        "200":
+          description: Signed download URL for the exported file
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  downloadUrl: { type: string, format: uri }
+                  expiresAt: { type: string, format: date-time }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /projects/{projectId}/generate:
+    parameters:
+      - $ref: "#/components/parameters/ProjectId"
+    post:
+      tags: [Generation]
+      summary: Kick off AI generation of one or more deliverables for a project
+      description: >
+        Enqueues a generation job per requested deliverable type. Poll
+        GET /generation-jobs/{jobId} or subscribe via Supabase Realtime
+        for completion.
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [deliverableTypes]
+              properties:
+                deliverableTypes:
+                  type: array
+                  items: { $ref: "#/components/schemas/DeliverableType" }
+      responses:
+        "202":
+          description: Generation jobs enqueued
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/GenerationJob" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /generation-jobs/{jobId}:
+    get:
+      tags: [Generation]
+      summary: Get the status of a generation job
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Job status
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GenerationJob" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /knowledge-base/entries:
+    get:
+      tags: [KnowledgeBase]
+      summary: List knowledge base entries (admin)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: service
+          schema: { $ref: "#/components/schemas/ServiceType" }
+        - in: query
+          name: industry
+          schema: { type: string }
+      responses:
+        "200":
+          description: List of knowledge base entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/KnowledgeBaseEntry" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [KnowledgeBase]
+      summary: Create a knowledge base entry (admin)
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/KnowledgeBaseEntryCreate" }
+      responses:
+        "201":
+          description: Created entry
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/KnowledgeBaseEntry" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+
+  /billing/checkout-session:
+    post:
+      tags: [Billing]
+      summary: Create a Stripe Checkout session for a subscription plan
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [plan]
+              properties:
+                plan:
+                  type: string
+                  enum: [consultant, professional]
+      responses:
+        "200":
+          description: Checkout session URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  checkoutUrl: { type: string, format: uri }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /billing/webhook:
+    post:
+      tags: [Billing]
+      summary: Stripe webhook receiver (subscription lifecycle events)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object }
+      responses:
+        "200": { description: Acknowledged }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Supabase Auth access token
+
+  parameters:
+    ProjectId:
+      in: path
+      name: projectId
+      required: true
+      schema: { type: string, format: uuid }
+    DeliverableId:
+      in: path
+      name: deliverableId
+      required: true
+      schema: { type: string, format: uuid }
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid authentication
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Forbidden:
+      description: Authenticated but not permitted
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    ValidationError:
+      description: Request failed validation
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    RateLimited:
+      description: Plan usage limit exceeded
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        code: { type: string }
+        message: { type: string }
+
+    Account:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        firmName: { type: string }
+        plan: { type: string, enum: [trial, consultant, professional] }
+        createdAt: { type: string, format: date-time }
+
+    Branding:
+      type: object
+      properties:
+        logoUrl: { type: string, format: uri, nullable: true }
+        primaryColor: { type: string, nullable: true }
+        firmName: { type: string, nullable: true }
+
+    BrandingUpdate:
+      type: object
+      properties:
+        logoUrl: { type: string, format: uri }
+        primaryColor: { type: string }
+        firmName: { type: string }
+
+    ServiceType:
+      type: string
+      enum:
+        - dlp
+        - retention
+        - sensitivity_labels
+        - data_lifecycle_management
+        - insider_risk_management
+        - ediscovery
+        - information_protection
+        - communication_compliance
+
+    DeliverableType:
+      type: string
+      enum: [executive_summary, statement_of_work, high_level_design]
+      description: MVP supports these three; catalog expands in Phase 2.
+
+    ProjectCreate:
+      type: object
+      required: [customerName, industry, userCount, licensingTier]
+      properties:
+        customerName: { type: string }
+        industry: { type: string, description: "e.g. healthcare, finance, government" }
+        userCount: { type: integer, minimum: 1 }
+        licensingTier: { type: string, description: "e.g. M365 E3, M365 E5" }
+        geographicLocations:
+          type: array
+          items: { type: string }
+        complianceNotes: { type: string, nullable: true }
+
+    ProjectUpdate:
+      allOf:
+        - $ref: "#/components/schemas/ProjectCreate"
+      description: Partial update; all fields optional on PATCH.
+
+    Project:
+      allOf:
+        - type: object
+          properties:
+            id: { type: string, format: uuid }
+            accountId: { type: string, format: uuid }
+            createdAt: { type: string, format: date-time }
+            updatedAt: { type: string, format: date-time }
+            servicesInScope:
+              type: array
+              items: { $ref: "#/components/schemas/ServiceType" }
+        - $ref: "#/components/schemas/ProjectCreate"
+
+    Deliverable:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        projectId: { type: string, format: uuid }
+        type: { $ref: "#/components/schemas/DeliverableType" }
+        currentVersionId: { type: string, format: uuid, nullable: true }
+        status:
+          type: string
+          enum: [pending, generating, ready, failed]
+        createdAt: { type: string, format: date-time }
+
+    DeliverableVersion:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        deliverableId: { type: string, format: uuid }
+        versionNumber: { type: integer }
+        source:
+          type: string
+          enum: [ai_generated, consultant_edited]
+        content:
+          type: object
+          description: Structured section content (schema per deliverable type)
+        promptTemplateVersion: { type: string, nullable: true }
+        knowledgeBaseEntryIds:
+          type: array
+          items: { type: string, format: uuid }
+        createdAt: { type: string, format: date-time }
+
+    DeliverableVersionCreate:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: object
+          description: Structured section content matching the deliverable's schema
+
+    GenerationJob:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        projectId: { type: string, format: uuid }
+        deliverableType: { $ref: "#/components/schemas/DeliverableType" }
+        status:
+          type: string
+          enum: [queued, in_progress, succeeded, failed]
+        resultDeliverableId: { type: string, format: uuid, nullable: true }
+        errorMessage: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        completedAt: { type: string, format: date-time, nullable: true }
+
+    KnowledgeBaseEntry:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        service: { $ref: "#/components/schemas/ServiceType" }
+        industry: { type: string, nullable: true }
+        content: { type: string }
+        sourceUrl: { type: string, format: uri, nullable: true }
+        version: { type: integer }
+        createdAt: { type: string, format: date-time }
+
+    KnowledgeBaseEntryCreate:
+      type: object
+      required: [title, service, content]
+      properties:
+        title: { type: string }
+        service: { $ref: "#/components/schemas/ServiceType" }
+        industry: { type: string }
+        content: { type: string }
+        sourceUrl: { type: string, format: uri }
