@@ -11,6 +11,10 @@ export const DELIVERABLE_LABELS: Record<DeliverableType, string> = {
   testing_guide: "Testing Guide",
   uat_plan: "UAT Plan",
   rollback_procedures: "Rollback Procedures",
+  runbooks: "Operational Runbooks",
+  cab_request: "CAB Request",
+  change_management: "Change Management Plan",
+  compliance_report: "Compliance Report",
 };
 
 // Deliverable types that only make sense when a specific service is in

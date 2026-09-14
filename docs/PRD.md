@@ -99,7 +99,7 @@ Target elapsed time: 30-60 minutes total (matches vision doc), with MVP focused 
 
 ## 9. Roadmap Beyond MVP
 
-- **Phase 2:** Full deliverable catalog (LLD, DLP Design, Retention Strategy, Sensitivity Labeling Plan, Testing Guide, UAT Plan, Rollback Procedures, Runbooks, CAB Requests, Change Management docs, Compliance Reports), PPTX export, Partner/Enterprise multi-seat tiers.
+- **Phase 2:** Full deliverable catalog (LLD, DLP Design, Retention Strategy, Sensitivity Labeling Plan, Testing Guide, UAT Plan, Rollback Procedures, Runbooks, CAB Requests, Change Management docs, Compliance Reports) — ✅ **complete (Sprint 2)**, all 14 types built and DB-verified, live AI generation still pending (see docs/validation-checklist.md). PPTX export — ✅ complete (Sprint 2). Partner/Enterprise multi-seat tiers — not started.
 - **Phase 3:** Microsoft Graph + Purview read-only integration for tenant discovery, feeding automatic environment analysis into deliverable generation (this is the long-term moat described in the vision doc).
 - **Phase 4:** Automatic architecture and roadmap generation from live tenant state; SOC 2 Type II for enterprise/federal customers.
 

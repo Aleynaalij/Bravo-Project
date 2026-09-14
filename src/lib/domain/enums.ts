@@ -14,11 +14,8 @@ export const SERVICE_TYPES = [
 
 export type ServiceType = (typeof SERVICE_TYPES)[number];
 
-// MVP shipped the first three (Sprint 1); Sprint 2 added the 3
-// service-specific design docs, then LLD/Testing Guide/UAT Plan/Rollback
-// Procedures (docs/PRD.md §9 Phase 2). The remaining Phase 2 catalog
-// (Runbooks, CAB Requests, Change Management, Compliance Reports) is still
-// not started.
+// MVP shipped the first three (Sprint 1); Sprint 2 added the rest across
+// three batches, completing the full Phase 2 catalog (docs/PRD.md §9).
 export const DELIVERABLE_TYPES = [
   "executive_summary",
   "statement_of_work",
@@ -30,6 +27,10 @@ export const DELIVERABLE_TYPES = [
   "testing_guide",
   "uat_plan",
   "rollback_procedures",
+  "runbooks",
+  "cab_request",
+  "change_management",
+  "compliance_report",
 ] as const;
 
 export type DeliverableType = (typeof DELIVERABLE_TYPES)[number];
