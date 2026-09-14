@@ -96,3 +96,10 @@ Both DOCX and PDF builders were sanity-checked directly (valid ZIP/PDF binary ou
 - **Prompt/template quality (Epic C) is the actual product** — this is domain expertise, not engineering, and is the most likely thing to take longer than estimated. Recommend starting C1-C3 on day 1 in parallel with infra, not after.
 - **Structured-output reliability from the LLM** — validate early (D4) that Azure OpenAI reliably returns content matching the section schema; budget time for prompt iteration and retry/repair logic if it doesn't.
 - **Scope discipline** — it will be tempting to add a 4th deliverable type or the KB admin UI mid-sprint. Hold the line; those are Sprint 2.
+
+## Sprint 2 (started)
+
+Sprint 1 (Epics A-E) is built and merged; live end-to-end verification of the generate step is still pending (Azure OpenAI is configured, first live test not yet run).
+
+- **Knowledge Base admin UI** — ✅ Done. `/admin/knowledge-base` (create/edit/delete), gated by a new `users.is_platform_admin` flag + RLS policies (`supabase/migrations/0006_platform_admin.sql`). Chose this over expanding the deliverable catalog first: it's pure engineering with no new domain-content risk, and it's what actually unblocks maintaining/expanding Knowledge Base content going forward without a code change each time. RLS verified both directions live (non-admin write correctly rejected, admin write correctly allowed) — not just reasoned about.
+- Full deliverable catalog (LLD, DLP Design, Retention Strategy, etc.), PPTX export, Stripe billing, and Partner/Enterprise multi-seat remain not started.

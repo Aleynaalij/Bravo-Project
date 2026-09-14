@@ -13,16 +13,24 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  const { data: projects } = await supabase
-    .from("projects")
-    .select("id, customer_name, industry, created_at")
-    .order("created_at", { ascending: false });
+  const [{ data: projects }, { data: userRow }] = await Promise.all([
+    supabase
+      .from("projects")
+      .select("id, customer_name, industry, created_at")
+      .order("created_at", { ascending: false }),
+    supabase.from("users").select("is_platform_admin").eq("id", user.id).single(),
+  ]);
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Projects</h1>
         <div className="flex items-center gap-4">
+          {userRow?.is_platform_admin && (
+            <Link href="/admin/knowledge-base" className="text-sm underline">
+              Knowledge Base
+            </Link>
+          )}
           <Link href="/dashboard/new" className="text-sm underline">
             New project
           </Link>
