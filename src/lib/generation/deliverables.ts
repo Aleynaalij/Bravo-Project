@@ -48,3 +48,35 @@ export async function listDeliverablesWithContent(
     };
   });
 }
+
+export async function getDeliverableWithContent(
+  supabase: SupabaseClient,
+  deliverableId: string,
+): Promise<DeliverableWithContent | null> {
+  const { data: deliverable, error } = await supabase
+    .from("deliverables")
+    .select("id, type, status, current_version_id")
+    .eq("id", deliverableId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!deliverable) return null;
+
+  if (!deliverable.current_version_id) {
+    return { id: deliverable.id, type: deliverable.type, status: deliverable.status, content: null, versionNumber: null };
+  }
+
+  const { data: version, error: versionError } = await supabase
+    .from("deliverable_versions")
+    .select("content, version_number")
+    .eq("id", deliverable.current_version_id)
+    .maybeSingle();
+  if (versionError) throw versionError;
+
+  return {
+    id: deliverable.id,
+    type: deliverable.type,
+    status: deliverable.status,
+    content: version?.content ?? null,
+    versionNumber: version?.version_number ?? null,
+  };
+}
