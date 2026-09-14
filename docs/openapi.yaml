@@ -517,6 +517,16 @@ components:
         - ediscovery
         - information_protection
         - communication_compliance
+        - cloud_migration
+        - app_modernization
+        - sharepoint
+        - analytics_ai
+      description: >
+        The first 8 are Bravo's Data Security & Compliance practice
+        (Purview-based, MVP + Sprint 2). The last 4 are one service per
+        Bravo's other named practice areas (bravocg.com), added so the
+        platform reflects Bravo's whole Microsoft practice, not just
+        Purview — see docs/PRD.md.
 
     DeliverableType:
       type: string
@@ -536,10 +546,16 @@ components:
           cab_request,
           change_management,
           compliance_report,
+          cloud_migration_plan,
+          app_modernization_plan,
+          sharepoint_governance_plan,
+          data_analytics_strategy,
         ]
       description: >
         MVP shipped the first three; Sprint 2 (Phase 2, docs/PRD.md §9)
-        added the rest across three batches. Full Phase 2 catalog complete.
+        added the rest of the Purview-based catalog across three batches.
+        The last 4 are one flagship deliverable per Bravo practice area
+        added outside Purview scope, each gated to its matching service.
 
     ProjectCreate:
       type: object
