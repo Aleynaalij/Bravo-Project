@@ -14,12 +14,17 @@ export const SERVICE_TYPES = [
 
 export type ServiceType = (typeof SERVICE_TYPES)[number];
 
-// MVP supports these three deliverable types (Sprint 1); the full catalog
-// from the vision doc lands in Phase 2 (see docs/PRD.md §9).
+// MVP shipped the first three (Sprint 1); Sprint 2 added 3 service-specific
+// documents (docs/PRD.md §9 Phase 2). The remaining Phase 2 catalog
+// (Testing Guide, UAT Plan, Rollback Procedures, Runbooks, CAB Requests,
+// Change Management, Compliance Reports) is still not started.
 export const DELIVERABLE_TYPES = [
   "executive_summary",
   "statement_of_work",
   "high_level_design",
+  "dlp_design",
+  "retention_strategy",
+  "sensitivity_labeling_plan",
 ] as const;
 
 export type DeliverableType = (typeof DELIVERABLE_TYPES)[number];

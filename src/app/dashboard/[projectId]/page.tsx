@@ -57,7 +57,7 @@ export default async function ProjectDetailPage({
       <ServicesForm projectId={project.id} currentServices={project.services} />
 
       <h2 className="mb-3 mt-10 text-lg font-semibold">Deliverables</h2>
-      <GenerateForm projectId={project.id} />
+      <GenerateForm projectId={project.id} services={project.services} />
 
       <div className="mt-6 flex flex-col gap-6">
         {deliverables.map((deliverable) => (
