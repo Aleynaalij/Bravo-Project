@@ -1,8 +1,9 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { setProjectServices } from "@/lib/projects/service";
+import { setProjectServices, deleteProject } from "@/lib/projects/service";
 import { projectServicesSchema } from "@/lib/validation/project";
 
 export interface ServicesFormState {
@@ -29,4 +30,19 @@ export async function updateServicesAction(
   revalidatePath(`/dashboard/${projectId}`);
 
   return { savedAt: Date.now() };
+}
+
+// RLS (projects_all_own_account) scopes the delete to the caller's own
+// account, so no separate ownership check is needed here — the same
+// pattern deleteProject()'s other call sites would use. Cascades to
+// project_services/deliverables/deliverable_versions/generation_jobs per
+// the schema in supabase/migrations/0001_init.sql.
+export async function deleteProjectAction(formData: FormData): Promise<void> {
+  const projectId = String(formData.get("projectId") ?? "");
+
+  const supabase = await createClient();
+  await deleteProject(supabase, projectId);
+
+  revalidatePath("/dashboard");
+  redirect("/dashboard");
 }
