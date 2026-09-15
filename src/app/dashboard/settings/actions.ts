@@ -7,9 +7,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAccountOwner, ForbiddenError } from "@/lib/auth/session";
 import { getSubscription } from "@/lib/billing/service";
 import { getStripeClient } from "@/lib/billing/stripe";
+import { getSeatLimit } from "@/lib/billing/seats";
 import { changePasswordSchema } from "@/lib/validation/settings";
 import { inviteTeamMemberSchema } from "@/lib/validation/team";
-import { countOwners } from "@/lib/team/service";
+import { countOwners, countTeamMembers } from "@/lib/team/service";
 import { writeAuditLog } from "@/lib/audit/service";
 
 export interface SettingsActionState {
@@ -103,15 +104,29 @@ export async function inviteTeamMemberAction(
     return { error: parsed.error.issues[0]?.message ?? "Enter a valid email" };
   }
 
+  const supabase = await createClient();
   let accountId: string;
   let actorUserId: string;
   let actorEmail: string;
   try {
-    const supabase = await createClient();
     ({ accountId, userId: actorUserId, email: actorEmail } = await requireAccountOwner(supabase));
   } catch (err) {
     if (err instanceof ForbiddenError) return { error: err.message };
     throw err;
+  }
+
+  // Closes a real revenue leak the red-team audit flagged: multi-seat
+  // shipped with zero seat limit, so an account on the cheapest plan could
+  // add unlimited teammates. See src/lib/billing/seats.ts for the actual
+  // per-plan numbers and why they're a placeholder pending a real pricing
+  // decision.
+  const subscription = await getSubscription(supabase, accountId);
+  const seatLimit = getSeatLimit(subscription?.plan ?? "trial");
+  const currentSeats = await countTeamMembers(supabase, accountId);
+  if (currentSeats >= seatLimit) {
+    return {
+      error: `Your plan is limited to ${seatLimit} seat${seatLimit === 1 ? "" : "s"}. Upgrade your plan to add more teammates.`,
+    };
   }
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
@@ -128,7 +143,6 @@ export async function inviteTeamMemberAction(
   });
   if (error) return { error: error.message };
 
-  const supabase = await createClient();
   await writeAuditLog(supabase, {
     accountId,
     actorUserId,
