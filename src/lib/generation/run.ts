@@ -39,7 +39,10 @@ async function getActiveTemplate(
   return data;
 }
 
-async function upsertDeliverable(
+// Exported so jobs.ts can mark a deliverable "generating" the moment its
+// job is enqueued, rather than only once the cron tick that actually
+// processes it gets around to calling runGeneration — see jobs.ts.
+export async function upsertDeliverable(
   supabase: SupabaseClient,
   projectId: string,
   deliverableType: DeliverableType,
@@ -71,9 +74,9 @@ async function upsertDeliverable(
 
 // Runs one deliverable's generation end to end: assemble prompt, call the
 // AI provider, validate the structured output, and persist a new
-// deliverable_versions row. Called synchronously from the generate Route
-// Handler / Server Action — see docs/TDD.md §2.5 for why this can grow into
-// a real queue later without changing this function's contract.
+// deliverable_versions row. Called from jobs.ts's queue processor (a cron
+// tick, not a live user request) — this function's own contract never
+// changed to get there, exactly as docs/TDD.md §2.5 anticipated.
 export async function runGeneration(
   supabase: SupabaseClient,
   projectId: string,

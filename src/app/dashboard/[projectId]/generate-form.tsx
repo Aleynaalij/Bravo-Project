@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { DELIVERABLE_TYPES, type DeliverableType, type ServiceType } from "@/lib/domain/enums";
 import {
   DELIVERABLE_LABELS,
@@ -17,11 +18,13 @@ import {
   ComplianceDeliverableIcon,
 } from "@/components/icons";
 import { generateDeliverablesAction, type GenerateFormState } from "./generate-actions";
+import type { GenerationJobRow } from "@/lib/generation/jobs";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
 import type { ComponentType, SVGProps } from "react";
 
 const initialState: GenerateFormState = {};
+const POLL_INTERVAL_MS = 2500;
 
 const CATEGORY_ICONS: Record<DeliverableCategory, ComponentType<SVGProps<SVGSVGElement>>> = {
   core: CoreDeliverableIcon,
@@ -37,7 +40,66 @@ export function GenerateForm({
   projectId: string;
   services: ServiceType[];
 }) {
-  const [state, formAction, isPending] = useActionState(generateDeliverablesAction, initialState);
+  const [state, formAction, isSubmitting] = useActionState(generateDeliverablesAction, initialState);
+  const router = useRouter();
+
+  // Generation now runs in the background (a cron-processed queue, not
+  // this request) — once the Server Action returns job ids, this polls
+  // their status client-side and refreshes the page once every job the
+  // batch created has reached a terminal state. isPolling stays separate
+  // from useActionState's own isSubmitting, since the wait for real work
+  // to finish happens entirely after the action has already returned.
+  const [jobs, setJobs] = useState<Record<string, GenerationJobRow>>({});
+  const [isPolling, setIsPolling] = useState(false);
+  const lastEnqueuedAt = useRef<number | undefined>(undefined);
+
+  useEffect(() => {
+    if (!state.jobIds || state.jobIds.length === 0) return;
+    if (state.enqueuedAt === lastEnqueuedAt.current) return;
+    lastEnqueuedAt.current = state.enqueuedAt;
+
+    const jobIds = state.jobIds;
+    let cancelled = false;
+    setIsPolling(true);
+    setJobs({});
+
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    async function poll() {
+      const results = await Promise.all(
+        jobIds.map((id) =>
+          fetch(`/api/generation-jobs/${id}`)
+            .then((res) => (res.ok ? (res.json() as Promise<GenerationJobRow>) : null))
+            .catch(() => null),
+        ),
+      );
+      if (cancelled) return;
+
+      const byId: Record<string, GenerationJobRow> = {};
+      for (const job of results) {
+        if (job) byId[job.id] = job;
+      }
+      setJobs(byId);
+
+      const allTerminal = jobIds.every(
+        (id) => byId[id]?.status === "succeeded" || byId[id]?.status === "failed",
+      );
+      if (allTerminal) {
+        setIsPolling(false);
+        router.refresh();
+      } else {
+        timeoutId = setTimeout(poll, POLL_INTERVAL_MS);
+      }
+    }
+
+    poll();
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.jobIds, state.enqueuedAt]);
 
   const availableTypes = DELIVERABLE_TYPES.filter((type) => {
     const requiredService = DELIVERABLE_REQUIRES_SERVICE[type];
@@ -57,6 +119,11 @@ export function GenerateForm({
       return next;
     });
   }
+
+  const jobList = Object.values(jobs);
+  const doneCount = jobList.filter((j) => j.status === "succeeded" || j.status === "failed").length;
+  const failedJobs = jobList.filter((j) => j.status === "failed");
+  const isBusy = isSubmitting || isPolling;
 
   return (
     <form action={formAction} className="flex flex-col gap-5">
@@ -123,22 +190,33 @@ export function GenerateForm({
       })}
 
       {state.error && <Alert variant="error">{state.error}</Alert>}
-      {!isPending && state.completedAt && !state.failedResults && (
+
+      {isPolling && (
+        <Alert variant="info">
+          Generating {doneCount} of {jobList.length} complete&hellip; this runs in the background, safe
+          to navigate away and come back.
+        </Alert>
+      )}
+
+      {!isBusy && jobList.length > 0 && failedJobs.length === 0 && (
         <Alert variant="success">Generation complete.</Alert>
       )}
-      {!isPending && state.failedResults && (
+
+      {!isBusy && failedJobs.length > 0 && (
         <div className="flex flex-col gap-2 rounded-md border border-error-border bg-error-bg px-3 py-2">
-          {state.failedResults.map((result) => (
-            <div key={result.deliverableType} className="text-sm text-error-text">
-              <span className="font-medium">{result.deliverableType} failed:</span>{" "}
-              <span className="font-mono text-xs">{result.errorMessage}</span>
+          {failedJobs.map((job) => (
+            <div key={job.id} className="text-sm text-error-text">
+              <span className="font-medium">
+                {DELIVERABLE_LABELS[job.deliverable_type] ?? job.deliverable_type} failed:
+              </span>{" "}
+              <span className="font-mono text-xs">{job.error_message ?? "Unknown error"}</span>
             </div>
           ))}
         </div>
       )}
 
-      <Button type="submit" disabled={isPending || selected.size === 0} className="w-fit">
-        {isPending ? "Generating… runs one at a time, longer with more selected" : "Generate deliverables"}
+      <Button type="submit" disabled={isBusy || selected.size === 0} className="w-fit">
+        {isSubmitting ? "Queuing…" : isPolling ? "Generating…" : "Generate deliverables"}
       </Button>
     </form>
   );

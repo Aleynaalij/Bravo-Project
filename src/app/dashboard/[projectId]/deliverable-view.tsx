@@ -65,6 +65,20 @@ export function DeliverableView({
     );
   }
 
+  if (deliverable.status === "generating" || deliverable.status === "pending") {
+    return (
+      <Card>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="flex items-center gap-2 font-semibold">
+            <CategoryIcon className="h-4 w-4 text-muted" />
+            {DELIVERABLE_LABELS[deliverable.type]}
+          </h3>
+          <Badge tone="brand">Generating&hellip;</Badge>
+        </div>
+      </Card>
+    );
+  }
+
   if (deliverable.status !== "ready" || !deliverable.content) {
     return null;
   }
