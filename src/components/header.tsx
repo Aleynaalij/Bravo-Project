@@ -29,7 +29,10 @@ export async function Header() {
     { href: "/dashboard/billing", label: "Billing" },
     { href: "/dashboard/settings", label: "Settings" },
     ...(userRow?.is_platform_admin
-      ? [{ href: "/admin/knowledge-base", label: "Knowledge Base" }]
+      ? [
+          { href: "/admin/knowledge-base", label: "Knowledge Base" },
+          { href: "/admin/metrics", label: "Metrics" },
+        ]
       : []),
   ];
 
