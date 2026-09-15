@@ -1,8 +1,10 @@
-import { Document, Packer, Paragraph, HeadingLevel, TextRun } from "docx";
+import { Document, Packer, Paragraph, HeadingLevel, TextRun, ImageRun } from "docx";
 import type { DeliverableContent } from "@/lib/validation/deliverable";
 import type { DeliverableType } from "@/lib/domain/enums";
 import { DELIVERABLE_LABELS } from "@/lib/domain/labels";
-import type { BrandingInfo } from "./branding";
+import type { BrandingInfo } from "@/lib/branding";
+import { resolveAccentColor } from "@/lib/branding";
+import { fetchLogoAsset } from "./logo";
 
 // Templated generation (title + heading + paragraphs), not free-form AI
 // text dropped into a blank document — see docs/TDD.md §2.6.
@@ -13,10 +15,27 @@ export async function buildDocx(
   branding: BrandingInfo | null,
 ): Promise<Buffer> {
   const firmName = branding?.firmNameOverride;
+  const accentColor = resolveAccentColor(branding?.primaryColor);
+  const logo = branding?.logoUrl ? await fetchLogoAsset(branding.logoUrl) : null;
 
   const children: Paragraph[] = [
+    ...(logo
+      ? [
+          new Paragraph({
+            children: [
+              new ImageRun({
+                type: logo.docxType,
+                data: logo.buffer,
+                transformation: { width: 140, height: 46 },
+              }),
+            ],
+          }),
+        ]
+      : []),
     new Paragraph({
-      text: `${customerName} — ${DELIVERABLE_LABELS[deliverableType]}`,
+      children: [
+        new TextRun({ text: `${customerName} — ${DELIVERABLE_LABELS[deliverableType]}`, color: accentColor }),
+      ],
       heading: HeadingLevel.TITLE,
     }),
     ...(firmName
@@ -35,7 +54,12 @@ export async function buildDocx(
   ];
 
   for (const section of content.sections) {
-    children.push(new Paragraph({ text: section.heading, heading: HeadingLevel.HEADING_1 }));
+    children.push(
+      new Paragraph({
+        children: [new TextRun({ text: section.heading, color: accentColor })],
+        heading: HeadingLevel.HEADING_1,
+      }),
+    );
     for (const paragraph of section.paragraphs) {
       children.push(new Paragraph({ text: paragraph }));
     }

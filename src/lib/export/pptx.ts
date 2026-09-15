@@ -2,7 +2,9 @@ import PptxGenJS from "pptxgenjs";
 import type { DeliverableContent } from "@/lib/validation/deliverable";
 import type { DeliverableType } from "@/lib/domain/enums";
 import { DELIVERABLE_LABELS } from "@/lib/domain/labels";
-import type { BrandingInfo } from "./branding";
+import type { BrandingInfo } from "@/lib/branding";
+import { resolveAccentColor } from "@/lib/branding";
+import { fetchLogoAsset } from "./logo";
 
 // A section's paragraphs are split across multiple slides once they'd
 // overflow a single slide — this is a presentation deck, not a page-for-page
@@ -11,11 +13,15 @@ import type { BrandingInfo } from "./branding";
 // types (a one-line "Overview" bullet vs. a dense compliance paragraph).
 const CHARS_PER_SLIDE = 700;
 
-// pptxgenjs's image-embedding path depends on a transitive `image-size`
-// version with a known ICNS/JXL/HEIF parser DoS (GHSA-w3rx-r6r6-pgpr,
-// GHSA-5p2g-fcmc-qvqq). Not exploitable today — this module never embeds an
-// image (no branding-logo UI exists yet, see branding.ts) — but revisit
-// this dependency once logo embedding ships.
+// pptxgenjs declares a transitive `image-size` dependency with a known
+// ICNS/JXL/HEIF parser DoS (GHSA-w3rx-r6r6-pgpr, GHSA-5p2g-fcmc-qvqq), but
+// its shipped bundle never actually calls it — the only code path that
+// requires `sizeof` (note: not even the same package name) is dead,
+// commented-out source left in dist/pptxgen.cjs.js. It's pinned to a
+// patched 2.x via package.json "overrides" anyway, since a real dependency
+// audit shouldn't have to rely on reading a competitor's dead code to stay
+// clean. addImage() below always passes explicit w/h so pptxgenjs has no
+// reason to probe image dimensions itself regardless.
 export async function buildPptx(
   deliverableType: DeliverableType,
   customerName: string,
@@ -23,11 +29,22 @@ export async function buildPptx(
   branding: BrandingInfo | null,
 ): Promise<Buffer> {
   const firmName = branding?.firmNameOverride;
+  const accentColor = resolveAccentColor(branding?.primaryColor);
+  const logo = branding?.logoUrl ? await fetchLogoAsset(branding.logoUrl) : null;
   const pptx = new PptxGenJS();
   pptx.defineLayout({ name: "BRAVOPILOT_16X9", width: 13.33, height: 7.5 });
   pptx.layout = "BRAVOPILOT_16X9";
 
   const titleSlide = pptx.addSlide();
+  if (logo) {
+    titleSlide.addImage({
+      data: `data:${logo.contentType};base64,${logo.buffer.toString("base64")}`,
+      x: 0.6,
+      y: 0.5,
+      w: 1.8,
+      h: 0.6,
+    });
+  }
   titleSlide.addText(`${customerName}\n${DELIVERABLE_LABELS[deliverableType]}`, {
     x: 0.6,
     y: 2.4,
@@ -36,6 +53,7 @@ export async function buildPptx(
     fontSize: 32,
     bold: true,
     align: "left",
+    color: accentColor,
   });
   if (firmName) {
     titleSlide.addText(firmName, {
@@ -55,7 +73,7 @@ export async function buildPptx(
 
   for (const section of content.sections) {
     let slide = pptx.addSlide();
-    addSlideHeading(slide, section.heading);
+    addSlideHeading(slide, section.heading, accentColor);
     let budget = CHARS_PER_SLIDE;
     let bullets: string[] = [];
 
@@ -63,7 +81,7 @@ export async function buildPptx(
       if (paragraph.length > budget && bullets.length > 0) {
         addBullets(slide, bullets);
         slide = pptx.addSlide();
-        addSlideHeading(slide, `${section.heading} (cont.)`);
+        addSlideHeading(slide, `${section.heading} (cont.)`, accentColor);
         budget = CHARS_PER_SLIDE;
         bullets = [];
       }
@@ -77,7 +95,7 @@ export async function buildPptx(
   return buffer as Buffer;
 }
 
-function addSlideHeading(slide: PptxGenJS.Slide, heading: string) {
+function addSlideHeading(slide: PptxGenJS.Slide, heading: string, color: string) {
   slide.addText(heading, {
     x: 0.5,
     y: 0.4,
@@ -85,6 +103,7 @@ function addSlideHeading(slide: PptxGenJS.Slide, heading: string) {
     h: 0.8,
     fontSize: 24,
     bold: true,
+    color,
   });
 }
 

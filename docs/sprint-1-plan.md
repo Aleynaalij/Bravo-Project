@@ -73,8 +73,9 @@ Content is Claude's first pass, not a substitute for compliance review before an
 | E4 | DOCX export via `docx` npm package, using branding if set | ✅ Done | `GET /api/projects/{id}/deliverables/{id}/export?format=docx` (GET + direct file, not the POST + signed-URL shape originally spec'd — see docs/TDD.md §2.6) |
 | E5 | PDF export via Puppeteer render of the same section content | ✅ Done (not Puppeteer) | `@react-pdf/renderer` instead — see docs/TDD.md §2.6 |
 | E6 | Download flow (signed Supabase Storage URL) | ✅ Done (no Storage) | Direct file streaming instead — exports are cheap to regenerate on demand |
+| E7 | Branding settings UI (firm name, logo, accent color) | ✅ Done | `/dashboard/branding`, Server Action in `src/app/dashboard/branding/actions.ts` (not the `PUT /accounts/me/branding` route `docs/openapi.yaml` describes — same REST-surface-is-aspirational convention as the rest of this app). Logo/color now actually flow into all three export builders — previously only `firm_name_override` was consumed; see docs/TDD.md §2.6 |
 
-Both DOCX and PDF builders were sanity-checked directly (valid ZIP/PDF binary output, sample files reviewed) — not yet tested through the full generate → review → download flow live, since that needs a working AI provider key.
+DOCX, PDF, and PPTX builders were sanity-checked directly, including with a real embedded logo and accent color (valid ZIP/PDF binary output confirmed via unzip/content-stream inspection, not just "didn't throw") — not yet tested through the full generate → review → download flow live, since that needs a working AI provider key.
 
 ## Suggested Sequencing (2-week sprint)
 

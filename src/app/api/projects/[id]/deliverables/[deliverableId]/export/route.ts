@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAccountId, UnauthorizedError } from "@/lib/auth/session";
 import { getProject } from "@/lib/projects/service";
 import { getDeliverableWithContent } from "@/lib/generation/deliverables";
-import { getBranding } from "@/lib/export/branding";
+import { getBranding } from "@/lib/branding";
 import { buildDocx } from "@/lib/export/docx";
 import { buildPdf } from "@/lib/export/pdf";
 import { buildPptx } from "@/lib/export/pptx";
