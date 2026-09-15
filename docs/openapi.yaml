@@ -1,13 +1,13 @@
 openapi: 3.1.0
 info:
-  title: PurviewPilot.ai API
+  title: BravoPilot.ai API
   description: >
-    MVP REST API for PurviewPilot.ai — project intake, AI-generated deliverables,
+    MVP REST API for BravoPilot.ai — project intake, AI-generated deliverables,
     and knowledge base administration. Auth is handled by Supabase Auth; this
     surface covers application resources built on top of it.
   version: 0.1.0-mvp
 servers:
-  - url: https://app.purviewpilot.ai/api
+  - url: https://app.bravopilot.ai/api
     description: Production
   - url: http://localhost:3000/api
     description: Local development

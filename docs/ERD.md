@@ -1,4 +1,4 @@
-# PurviewPilot.ai — Database ERD (MVP)
+# BravoPilot.ai — Database ERD (MVP)
 
 **Status:** Draft v1
 **Target DB:** Supabase Postgres (MVP) — schema deliberately avoids Postgres-only constructs beyond `jsonb`, so it ports cleanly to Azure SQL for the target architecture.
@@ -137,7 +137,7 @@ One row per paying customer (an individual consultant, or later a firm/MSP with 
 Individual login identities. MVP is effectively 1 user : 1 account; the table exists as a distinct entity from day one so Partner/Enterprise multi-seat accounts (Phase 2) don't require a schema migration — just relaxing the 1:1 assumption in application logic.
 
 ### branding
-1:1 with account. Used to stamp exported DOCX/PDF deliverables with the consultant's/firm's own branding rather than PurviewPilot's.
+1:1 with account. Used to stamp exported DOCX/PDF deliverables with the consultant's/firm's own branding rather than BravoPilot's.
 
 ### subscriptions
 1:1 with account. Mirrors Stripe subscription state; updated via Stripe webhook handler.

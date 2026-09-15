@@ -1,4 +1,4 @@
-# PurviewPilot.ai — Validation Checklist
+# BravoPilot.ai — Validation Checklist
 
 Running list of what's been live-tested (in a real browser, against the real deployed app) versus what's been built and verified only at the database/code level. Kept up to date as we build; work through this once we pause building rather than stopping for each item as it lands.
 
