@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAccountId } from "@/lib/auth/session";
 import { getBranding } from "@/lib/branding";
 import { getSubscription } from "@/lib/billing/service";
+import { getSeatLimit } from "@/lib/billing/seats";
 import { listTeamMembers } from "@/lib/team/service";
 import { listAuditLog, AUDIT_ACTION_LABELS } from "@/lib/audit/service";
 import { BrandingForm } from "../branding/branding-form";
@@ -89,7 +90,12 @@ export default async function SettingsPage({
           </Card>
 
           <Card className="flex flex-col gap-3">
-            <h2 className="font-medium">Team</h2>
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="font-medium">Team</h2>
+              <span className="text-xs text-muted">
+                {teamMembers.length} / {getSeatLimit(subscription?.plan ?? "trial")} seats
+              </span>
+            </div>
             <p className="text-sm text-muted">
               Everyone below shares full access to this account&apos;s projects and deliverables.
             </p>
