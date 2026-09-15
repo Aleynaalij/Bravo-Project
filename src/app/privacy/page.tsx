@@ -48,14 +48,14 @@ export default function PrivacyPage() {
       </p>
 
       <h2>4. Who We Share Information With</h2>
-      <p>We use the following subprocessors to provide the service. We don&apos;t share your information with anyone beyond what&apos;s needed to run BravoPilot:</p>
-      <ul>
-        <li><strong>Supabase</strong> — database, authentication, and (where used) file storage.</li>
-        <li><strong>Vercel</strong> — application hosting.</li>
-        <li><strong>Stripe</strong> — payment processing and subscription billing.</li>
-        <li><strong>OpenAI or Microsoft Azure OpenAI</strong> — AI-generated drafting, per §3 above.</li>
-        <li>[Add Sentry here once a live DSN/account is configured — used for error tracking.]</li>
-      </ul>
+      <p>
+        We use a small set of subprocessors to provide the service, and don&apos;t share your
+        information with anyone beyond what&apos;s needed to run BravoPilot. The current, detailed
+        list — what each one does, what data it touches, and where it&apos;s hosted — is maintained
+        on our <a href="/subprocessors">Sub-processors</a> page rather than duplicated here, so it
+        stays accurate as our infrastructure changes. A business customer needing a Data Processing
+        Agreement covering these subprocessors can find one at <a href="/dpa">/dpa</a>.
+      </p>
       <p>We may also disclose information if required by law or to protect the rights, safety, or property of BravoPilot or others.</p>
 
       <h2>5. Data Retention &amp; Deletion</h2>
