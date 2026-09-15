@@ -1,11 +1,14 @@
-import { Document, Page, Text, View, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
+import { Document, Page, Text, View, Image, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
 import type { DeliverableContent } from "@/lib/validation/deliverable";
 import type { DeliverableType } from "@/lib/domain/enums";
 import { DELIVERABLE_LABELS } from "@/lib/domain/labels";
-import type { BrandingInfo } from "./branding";
+import type { BrandingInfo } from "@/lib/branding";
+import { resolveAccentColor } from "@/lib/branding";
+import { fetchLogoAsset } from "./logo";
 
 const styles = StyleSheet.create({
   page: { padding: 48, fontSize: 11, fontFamily: "Helvetica" },
+  logo: { width: 120, marginBottom: 10 },
   title: { fontSize: 18, marginBottom: 4 },
   firmName: { fontSize: 10, fontStyle: "italic", marginBottom: 8, color: "#555555" },
   disclaimer: { fontSize: 9, fontStyle: "italic", color: "#996600", marginBottom: 16 },
@@ -25,11 +28,19 @@ export async function buildPdf(
   branding: BrandingInfo | null,
 ): Promise<Buffer> {
   const firmName = branding?.firmNameOverride;
+  const accentColor = `#${resolveAccentColor(branding?.primaryColor)}`;
+  const logo = branding?.logoUrl ? await fetchLogoAsset(branding.logoUrl) : null;
 
   const doc = (
     <Document>
       <Page size="A4" style={styles.page}>
-        <Text style={styles.title}>
+        {logo && (
+          // react-pdf's Image renders into the PDF document, not the DOM —
+          // jsx-a11y's alt-text rule doesn't apply here.
+          // eslint-disable-next-line jsx-a11y/alt-text
+          <Image style={styles.logo} src={{ data: logo.buffer, format: logo.contentType === "image/png" ? "png" : "jpg" }} />
+        )}
+        <Text style={{ ...styles.title, color: accentColor }}>
           {customerName} — {DELIVERABLE_LABELS[deliverableType]}
         </Text>
         {firmName && <Text style={styles.firmName}>{firmName}</Text>}
@@ -38,7 +49,7 @@ export async function buildPdf(
         </Text>
         {content.sections.map((section, i) => (
           <View key={i}>
-            <Text style={styles.heading}>{section.heading}</Text>
+            <Text style={{ ...styles.heading, color: accentColor }}>{section.heading}</Text>
             {section.paragraphs.map((paragraph, j) => (
               <Text key={j} style={styles.paragraph}>
                 {paragraph}

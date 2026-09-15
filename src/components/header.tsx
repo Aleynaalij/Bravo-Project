@@ -35,6 +35,9 @@ export async function Header() {
           <Link href="/dashboard/billing" className="text-muted hover:text-foreground">
             Billing
           </Link>
+          <Link href="/dashboard/branding" className="text-muted hover:text-foreground">
+            Branding
+          </Link>
           {userRow?.is_platform_admin && (
             <Link href="/admin/knowledge-base" className="text-muted hover:text-foreground">
               Knowledge Base
