@@ -10,6 +10,7 @@ import { BrandingForm } from "../branding/branding-form";
 import { ChangePasswordForm } from "./change-password-form";
 import { DeleteAccountForm } from "./delete-account-form";
 import { TeamSection } from "./team-section";
+import { MfaSection } from "./mfa-section";
 import { Header } from "@/components/header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -104,6 +105,11 @@ export default async function SettingsPage({
           <Card className="flex flex-col gap-3">
             <h2 className="font-medium">Security</h2>
             <ChangePasswordForm />
+          </Card>
+
+          <Card className="flex flex-col gap-3">
+            <h2 className="font-medium">Two-factor authentication</h2>
+            <MfaSection />
           </Card>
 
           <Card className="flex flex-col gap-3">
