@@ -57,6 +57,13 @@ Mike asked for the platform to cover everything sweepable from bravocg.com, not 
 - ⚠️ The 4 new services (`cloud_migration`, `app_modernization`, `sharepoint`, `analytics_ai`) now retrieve real Knowledge Base entries (3 each) — content quality and retrieval relevance not yet checked against actual generated output, since that requires live AI generation (same Azure OpenAI gap as the rest of the catalog).
 - 🚫 None of the 18 deliverable types, old or new, have been exercised through live AI generation from this environment. The 4 new flagship types specifically also need: HLD's 4 new per-service design sections confirmed to actually appear/omit correctly in real output (same check LLD needed for its original 8); the new KB entries confirmed to actually get retrieved and referenced (not just present in the table); and each new template's federal/GCC-High-specific guidance confirmed to surface correctly when compliance notes reference it.
 
+## Interactive demo (`/demo`)
+
+- ✅ Full interactive flow verified via a throwaway no-auth preview route + Playwright before merging (not just "it compiles"): unchecking a service correctly removes its gated deliverable from Step 2 and re-adds it on re-check; Generate shows a loading state then reveals results; Edit → Save shows the "demo only, not stored" confirmation. Screenshotted at each stage.
+- ✅ All 9 exports (3 canned deliverables × DOCX/PDF/PPTX) confirmed as structurally valid files — `file` correctly identifies the DOCX/PPTX as OOXML zip archives and the PDFs have a valid `%PDF` header — not just "the request returned 200."
+- ⚠️ Not clicked through on the actual deployed app from a real browser session — same class of gap as every other UI feature this session (this sandbox can't sign in to the live app).
+- Note for future maintenance: the 3 canned deliverables (Executive Summary, Statement of Work, DLP Design) are hand-written in `src/lib/demo/data.ts`, not derived from the real prompt templates — if those templates' section schemas change, the demo content won't automatically follow and could drift out of sync with what the real tool actually produces.
+
 ## Things to specifically check once we do test
 
 - Does a failed generation leave the UI in a sane state (no stuck "Generating…" button)?

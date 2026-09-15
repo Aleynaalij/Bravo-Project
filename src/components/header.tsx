@@ -29,6 +29,9 @@ export async function Header() {
           <Link href="/dashboard" className="text-muted hover:text-foreground">
             Projects
           </Link>
+          <Link href="/demo" className="text-muted hover:text-foreground">
+            Demo
+          </Link>
           <Link href="/dashboard/billing" className="text-muted hover:text-foreground">
             Billing
           </Link>
