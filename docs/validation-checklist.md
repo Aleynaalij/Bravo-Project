@@ -96,6 +96,19 @@ Mike asked to make sure the knowledge base is up to date. Rather than guess, que
 - ✅ Applied `supabase/migrations/0016_kb_parity_fill.sql` directly to the live project and re-queried: all 12 services now show exactly 3 entries (2 general, 1 Government) — 36 rows total, up from 28.
 - ⚠️ Content quality/retrieval relevance not checked against actual generated output — same live-AI-generation gap as the rest of the catalog (no Azure OpenAI access from this sandbox).
 
+## FileVault (`/dashboard/vault`)
+
+Mike asked for a place where generated docs are automatically there without needing to download first, organized by project, with view/print/download/email and a built-in PDF viewer.
+
+- Deliberately doesn't add a second copy of generated files in Storage — `deliverable_versions.content` already persists forever the moment a deliverable is generated (existing architecture, `docs/TDD.md` §2.6), so "always there, no download required" was already true of the underlying data. What was actually missing was a single place to browse it across every project instead of only from within each project. FileVault is a gallery view over the same on-demand export pipeline the project detail page already uses, not new storage infrastructure.
+- ✅ Verified via a throwaway preview route + Playwright (mocked project/deliverable data, deleted before commit), against a real production build (`next build && next start` — see the dev-mode Turbopack hydration note earlier in this doc):
+  - The View button opens a modal with the correct `?disposition=inline` iframe URL and a separate `?disposition=inline`-free Download link; Close correctly unmounts it.
+  - All 9 DOCX/PDF/PPTX row links (3 formats × 3 mock deliverables) resolve to the correct per-deliverable export URLs.
+  - Email's `mailto:` construction doesn't throw and doesn't navigate the page away.
+  - Screenshotted at desktop and phone (390px) width — grouped-by-project layout wraps cleanly, no overlap.
+- ⚠️ The PDF iframe itself only showed the expected 401 (no real session in the preview) — actual PDF rendering inside the modal, against a deliverable with real generated content, not exercised (same network-egress block on the real Supabase host as every other write/read-path feature in this doc).
+- Email is a `mailto:` containing a link back into the app, not an actual attached file or server-sent email — there's no email-sending provider configured in this project, and a generated-on-demand file can't be attached to a `mailto:` link regardless. The recipient needs their own BravoPilot session to open the link; the UI copy says so.
+
 ## Things to specifically check once we do test
 
 - Does a failed generation leave the UI in a sane state (no stuck "Generating…" button)?

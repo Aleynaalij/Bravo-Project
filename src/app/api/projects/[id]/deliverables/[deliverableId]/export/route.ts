@@ -17,7 +17,12 @@ type Params = { params: Promise<{ id: string; deliverableId: string }> };
 // the Storage/signed-URL indirection at MVP scale — see docs/TDD.md §2.6.
 export async function GET(request: Request, { params }: Params) {
   const { id: projectId, deliverableId } = await params;
-  const format = new URL(request.url).searchParams.get("format");
+  const searchParams = new URL(request.url).searchParams;
+  const format = searchParams.get("format");
+  // "inline" lets the FileVault's built-in PDF viewer embed the file in an
+  // <iframe> instead of triggering a download — only meaningful for PDF,
+  // since browsers can't render DOCX/PPTX regardless of this header.
+  const disposition = searchParams.get("disposition") === "inline" ? "inline" : "attachment";
 
   if (format !== "docx" && format !== "pdf" && format !== "pptx") {
     return NextResponse.json(
@@ -58,7 +63,7 @@ export async function GET(request: Request, { params }: Params) {
     return new NextResponse(new Uint8Array(buffer), {
       headers: {
         "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "Content-Disposition": `attachment; filename="${filenameBase}.docx"`,
+        "Content-Disposition": `${disposition}; filename="${filenameBase}.docx"`,
       },
     });
   }
@@ -68,7 +73,7 @@ export async function GET(request: Request, { params }: Params) {
     return new NextResponse(new Uint8Array(buffer), {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${filenameBase}.pdf"`,
+        "Content-Disposition": `${disposition}; filename="${filenameBase}.pdf"`,
       },
     });
   }
@@ -77,7 +82,7 @@ export async function GET(request: Request, { params }: Params) {
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-      "Content-Disposition": `attachment; filename="${filenameBase}.pptx"`,
+      "Content-Disposition": `${disposition}; filename="${filenameBase}.pptx"`,
     },
   });
 }
