@@ -1,17 +1,15 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAccountId } from "@/lib/auth/session";
-import { createAndRunJob } from "@/lib/generation/jobs";
+import { enqueueGenerationJob } from "@/lib/generation/jobs";
 import { assertUnderGenerationRateLimit, GenerationRateLimitError } from "@/lib/generation/rate-limit";
 import { generateRequestSchema } from "@/lib/validation/deliverable";
-import { DELIVERABLE_LABELS } from "@/lib/domain/labels";
 
 export interface GenerateFormState {
   error?: string;
-  failedResults?: { deliverableType: string; errorMessage: string }[];
-  completedAt?: number;
+  jobIds?: string[];
+  enqueuedAt?: number;
 }
 
 export async function generateDeliverablesAction(
@@ -36,25 +34,16 @@ export async function generateDeliverablesAction(
     throw err;
   }
 
-  const failedResults: { deliverableType: string; errorMessage: string }[] = [];
-
+  // Enqueues and returns immediately — actual generation happens in the
+  // background (see src/lib/generation/jobs.ts and the cron route that
+  // processes the queue). The client polls /api/generation-jobs/[id] for
+  // each returned id and refreshes the page once they're all done; there's
+  // nothing to revalidate here yet, since none of them have run.
+  const jobIds: string[] = [];
   for (const deliverableType of parsed.data.deliverableTypes) {
-    const job = await createAndRunJob(supabase, projectId, deliverableType);
-    if (job.status === "failed") {
-      failedResults.push({
-        deliverableType: DELIVERABLE_LABELS[deliverableType] ?? deliverableType,
-        // Surfaced directly in the UI so a failure can be diagnosed from
-        // what the consultant sees on screen, without needing separate
-        // access to server/runtime logs.
-        errorMessage: job.error_message ?? "Unknown error",
-      });
-    }
+    const job = await enqueueGenerationJob(supabase, projectId, deliverableType);
+    jobIds.push(job.id);
   }
 
-  revalidatePath(`/dashboard/${projectId}`);
-
-  return {
-    completedAt: Date.now(),
-    failedResults: failedResults.length > 0 ? failedResults : undefined,
-  };
+  return { jobIds, enqueuedAt: Date.now() };
 }

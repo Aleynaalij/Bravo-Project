@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAccountId, UnauthorizedError } from "@/lib/auth/session";
 import { getProject } from "@/lib/projects/service";
 import { generateRequestSchema } from "@/lib/validation/deliverable";
-import { createAndRunJob } from "@/lib/generation/jobs";
+import { enqueueGenerationJob } from "@/lib/generation/jobs";
 import { assertUnderGenerationRateLimit, GenerationRateLimitError } from "@/lib/generation/rate-limit";
 
 type Params = { params: Promise<{ id: string }> };
@@ -45,11 +45,13 @@ export async function POST(request: Request, { params }: Params) {
     );
   }
 
-  // Runs sequentially and synchronously (see lib/generation/run.ts) — fine
-  // for MVP's 1-3 deliverable types per request.
+  // Enqueues and returns immediately — a cron-processed queue actually
+  // runs each job in the background now (src/lib/generation/jobs.ts).
+  // Poll GET /api/generation-jobs/[id] for status, per job id returned
+  // here.
   const jobs = [];
   for (const deliverableType of parsed.data.deliverableTypes) {
-    jobs.push(await createAndRunJob(supabase, id, deliverableType));
+    jobs.push(await enqueueGenerationJob(supabase, id, deliverableType));
   }
 
   return NextResponse.json(jobs, { status: 202 });
