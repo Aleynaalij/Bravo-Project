@@ -23,6 +23,7 @@ export async function Header() {
 
   const navItems: NavItem[] = [
     { href: "/dashboard", label: "Projects" },
+    { href: "/dashboard/vault", label: "FileVault" },
     { href: "/demo", label: "Demo" },
     { href: "/dashboard/billing", label: "Billing" },
     { href: "/dashboard/settings", label: "Settings" },
