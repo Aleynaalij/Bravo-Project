@@ -16,7 +16,11 @@ export async function GET(request: Request) {
     }
   }
 
+  // A failed exchange on the password-recovery path means the reset link
+  // was invalid, expired, or already used — send them to request a fresh
+  // one instead of a generic login error that doesn't explain why.
+  const errorRedirect = next.startsWith("/reset-password") ? "/forgot-password" : "/login";
   return NextResponse.redirect(
-    `${origin}/login?error=${encodeURIComponent("Could not authenticate")}`,
+    `${origin}${errorRedirect}?error=${encodeURIComponent("Could not authenticate")}`,
   );
 }
