@@ -20,7 +20,12 @@ export default async function KnowledgeBaseAdminPage() {
             <Link href="/dashboard" className="text-sm text-brand hover:underline">
               &larr; Back to projects
             </Link>
-            <h1 className="mt-4 text-2xl font-semibold">Knowledge Base</h1>
+            <h1 className="mb-1 mt-4 text-2xl font-semibold">Knowledge Base</h1>
+            <p className="max-w-md text-sm text-muted">
+              Reference content tagged by service and industry that every AI generation pulls
+              from, so deliverables start from real Statement-of-Work language instead of a
+              blank page.
+            </p>
           </div>
           <LinkButton href="/admin/knowledge-base/new">New entry</LinkButton>
         </div>
