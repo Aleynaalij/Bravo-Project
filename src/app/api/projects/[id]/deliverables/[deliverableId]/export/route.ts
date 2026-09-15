@@ -7,6 +7,7 @@ import { getBranding } from "@/lib/branding";
 import { buildDocx } from "@/lib/export/docx";
 import { buildPdf } from "@/lib/export/pdf";
 import { buildPptx } from "@/lib/export/pptx";
+import { logUsageEvent } from "@/lib/usage/service";
 
 type Params = { params: Promise<{ id: string; deliverableId: string }> };
 
@@ -54,6 +55,15 @@ export async function GET(request: Request, { params }: Params) {
       { status: 404 },
     );
   }
+
+  // Fire-and-forget, best-effort — see logUsageEvent's own docstring. The
+  // one genuinely new usage signal this project didn't already track
+  // anywhere: whether a generated deliverable is ever actually exported.
+  await logUsageEvent(supabase, {
+    accountId,
+    eventType: "deliverable.exported",
+    metadata: { deliverableType: deliverable.type, format, disposition },
+  });
 
   const branding = await getBranding(supabase, accountId);
   const filenameBase = `${project.customer_name}-${deliverable.type}`.replace(/[^a-z0-9-]+/gi, "_");
