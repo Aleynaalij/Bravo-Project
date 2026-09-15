@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAccountId, UnauthorizedError } from "@/lib/auth/session";
 import { getStripeClient, getPriceId, type BillingPlan } from "@/lib/billing/stripe";
 import { ensureStripeCustomer } from "@/lib/billing/service";
+import { countTeamMembers } from "@/lib/team/service";
 
 const checkoutRequestSchema = z.object({
   plan: z.enum(["consultant", "professional"]),
@@ -44,11 +45,17 @@ export async function POST(request: Request) {
   try {
     const stripe = getStripeClient();
     const customerId = await ensureStripeCustomer(stripe, accountId, user.email);
+    // Checkout can happen after teammates are already on the account (an
+    // owner subscribing partway through using a trial with a team already
+    // invited) — bill for the seats that actually exist from day one
+    // rather than starting at 1 and relying on the next invite/remove to
+    // correct it.
+    const quantity = await countTeamMembers(supabase, accountId);
 
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer: customerId,
-      line_items: [{ price: getPriceId(plan), quantity: 1 }],
+      line_items: [{ price: getPriceId(plan), quantity: Math.max(quantity, 1) }],
       success_url: `${siteUrl}/dashboard/billing?checkout=success`,
       cancel_url: `${siteUrl}/dashboard/billing?checkout=cancelled`,
       metadata: { account_id: accountId, plan },

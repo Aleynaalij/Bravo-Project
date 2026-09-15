@@ -133,6 +133,12 @@ export default async function SettingsPage({
             </div>
             <p className="text-sm text-muted">
               Current plan: <span className="font-medium text-foreground">{subscription?.plan ?? "trial"}</span>
+              {subscription?.stripe_subscription_id && (
+                <>
+                  {" "}
+                  &middot; billed for {subscription.quantity} seat{subscription.quantity === 1 ? "" : "s"}
+                </>
+              )}
             </p>
             <Link href="/dashboard/billing" className="text-sm text-brand hover:underline w-fit">
               Manage billing &rarr;

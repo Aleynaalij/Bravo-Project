@@ -10,6 +10,7 @@ export interface SubscriptionRow {
   status: string;
   plan: string;
   current_period_end: string | null;
+  quantity: number;
 }
 
 export async function getSubscription(
@@ -67,6 +68,7 @@ export async function upsertSubscriptionFromStripe(params: {
   status: string;
   plan: BillingPlan | "trial";
   currentPeriodEnd: string | null;
+  quantity: number;
 }): Promise<void> {
   const admin = createAdminClient();
 
@@ -78,11 +80,55 @@ export async function upsertSubscriptionFromStripe(params: {
       status: params.status,
       plan: params.plan,
       current_period_end: params.currentPeriodEnd,
+      quantity: params.quantity,
     },
     { onConflict: "account_id" },
   );
 
   await admin.from("accounts").update({ plan: params.plan }).eq("id", params.accountId);
+}
+
+// Pushes a new seat count to the subscription item's quantity so Stripe's
+// bill (and its own proration) actually reflects team size — the seat cap
+// in src/lib/billing/seats.ts is a separate, hard ceiling on top of this,
+// not replaced by it. A no-op (not an error) when the account has no
+// active Stripe subscription yet — nothing to sync to until they actually
+// check out. Called best-effort from inviteTeamMemberAction/
+// removeTeamMemberAction: a Stripe hiccup (or, in this environment,
+// STRIPE_SECRET_KEY simply not being configured) shouldn't block adding or
+// removing a teammate — that's a DB/RLS truth, billing is a downstream
+// reflection of it, and a drift here is recoverable, whereas failing the
+// team-management action itself over a billing API blip isn't a fair
+// trade.
+export async function syncSubscriptionQuantity(
+  stripe: Stripe,
+  accountId: string,
+  quantity: number,
+): Promise<void> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("subscriptions")
+    .select("stripe_subscription_id")
+    .eq("account_id", accountId)
+    .maybeSingle();
+
+  const subscriptionId = data?.stripe_subscription_id;
+  if (!subscriptionId) return;
+
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+  const itemId = subscription.items.data[0]?.id;
+  if (!itemId) return;
+
+  await stripe.subscriptions.update(subscriptionId, {
+    items: [{ id: itemId, quantity }],
+    proration_behavior: "create_prorations",
+  });
+
+  // Reflect the new quantity locally right away rather than waiting on the
+  // customer.subscription.updated webhook round trip — the Settings page
+  // reads this table, not Stripe directly, and shouldn't show a stale
+  // count between now and whenever that webhook lands.
+  await admin.from("subscriptions").update({ quantity }).eq("account_id", accountId);
 }
 
 export async function getAccountIdForStripeCustomer(
