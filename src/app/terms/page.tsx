@@ -83,9 +83,10 @@ export default function TermsPage() {
       <p>
         BravoPilot is built on and relies on third-party infrastructure to operate, including
         database/authentication hosting, application hosting, payment processing, and an AI model
-        provider. A current list is in our <a href="/privacy">Privacy Policy</a>. Your use of
-        BravoPilot is also subject to the acceptable-use terms of the AI model provider processing
-        your requests.
+        provider. A current, detailed list is on our <a href="/subprocessors">Sub-processors</a>{" "}
+        page. Your use of BravoPilot is also subject to the acceptable-use terms of the AI model
+        provider processing your requests. If your organization needs a signed Data Processing
+        Agreement covering these subprocessors, see <a href="/dpa">/dpa</a>.
       </p>
 
       <h2>8. Termination &amp; Deletion</h2>

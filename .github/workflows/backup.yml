@@ -1,0 +1,38 @@
+name: Nightly DB Backup
+
+# Interim fix for a real gap: this project's Supabase org is on the free
+# plan, which has no automatic backups of any kind (see
+# docs/BACKUP_RESTORE.md). This dumps the full database nightly and keeps
+# it as a workflow artifact until a paid plan (or a longer-term storage
+# target) replaces it.
+on:
+  schedule:
+    - cron: "17 8 * * *" # 08:17 UTC daily — off the hour, avoids the top-of-hour scheduling pile-up GitHub's own docs warn about
+  workflow_dispatch: {} # manual "back this up right now" trigger
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check secret is configured
+        run: |
+          if [ -z "${{ secrets.SUPABASE_DB_URL }}" ]; then
+            echo "::error::SUPABASE_DB_URL secret is not set — see docs/BACKUP_RESTORE.md §3. This workflow cannot back anything up until a repo admin adds it."
+            exit 1
+          fi
+
+      - name: Install postgresql-client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Dump database
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          pg_dump --format=plain --no-owner --no-privileges "$SUPABASE_DB_URL" > "db-backup-$(date -u +%Y-%m-%d).sql"
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ github.run_id }}
+          path: db-backup-*.sql
+          retention-days: 30
