@@ -11,12 +11,15 @@
  * egress policy), so if Bravo's own brand should take priority over the
  * Microsoft-product-family look, swap the values below.
  *
- * Committing to a single light theme rather than a light+dark pair: this
- * is an internal consulting tool, not a consumer app, and a half-themed
- * dark mode (some components styled, some not) would look worse than no
- * dark mode at all. Revisit if that assumption changes.
+ * Light tokens live on bare :root. Dark overrides apply twice: once under
+ * prefers-color-scheme for a user who hasn't picked explicitly (guarded by
+ * :not([data-theme="light"]) so an explicit light choice always wins), and
+ * again under [data-theme="dark"] for an explicit dark choice regardless of
+ * OS setting. See src/lib/theme.ts for the no-FOUC bootstrap script and
+ * src/components/theme-toggle.tsx for the control.
  */
 :root {
+  color-scheme: light;
   --background: #f6f7f9;
   --foreground: #0f1a2b;
   --muted: #5b6674;
@@ -42,6 +45,66 @@
   --info-bg: #eff6ff;
   --info-text: #1d4ed8;
   --info-border: #bfdbfe;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --background: #0d1117;
+    --foreground: #e6edf3;
+    --muted: #8b96a5;
+    --border: #2a323c;
+    --surface: #151b23;
+    --surface-hover: #1c232c;
+
+    --brand: #4a9eff;
+    --brand-dark: #8dc3ff;
+    --brand-light: #16283d;
+    --accent-purple: #b57ee0;
+    --gradient-brand: linear-gradient(135deg, #4a9eff 0%, #b57ee0 100%);
+
+    --success-bg: #0d2a1d;
+    --success-text: #4ade80;
+    --success-border: #16532f;
+    --error-bg: #2d1414;
+    --error-text: #f87171;
+    --error-border: #5c2222;
+    --warning-bg: #2b2109;
+    --warning-text: #facc15;
+    --warning-border: #55420f;
+    --info-bg: #10233d;
+    --info-text: #60a5fa;
+    --info-border: #1e3a63;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #0d1117;
+  --foreground: #e6edf3;
+  --muted: #8b96a5;
+  --border: #2a323c;
+  --surface: #151b23;
+  --surface-hover: #1c232c;
+
+  --brand: #4a9eff;
+  --brand-dark: #8dc3ff;
+  --brand-light: #16283d;
+  --accent-purple: #b57ee0;
+  --gradient-brand: linear-gradient(135deg, #4a9eff 0%, #b57ee0 100%);
+
+  --success-bg: #0d2a1d;
+  --success-text: #4ade80;
+  --success-border: #16532f;
+  --error-bg: #2d1414;
+  --error-text: #f87171;
+  --error-border: #5c2222;
+  --warning-bg: #2b2109;
+  --warning-text: #facc15;
+  --warning-border: #55420f;
+  --info-bg: #10233d;
+  --info-text: #60a5fa;
+  --info-border: #1e3a63;
 }
 
 @theme inline {
