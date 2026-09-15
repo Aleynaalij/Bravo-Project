@@ -135,6 +135,12 @@ A full adversarial due-diligence review of the platform found several real gaps.
 - ✅ **Sentry wiring** — `next build` succeeds cleanly with `withSentryConfig` applied and no build-time errors or warnings. Not verified: an actual event reaching a real Sentry project, since no live DSN/account exists in this environment — the SDK's own well-documented no-DSN no-op behavior is what's relied on until one is configured.
 - ✅ **Terms of Service / Privacy Policy** — verified via a real production server + Playwright: both pages render correctly with full content and the draft-disclaimer banner, footer links from login/signup/Settings resolve to the right URLs, phone-width (390px) layout has no overlap. Content is a first draft, explicitly not reviewed by counsel — every placeholder (legal entity name, jurisdiction, contact email, hosting region) needs a real answer before this is relied upon.
 
+## Red-team review remediation (Phase 1)
+
+"Before charging real money at scale" tier from the audit's remediation plan. Landing as several small PRs rather than one big one, per item.
+
+- ✅ **Supabase advisor performance fixes** — `supabase/migrations/0018_performance_fixes.sql`, applied directly to the live project and confirmed clean via a fresh advisor check: both previously-flagged `auth_rls_initplan` findings (`knowledge_base_entries`/`prompt_templates` SELECT policies calling `auth.role()` per row) are gone after wrapping as `(select auth.role())`; all three previously-flagged `unindexed_foreign_keys` findings are gone after adding the covering indexes. The advisor now reports the three new indexes as `unused_index` (expected — no query traffic yet) and the pre-existing `multiple_permissive_policies` finding on the same two tables, which is out of scope here (not on the audit's list; fixing it means merging the admin-write and public-read policies, a bigger behavioral change than this pass is doing).
+
 ## Style direction: mobile nav drawer + display type
 
 Mike asked whether the UI should take cues from Microsoft Learn's mobile site (own branding/palette, no emoji) to read as more of a finished commercial product. Mocked the direction as a standalone artifact first, got sign-off, then applied the two pieces of it that were concrete UI changes rather than an ongoing visual-language shift.
