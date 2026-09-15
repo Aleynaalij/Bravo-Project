@@ -125,6 +125,16 @@ Small follow-up suggestion Mike accepted: a "Recent activity" panel on the dashb
 - ✅ Verified via a throwaway preview route + Playwright: since this list spans multiple projects (unlike FileVault, where the project name is already the group heading), added a `showCustomerName` prop to `VaultEntryCard` so each row reads "Customer — Deliverable" here specifically; confirmed FileVault itself is unaffected (prop defaults to `false`, not passed there). Screenshotted at desktop and phone (390px) width — wraps cleanly, no overlap.
 - Hidden entirely (not an empty state) when there's nothing generated yet, consistent with how a brand-new account's dashboard looks today.
 
+## Red-team review remediation (Phase 0)
+
+A full adversarial due-diligence review of the platform found several real gaps. This closes the four items scoped as "fix before the next signup":
+
+- ✅ **SEC-01 (PostgREST filter injection)** — fixed and verified: `npx tsc`/`eslint`/`next build` all clean, confirmed no other instance of the same string-interpolated-filter pattern exists anywhere else in `src/` (`grep` for `.or(\`` and similar). Behavior verified unchanged — same rows returned, now via application-side filtering instead of a query string.
+- ✅ **Generation rate limiting** — verified the underlying SQL shape (Supabase embedded-resource filter joining `generation_jobs` to `projects` on `account_id`) directly against the live database; ran the equivalent raw SQL and confirmed it executes and counts correctly. Both entry points into the generation pipeline (the Server Action and the REST route) are gated identically — checked directly, not just one and assumed the other matched.
+- ✅ **Auth rate limiting** — the in-memory sliding-window limiter's logic verified directly via a standalone script: allows exactly the configured ceiling per key per window, blocks beyond it, and tracks independent keys independently.
+- ✅ **Sentry wiring** — `next build` succeeds cleanly with `withSentryConfig` applied and no build-time errors or warnings. Not verified: an actual event reaching a real Sentry project, since no live DSN/account exists in this environment — the SDK's own well-documented no-DSN no-op behavior is what's relied on until one is configured.
+- ✅ **Terms of Service / Privacy Policy** — verified via a real production server + Playwright: both pages render correctly with full content and the draft-disclaimer banner, footer links from login/signup/Settings resolve to the right URLs, phone-width (390px) layout has no overlap. Content is a first draft, explicitly not reviewed by counsel — every placeholder (legal entity name, jurisdiction, contact email, hosting region) needs a real answer before this is relied upon.
+
 ## Things to specifically check once we do test
 
 - Does a failed generation leave the UI in a sane state (no stuck "Generating…" button)?

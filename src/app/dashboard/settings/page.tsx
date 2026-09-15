@@ -128,6 +128,16 @@ export default async function SettingsPage({
             </Card>
           )}
         </div>
+
+        <p className="mt-8 text-center text-xs text-muted">
+          <Link href="/terms" className="hover:underline">
+            Terms of Service
+          </Link>{" "}
+          &middot;{" "}
+          <Link href="/privacy" className="hover:underline">
+            Privacy Policy
+          </Link>
+        </p>
       </main>
     </>
   );

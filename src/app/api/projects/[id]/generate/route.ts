@@ -4,6 +4,7 @@ import { requireAccountId, UnauthorizedError } from "@/lib/auth/session";
 import { getProject } from "@/lib/projects/service";
 import { generateRequestSchema } from "@/lib/validation/deliverable";
 import { createAndRunJob } from "@/lib/generation/jobs";
+import { assertUnderGenerationRateLimit, GenerationRateLimitError } from "@/lib/generation/rate-limit";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -11,11 +12,21 @@ export async function POST(request: Request, { params }: Params) {
   const { id } = await params;
   const supabase = await createClient();
 
+  let accountId: string;
   try {
-    await requireAccountId(supabase);
+    accountId = await requireAccountId(supabase);
   } catch (err) {
     if (err instanceof UnauthorizedError) {
       return NextResponse.json({ code: "unauthorized", message: err.message }, { status: 401 });
+    }
+    throw err;
+  }
+
+  try {
+    await assertUnderGenerationRateLimit(supabase, accountId);
+  } catch (err) {
+    if (err instanceof GenerationRateLimitError) {
+      return NextResponse.json({ code: "rate_limited", message: err.message }, { status: 429 });
     }
     throw err;
   }
