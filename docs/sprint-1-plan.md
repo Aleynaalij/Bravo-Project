@@ -54,6 +54,8 @@ Out of scope (explicitly deferred):
 
 Content is Claude's first pass, not a substitute for compliance review before any of it reaches a real client — see PRD §10 open question on regulatory review process. Epic D (AI Generation Pipeline) is what actually calls these templates — not built yet.
 
+**KB parity fill (post-launch):** C4's original 13-entry seed left `data_lifecycle_management`, `insider_risk_management`, `ediscovery`, `information_protection`, and `communication_compliance` with only 1-2 entries each, versus the 3-entry (2 general + 1 Government) pattern every other service in the catalog follows — a real content gap found by querying the live table, not a hypothetical one. `supabase/migrations/0016_kb_parity_fill.sql` adds the 8 missing entries; the knowledge base is now a consistent 3 entries × 12 services = 36 rows total.
+
 ### Epic D — AI Generation Pipeline
 | # | Task | Status | Notes |
 |---|---|---|---|

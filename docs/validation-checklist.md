@@ -89,6 +89,13 @@ Mike asked for a real settings tab (change password, delete account, etc.), ligh
 - ⚠️ Change-password and delete-account Server Actions not exercised against a live Supabase session (same network block) — reviewed against the existing `requireAccountId`/admin-client patterns already live-verified elsewhere (billing, KB admin).
 - ⚠️ Not clicked through on the actual deployed app from a real signed-in browser session — same class of gap as every other UI feature in this doc.
 
+## Knowledge base parity fill
+
+Mike asked to make sure the knowledge base is up to date. Rather than guess, queried the live table directly (`select service_type, count(*) ... group by service_type`) and found a real, concrete gap: 5 of 12 services had only 1-2 `knowledge_base_entries` rows instead of the 3-entry (2 general + 1 Government) pattern every other service already followed.
+
+- ✅ Applied `supabase/migrations/0016_kb_parity_fill.sql` directly to the live project and re-queried: all 12 services now show exactly 3 entries (2 general, 1 Government) — 36 rows total, up from 28.
+- ⚠️ Content quality/retrieval relevance not checked against actual generated output — same live-AI-generation gap as the rest of the catalog (no Azure OpenAI access from this sandbox).
+
 ## Things to specifically check once we do test
 
 - Does a failed generation leave the UI in a sane state (no stuck "Generating…" button)?
