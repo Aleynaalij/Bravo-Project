@@ -11,10 +11,16 @@ export function VaultEntryCard({
   projectId,
   customerName,
   entry,
+  showCustomerName = false,
 }: {
   projectId: string;
   customerName: string;
   entry: VaultEntry;
+  // FileVault already groups rows under a per-project heading, so
+  // repeating the customer name on every row would be redundant there.
+  // The dashboard's recent-activity widget spans multiple projects in one
+  // list, so it needs the name inline to stay legible.
+  showCustomerName?: boolean;
 }) {
   const [viewerOpen, setViewerOpen] = useState(false);
   const base = `/api/projects/${projectId}/deliverables/${entry.deliverableId}/export`;
@@ -31,7 +37,9 @@ export function VaultEntryCard({
     <>
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border py-3 last:border-b-0">
         <div>
-          <div className="font-medium">{label}</div>
+          <div className="font-medium">
+            {showCustomerName ? `${customerName} — ${label}` : label}
+          </div>
           <div className="text-xs text-muted">
             v{entry.versionNumber} &middot; {new Date(entry.generatedAt).toLocaleDateString()}
           </div>
