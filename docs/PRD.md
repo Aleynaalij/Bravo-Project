@@ -1,14 +1,14 @@
-# PurviewPilot.ai — Product Requirements Document (PRD)
+# BravoPilot.ai — Product Requirements Document (PRD)
 
 **Status:** Draft v1
 **Owner:** Mike
-**Last updated:** 2026-09-14
+**Last updated:** 2026-09-15
 
 ## 1. Summary
 
-PurviewPilot.ai is an AI-powered SaaS platform for Microsoft 365 Security, Compliance, and Purview consultants. A consultant completes a guided questionnaire about a customer engagement (industry, user count, licensing, project scope) and PurviewPilot generates client-ready deliverables — executive summaries, SOWs, architecture designs, implementation plans, testing procedures, and runbooks — in minutes instead of hours.
+BravoPilot.ai (formerly PurviewPilot — renamed once the platform expanded beyond Purview to cover all of Bravo Consulting Group's Microsoft practice areas, see §12) is an AI-powered SaaS platform for Bravo's Microsoft technology consultants — spanning Data Security & Compliance, Cloud Migration, App Modernization, SharePoint, and Analytics/Data/AI. A consultant completes a guided questionnaire about a customer engagement (industry, user count, licensing, project scope) and BravoPilot generates client-ready deliverables — executive summaries, SOWs, architecture designs, implementation plans, testing procedures, and runbooks — in minutes instead of hours.
 
-PurviewPilot does not replace the consultant. It replaces the 6-12 hours of documentation work that follows 2 hours of technical work, so one consultant can carry the documentation output of a full team.
+BravoPilot does not replace the consultant. It replaces the 6-12 hours of documentation work that follows 2 hours of technical work, so one consultant can carry the documentation output of a full team.
 
 ## 2. Problem Statement
 
@@ -132,3 +132,5 @@ Sourced from bravocg.com via web search (this environment's network egress polic
 Firm facts surfaced along the way, useful for Knowledge Base tone/positioning: Microsoft Solutions Partner (Modern Work) *and* a Certified AvePoint Professional Services (CAPS) Partner; founded 2007; offices in Virginia, West Virginia, and El Salvador; 3M+ users across client environments, 30 of 50 US states; Minority-Owned Small Business with a federal/defense/intelligence government-contracting track record (separate from the Modern Work partner status).
 
 Each new practice area gets exactly one flagship deliverable type (`cloud_migration_plan`, `app_modernization_plan`, `sharepoint_governance_plan`, `data_analytics_strategy`), gated to its service the same way DLP Design is gated to `dlp` — matching Purview's per-service "design" deliverable pattern rather than the deeper 3-4-deliverable depth Purview itself got. Revisit if a practice area needs Testing Guide/Runbooks-level depth later; the existing "always offered, itemize by service" documents (SOW, Testing Guide, UAT Plan, etc.) already generalize across all 12 services without needing practice-area-specific versions.
+
+**Rename: PurviewPilot → BravoPilot.** Once this expansion made "Purview" in the name misleading, Mike asked for naming suggestions; after a quick collision check against existing products (several names in the "-Pilot" family turned out to already be taken — ScopePilot, TenantPilot, StackPilot, PracticePilot), he chose **BravoPilot**. Renamed throughout the codebase and docs (this file included) — see the git history around 2026-09-15 for the full diff. The deployed Vercel project/domain was intentionally left as-is (not something this session has access to rename, and changing a live URL is a bigger operational decision than renaming code/docs).

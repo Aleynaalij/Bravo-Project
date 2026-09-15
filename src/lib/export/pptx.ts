@@ -24,8 +24,8 @@ export async function buildPptx(
 ): Promise<Buffer> {
   const firmName = branding?.firmNameOverride;
   const pptx = new PptxGenJS();
-  pptx.defineLayout({ name: "PURVIEWPILOT_16X9", width: 13.33, height: 7.5 });
-  pptx.layout = "PURVIEWPILOT_16X9";
+  pptx.defineLayout({ name: "BRAVOPILOT_16X9", width: 13.33, height: 7.5 });
+  pptx.layout = "BRAVOPILOT_16X9";
 
   const titleSlide = pptx.addSlide();
   titleSlide.addText(`${customerName}\n${DELIVERABLE_LABELS[deliverableType]}`, {

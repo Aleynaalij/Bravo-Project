@@ -1,8 +1,8 @@
-# PurviewPilot.ai — Technical Design Document (TDD)
+# BravoPilot.ai — Technical Design Document (TDD)
 
 **Status:** Draft v1
 **Scope:** MVP architecture (lean stack) + target enterprise architecture
-**Last updated:** 2026-09-14
+**Last updated:** 2026-09-15
 
 ## 1. Design Approach
 

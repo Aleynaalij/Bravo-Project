@@ -13,8 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PurviewPilot",
-  description: "AI-drafted Microsoft Purview security & compliance deliverables.",
+  title: "BravoPilot",
+  description:
+    "AI-drafted Microsoft consulting deliverables — security & compliance, cloud migration, app modernization, SharePoint, and analytics/AI.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
