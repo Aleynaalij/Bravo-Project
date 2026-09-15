@@ -7,7 +7,7 @@ import { VaultEntryCard } from "./vault/vault-entry-card";
 import { Header } from "@/components/header";
 import { LinkButton } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ServiceIcon, SparkleIcon } from "@/components/icons";
+import { ServiceIcon } from "@/components/icons";
 import { SERVICE_LABELS } from "@/lib/domain/labels";
 
 const RECENT_ACTIVITY_LIMIT = 5;
@@ -31,18 +31,24 @@ export default async function DashboardPage() {
     <>
       <Header />
       <main className="mx-auto max-w-3xl px-4 py-10">
-        <div
-          className="mb-8 flex flex-col gap-1 rounded-lg px-6 py-5 text-white"
-          style={{ backgroundImage: "var(--gradient-brand)" }}
-        >
-          <div className="flex items-center gap-2 text-sm font-medium text-white/80">
-            <SparkleIcon className="h-4 w-4" />
-            BravoPilot
-          </div>
-          <p className="text-lg font-semibold">
+        <div className="mb-10">
+          <h1
+            className="text-display font-bold tracking-tight"
+            style={{
+              backgroundImage: "var(--gradient-brand)",
+              WebkitBackgroundClip: "text",
+              backgroundClip: "text",
+              color: "transparent",
+            }}
+          >
             {projects.length === 0
-              ? "Let's draft your first client's Purview documentation."
-              : `${projects.length} project${projects.length === 1 ? "" : "s"} in flight — pick one up or start a new intake.`}
+              ? "Draft your first deliverable"
+              : `${projects.length} project${projects.length === 1 ? "" : "s"} in flight`}
+          </h1>
+          <p className="mt-3 max-w-md text-muted">
+            {projects.length === 0
+              ? "Start an intake for your first client engagement."
+              : "Pick one up or start a new intake."}
           </p>
         </div>
 

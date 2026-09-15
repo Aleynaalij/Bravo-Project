@@ -20,14 +20,25 @@ function matchLength(pathname: string, href: string): number {
   return -1;
 }
 
+// Shared by NavLinks (desktop inline nav) and MobileNav (drawer) so both
+// agree on which item is "active" without duplicating the matching logic.
+export function getActiveHref(pathname: string, items: NavItem[]): string | null {
+  let best: { href: string; length: number } | null = null;
+  for (const item of items) {
+    const length = matchLength(pathname, item.href);
+    if (length > (best?.length ?? -1)) best = { href: item.href, length };
+  }
+  return best ? best.href : null;
+}
+
 export function NavLinks({ items }: { items: NavItem[] }) {
   const pathname = usePathname();
-  const bestLength = Math.max(...items.map((item) => matchLength(pathname, item.href)));
+  const activeHref = getActiveHref(pathname, items);
 
   return (
     <>
       {items.map((item) => {
-        const isActive = bestLength >= 0 && matchLength(pathname, item.href) === bestLength;
+        const isActive = item.href === activeHref;
         return (
           <Link
             key={item.href}
