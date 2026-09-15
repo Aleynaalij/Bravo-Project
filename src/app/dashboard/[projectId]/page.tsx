@@ -6,6 +6,7 @@ import { listDeliverablesWithContent } from "@/lib/generation/deliverables";
 import { ServicesForm } from "./services-form";
 import { GenerateForm } from "./generate-form";
 import { DeliverableView } from "./deliverable-view";
+import { DeleteProjectButton } from "./delete-project-button";
 import { Header } from "@/components/header";
 import { Card } from "@/components/ui/card";
 
@@ -75,6 +76,14 @@ export default async function ProjectDetailPage({
             <DeliverableView key={deliverable.id} projectId={project.id} deliverable={deliverable} />
           ))}
         </div>
+
+        <Card className="mt-10 flex flex-col gap-3 border-error-border">
+          <h2 className="font-medium text-error-text">Danger zone</h2>
+          <p className="text-sm text-muted">
+            Permanently deletes this project and every generated deliverable. This can&apos;t be undone.
+          </p>
+          <DeleteProjectButton projectId={project.id} customerName={project.customer_name} />
+        </Card>
       </main>
     </>
   );
