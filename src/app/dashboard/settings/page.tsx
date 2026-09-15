@@ -4,9 +4,11 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAccountId } from "@/lib/auth/session";
 import { getBranding } from "@/lib/branding";
 import { getSubscription } from "@/lib/billing/service";
+import { listTeamMembers } from "@/lib/team/service";
 import { BrandingForm } from "../branding/branding-form";
 import { ChangePasswordForm } from "./change-password-form";
 import { DeleteAccountForm } from "./delete-account-form";
+import { TeamSection } from "./team-section";
 import { Header } from "@/components/header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,9 +18,9 @@ import { ThemeToggle } from "@/components/theme-toggle";
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ deleteError?: string }>;
+  searchParams: Promise<{ deleteError?: string; teamError?: string }>;
 }) {
-  const { deleteError } = await searchParams;
+  const { deleteError, teamError } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -26,11 +28,13 @@ export default async function SettingsPage({
   if (!user) redirect("/login");
 
   const accountId = await requireAccountId(supabase);
-  const [branding, subscription, userRow] = await Promise.all([
+  const [branding, subscription, userRow, teamMembers] = await Promise.all([
     getBranding(supabase, accountId),
     getSubscription(supabase, accountId),
     supabase.from("users").select("role, created_at").eq("id", user.id).single(),
+    listTeamMembers(supabase, accountId),
   ]);
+  const isOwner = userRow.data?.role === "owner";
 
   return (
     <>
@@ -46,6 +50,11 @@ export default async function SettingsPage({
         {deleteError && (
           <Alert variant="error" className="mb-6">
             {deleteError}
+          </Alert>
+        )}
+        {teamError && (
+          <Alert variant="error" className="mb-6">
+            {teamError}
           </Alert>
         )}
 
@@ -70,6 +79,14 @@ export default async function SettingsPage({
                 </dd>
               </div>
             </dl>
+          </Card>
+
+          <Card className="flex flex-col gap-3">
+            <h2 className="font-medium">Team</h2>
+            <p className="text-sm text-muted">
+              Everyone below shares full access to this account&apos;s projects and deliverables.
+            </p>
+            <TeamSection members={teamMembers} currentUserId={user.id} isOwner={isOwner} />
           </Card>
 
           <Card className="flex flex-col gap-3">
@@ -104,10 +121,12 @@ export default async function SettingsPage({
             </Link>
           </Card>
 
-          <Card className="flex flex-col gap-3 border-error-border">
-            <h2 className="font-medium text-error-text">Danger zone</h2>
-            <DeleteAccountForm email={user.email!} />
-          </Card>
+          {isOwner && (
+            <Card className="flex flex-col gap-3 border-error-border">
+              <h2 className="font-medium text-error-text">Danger zone</h2>
+              <DeleteAccountForm email={user.email!} />
+            </Card>
+          )}
         </div>
       </main>
     </>
