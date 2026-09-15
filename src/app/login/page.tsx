@@ -39,6 +39,9 @@ export default async function LoginPage({
             required
             className="rounded-md border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none"
           />
+          <Link href="/forgot-password" className="self-end text-xs text-brand hover:underline">
+            Forgot password?
+          </Link>
           <Button type="submit">Log in</Button>
         </form>
 
