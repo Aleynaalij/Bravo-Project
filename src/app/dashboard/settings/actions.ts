@@ -1,12 +1,15 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireAccountId } from "@/lib/auth/session";
+import { requireAccountOwner, ForbiddenError } from "@/lib/auth/session";
 import { getSubscription } from "@/lib/billing/service";
 import { getStripeClient } from "@/lib/billing/stripe";
 import { changePasswordSchema } from "@/lib/validation/settings";
+import { inviteTeamMemberSchema } from "@/lib/validation/team";
+import { countOwners } from "@/lib/team/service";
 
 export interface SettingsActionState {
   error?: string;
@@ -35,9 +38,12 @@ export async function changePasswordAction(
 
 // Irreversible: cancels any active Stripe subscription, deletes the
 // account row (cascades to users/branding/subscriptions/projects and
-// everything under them per docs/ERD.md), then deletes the Supabase Auth
-// user itself via the admin API — deleting the account row alone would
-// leave the person still able to log in with no account behind them.
+// everything under them per docs/ERD.md — every teammate loses access
+// immediately, not just the caller), then deletes the Supabase Auth user
+// itself via the admin API — deleting the account row alone would leave
+// the person still able to log in with no account behind them. Owner-only
+// now that an account can have more than one user: a teammate deleting
+// the whole account out from under everyone else would be a real footgun.
 export async function deleteAccountAction(formData: FormData): Promise<void> {
   const confirmation = String(formData.get("confirmation") ?? "");
 
@@ -51,7 +57,15 @@ export async function deleteAccountAction(formData: FormData): Promise<void> {
     redirect(`/dashboard/settings?deleteError=${encodeURIComponent("Email confirmation didn't match")}`);
   }
 
-  const accountId = await requireAccountId(supabase);
+  let accountId: string;
+  try {
+    ({ accountId } = await requireAccountOwner(supabase));
+  } catch (err) {
+    if (err instanceof ForbiddenError) {
+      redirect(`/dashboard/settings?deleteError=${encodeURIComponent(err.message)}`);
+    }
+    throw err;
+  }
 
   const subscription = await getSubscription(supabase, accountId);
   if (subscription?.stripe_subscription_id) {
@@ -68,4 +82,137 @@ export async function deleteAccountAction(formData: FormData): Promise<void> {
 
   await supabase.auth.signOut();
   redirect("/login?message=Your account has been deleted");
+}
+
+export interface TeamActionState {
+  error?: string;
+  success?: boolean;
+}
+
+export async function inviteTeamMemberAction(
+  _prevState: TeamActionState,
+  formData: FormData,
+): Promise<TeamActionState> {
+  const parsed = inviteTeamMemberSchema.safeParse({ email: String(formData.get("email") ?? "") });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Enter a valid email" };
+  }
+
+  let accountId: string;
+  try {
+    const supabase = await createClient();
+    ({ accountId } = await requireAccountOwner(supabase));
+  } catch (err) {
+    if (err instanceof ForbiddenError) return { error: err.message };
+    throw err;
+  }
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const admin = createAdminClient();
+  // invited_account_id is read by handle_new_auth_user() (migration 0017)
+  // to join the inviter's existing account instead of provisioning a new
+  // one — see that migration for the full trigger logic. redirectTo sends
+  // the invited teammate straight to set-password after the existing
+  // /auth/callback route exchanges their invite code for a session (no
+  // changes needed there — it already redirects to whatever "next" says).
+  const { error } = await admin.auth.admin.inviteUserByEmail(parsed.data.email, {
+    data: { invited_account_id: accountId },
+    redirectTo: `${siteUrl}/auth/callback?next=/set-password`,
+  });
+  if (error) return { error: error.message };
+
+  revalidatePath("/dashboard/settings");
+  return { success: true };
+}
+
+export async function removeTeamMemberAction(formData: FormData): Promise<void> {
+  const targetUserId = String(formData.get("userId") ?? "");
+
+  const supabase = await createClient();
+  let accountId: string;
+  let userId: string;
+  try {
+    ({ accountId, userId } = await requireAccountOwner(supabase));
+  } catch (err) {
+    if (err instanceof ForbiddenError) {
+      redirect(`/dashboard/settings?teamError=${encodeURIComponent(err.message)}`);
+    }
+    throw err;
+  }
+
+  if (targetUserId === userId) {
+    redirect(
+      `/dashboard/settings?teamError=${encodeURIComponent("You can't remove yourself — delete the account instead if that's what you want")}`,
+    );
+  }
+
+  // RLS already scopes this to the caller's own account; an empty result
+  // means the target isn't a teammate, not that the row doesn't exist.
+  const { data: target } = await supabase
+    .from("users")
+    .select("id, role")
+    .eq("id", targetUserId)
+    .eq("account_id", accountId)
+    .maybeSingle();
+  if (!target) {
+    redirect(`/dashboard/settings?teamError=${encodeURIComponent("That teammate wasn't found")}`);
+  }
+
+  if (target.role === "owner" && (await countOwners(supabase, accountId)) <= 1) {
+    redirect(
+      `/dashboard/settings?teamError=${encodeURIComponent("Every account needs at least one owner")}`,
+    );
+  }
+
+  // Deleting the auth.users row cascades to public.users via the existing
+  // FK, so the teammate loses both their data-access row and their actual
+  // ability to log in — not just one or the other.
+  const admin = createAdminClient();
+  const { error } = await admin.auth.admin.deleteUser(targetUserId);
+  if (error) throw error;
+
+  revalidatePath("/dashboard/settings");
+  redirect("/dashboard/settings");
+}
+
+export async function changeTeamMemberRoleAction(formData: FormData): Promise<void> {
+  const targetUserId = String(formData.get("userId") ?? "");
+  const nextRole = String(formData.get("role") ?? "");
+  if (nextRole !== "owner" && nextRole !== "member") redirect("/dashboard/settings");
+
+  const supabase = await createClient();
+  let accountId: string;
+  try {
+    ({ accountId } = await requireAccountOwner(supabase));
+  } catch (err) {
+    if (err instanceof ForbiddenError) {
+      redirect(`/dashboard/settings?teamError=${encodeURIComponent(err.message)}`);
+    }
+    throw err;
+  }
+
+  if (nextRole === "member") {
+    const { data: target } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", targetUserId)
+      .eq("account_id", accountId)
+      .maybeSingle();
+
+    if (target?.role === "owner" && (await countOwners(supabase, accountId)) <= 1) {
+      redirect(
+        `/dashboard/settings?teamError=${encodeURIComponent("Every account needs at least one owner")}`,
+      );
+    }
+  }
+
+  const { error } = await supabase
+    .from("users")
+    .update({ role: nextRole })
+    .eq("id", targetUserId)
+    .eq("account_id", accountId);
+  if (error) throw error;
+
+  revalidatePath("/dashboard/settings");
+  redirect("/dashboard/settings");
 }

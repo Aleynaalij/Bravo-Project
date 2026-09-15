@@ -2,16 +2,28 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { requireAccountId } from "@/lib/auth/session";
+import { requireAccountOwner } from "@/lib/auth/session";
 import { getStripeClient, getPriceId, type BillingPlan } from "@/lib/billing/stripe";
 import { ensureStripeCustomer, getSubscription } from "@/lib/billing/service";
 
+// Billing management is owner-only now that an account can have more
+// than one user (docs/PRD.md §11) — a teammate shouldn't be able to
+// change or cancel the whole account's subscription. Both actions just
+// no-op for a non-owner (requireAccountOwner throws, caught as a no-op)
+// since the Billing page already hides these controls from non-owners —
+// this is defense in depth against a submitted form bypassing the UI,
+// not the primary gate.
 export async function startCheckoutAction(formData: FormData) {
   const plan = String(formData.get("plan") ?? "") as BillingPlan;
   if (plan !== "consultant" && plan !== "professional") return;
 
   const supabase = await createClient();
-  const accountId = await requireAccountId(supabase);
+  let accountId: string;
+  try {
+    ({ accountId } = await requireAccountOwner(supabase));
+  } catch {
+    return;
+  }
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -36,7 +48,12 @@ export async function startCheckoutAction(formData: FormData) {
 
 export async function openBillingPortalAction() {
   const supabase = await createClient();
-  const accountId = await requireAccountId(supabase);
+  let accountId: string;
+  try {
+    ({ accountId } = await requireAccountOwner(supabase));
+  } catch {
+    return;
+  }
 
   const subscription = await getSubscription(supabase, accountId);
   if (!subscription?.stripe_customer_id) return;

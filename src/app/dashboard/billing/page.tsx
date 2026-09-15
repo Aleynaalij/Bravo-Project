@@ -28,7 +28,11 @@ export default async function BillingPage({
   if (!user) redirect("/login");
 
   const accountId = await requireAccountId(supabase);
-  const subscription = await getSubscription(supabase, accountId);
+  const [subscription, userRow] = await Promise.all([
+    getSubscription(supabase, accountId),
+    supabase.from("users").select("role").eq("id", user.id).single(),
+  ]);
+  const isOwner = userRow.data?.role === "owner";
   const hasActiveSubscription =
     subscription?.status === "active" || subscription?.status === "trialing";
 
@@ -58,10 +62,18 @@ export default async function BillingPage({
           {subscription?.status && <Badge tone="brand">{subscription.status}</Badge>}
         </p>
 
+        {!isOwner && (
+          <Alert variant="info" className="mb-4">
+            Only the account owner can manage billing.
+          </Alert>
+        )}
+
         {hasActiveSubscription ? (
-          <form action={openBillingPortalAction}>
-            <Button type="submit">Manage billing</Button>
-          </form>
+          isOwner && (
+            <form action={openBillingPortalAction}>
+              <Button type="submit">Manage billing</Button>
+            </form>
+          )
         ) : (
           <div className="flex flex-col gap-3">
             {PLANS.map((plan) => (
@@ -75,7 +87,9 @@ export default async function BillingPage({
                     <div className="font-medium">{plan.name}</div>
                     <div className="text-sm text-muted">{plan.price}</div>
                   </div>
-                  <Button type="submit">Subscribe</Button>
+                  <Button type="submit" disabled={!isOwner}>
+                    Subscribe
+                  </Button>
                 </form>
               </Card>
             ))}

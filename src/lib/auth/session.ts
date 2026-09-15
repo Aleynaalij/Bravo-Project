@@ -8,8 +8,8 @@ export class UnauthorizedError extends Error {
 }
 
 export class ForbiddenError extends Error {
-  constructor() {
-    super("Not a platform admin");
+  constructor(message = "Forbidden") {
+    super(message);
     this.name = "ForbiddenError";
   }
 }
@@ -49,5 +49,31 @@ export async function requirePlatformAdmin(supabase: SupabaseClient): Promise<vo
     .single();
 
   if (error || !data) throw new UnauthorizedError();
-  if (!data.is_platform_admin) throw new ForbiddenError();
+  if (!data.is_platform_admin) throw new ForbiddenError("Not a platform admin");
+}
+
+// Throws UnauthorizedError if not signed in, ForbiddenError if signed in
+// but not the account's owner. Billing management, team management, and
+// account deletion are owner-only now that an account can have more than
+// one user (docs/PRD.md §11) — everything else (projects, deliverables,
+// generation, export, branding) stays available to any user on the
+// account, matching a typical shared-workspace model.
+export async function requireAccountOwner(
+  supabase: SupabaseClient,
+): Promise<{ accountId: string; userId: string }> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new UnauthorizedError();
+
+  const { data, error } = await supabase
+    .from("users")
+    .select("account_id, role")
+    .eq("id", user.id)
+    .single();
+
+  if (error || !data) throw new UnauthorizedError();
+  if (data.role !== "owner") throw new ForbiddenError("Only the account owner can do this");
+
+  return { accountId: data.account_id as string, userId: user.id };
 }

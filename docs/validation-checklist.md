@@ -109,6 +109,15 @@ Mike asked for a place where generated docs are automatically there without need
 - ⚠️ The PDF iframe itself only showed the expected 401 (no real session in the preview) — actual PDF rendering inside the modal, against a deliverable with real generated content, not exercised (same network-egress block on the real Supabase host as every other write/read-path feature in this doc).
 - Email is a `mailto:` containing a link back into the app, not an actual attached file or server-sent email — there's no email-sending provider configured in this project, and a generated-on-demand file can't be attached to a `mailto:` link regardless. The recipient needs their own BravoPilot session to open the link; the UI copy says so.
 
+## Multi-seat teams
+
+Mike asked for multi-seat support — a ~46-person firm getting one individual account was a real gap, not a nicety (PRD §11).
+
+- ✅ Schema/RLS/trigger change (`supabase/migrations/0017_multi_seat_teams.sql`) applied directly to the live project and confirmed clean via the Supabase security advisor: the new `auth_is_owner()` function shows the exact same accepted "SECURITY DEFINER callable by signed-in users" finding already accepted for `auth_account_id()` and `is_platform_admin()`, not a new/different one. Confirmed the pre-existing `role` data (one row, `'owner'`) wouldn't violate the new check constraint before applying it.
+- ✅ Team section UI verified via a throwaway preview route + Playwright, both as owner and as a non-owner member (mocked data, deleted before commit): the invite form and promote/remove controls only render for the owner; a non-owner sees a read-only roster and an explanatory note instead; the Remove confirm-dialog shows the expected message and genuinely blocks submission until confirmed.
+- 🚫 The actual invite round trip — `inviteUserByEmail` sending a real email, the recipient exchanging the invite code for a session, `handle_new_auth_user()` correctly branching them into the inviter's account as `'member'`, landing on `/set-password` — could not be exercised live. Same network-egress block on the real Supabase host as every other write-path feature in this doc; this one specifically also needs a second real inbox to receive the invite, which this environment has no way to check regardless of network access.
+- ⚠️ Owner-gating on billing/account-deletion actions (`requireAccountOwner`) reviewed against the existing `requireAccountId`/`requirePlatformAdmin` patterns, not exercised against two real accounts with different roles.
+
 ## Things to specifically check once we do test
 
 - Does a failed generation leave the UI in a sane state (no stuck "Generating…" button)?
