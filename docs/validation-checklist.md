@@ -135,6 +135,17 @@ A full adversarial due-diligence review of the platform found several real gaps.
 - ✅ **Sentry wiring** — `next build` succeeds cleanly with `withSentryConfig` applied and no build-time errors or warnings. Not verified: an actual event reaching a real Sentry project, since no live DSN/account exists in this environment — the SDK's own well-documented no-DSN no-op behavior is what's relied on until one is configured.
 - ✅ **Terms of Service / Privacy Policy** — verified via a real production server + Playwright: both pages render correctly with full content and the draft-disclaimer banner, footer links from login/signup/Settings resolve to the right URLs, phone-width (390px) layout has no overlap. Content is a first draft, explicitly not reviewed by counsel — every placeholder (legal entity name, jurisdiction, contact email, hosting region) needs a real answer before this is relied upon.
 
+## Style direction: mobile nav drawer + display type
+
+Mike asked whether the UI should take cues from Microsoft Learn's mobile site (own branding/palette, no emoji) to read as more of a finished commercial product. Mocked the direction as a standalone artifact first, got sign-off, then applied the two pieces of it that were concrete UI changes rather than an ongoing visual-language shift.
+
+- ✅ Added a `--text-display` token to `globals.css`'s `@theme inline` block, reserved for exactly one hero headline per screen (never a card/section heading) — used on the dashboard's project-count heading, rendered in the existing brand gradient instead of a solid color box.
+- ✅ Replaced the header's wrapped inline nav below `md` with a slide-out drawer (`MobileNav`): full-width rows instead of a cramped wrapped link row, active-item highlight, closes on Escape, overlay click, or navigation. Desktop nav (`md:flex`) is unchanged.
+- ✅ Extracted `getActiveHref` out of `NavLinks` so the drawer and the desktop nav share one active-route-matching implementation instead of duplicating it.
+- ✅ Verified via a throwaway preview route + Playwright (deleted before commit): desktop shows the inline nav and hides the hamburger; phone width (390px) shows the hamburger and hides the inline nav; drawer opens/closes via the X button, Escape, and overlay click; clicking a drawer link navigates and closes the drawer; active item is highlighted correctly in both the desktop nav and the drawer.
+- ✅ Specifically re-checked the "BravoPilot" wordmark for the flex-`gap` rendering bug already fixed once in `Logo.tsx` this project (a raw text node and a sibling `<span>` becoming separate flex items, so `gap` inserts unwanted space) — the drawer's own wordmark isn't inside a flex-gap container so it isn't affected, confirmed via `npx tsc`/`eslint`/`next build` clean and visual screenshot review.
+- `npx tsc --noEmit`, `npx eslint .`, and `next build` all clean.
+
 ## Things to specifically check once we do test
 
 - Does a failed generation leave the UI in a sane state (no stuck "Generating…" button)?

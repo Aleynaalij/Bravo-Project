@@ -134,6 +134,12 @@
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Reserved for exactly one headline per screen (a page's single hero
+     moment) — never a card title or section heading. See the style-
+     direction review: this is the one addition to the existing scale. */
+  --text-display: clamp(2.25rem, 5vw, 3rem);
+  --text-display--line-height: 1.08;
 }
 
 body {
