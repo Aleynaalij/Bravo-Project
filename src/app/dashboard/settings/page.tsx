@@ -5,6 +5,7 @@ import { requireAccountId } from "@/lib/auth/session";
 import { getBranding } from "@/lib/branding";
 import { getSubscription } from "@/lib/billing/service";
 import { listTeamMembers } from "@/lib/team/service";
+import { listAuditLog, AUDIT_ACTION_LABELS } from "@/lib/audit/service";
 import { BrandingForm } from "../branding/branding-form";
 import { ChangePasswordForm } from "./change-password-form";
 import { DeleteAccountForm } from "./delete-account-form";
@@ -28,11 +29,16 @@ export default async function SettingsPage({
   if (!user) redirect("/login");
 
   const accountId = await requireAccountId(supabase);
-  const [branding, subscription, userRow, teamMembers] = await Promise.all([
+  const [branding, subscription, userRow, teamMembers, auditLog] = await Promise.all([
     getBranding(supabase, accountId),
     getSubscription(supabase, accountId),
     supabase.from("users").select("role, created_at").eq("id", user.id).single(),
     listTeamMembers(supabase, accountId),
+    // RLS already restricts this to an account owner (see
+    // supabase/migrations/0019_audit_log.sql) — a non-owner just gets an
+    // empty list back, which is why this runs unconditionally rather than
+    // being gated on isOwner first.
+    listAuditLog(supabase, accountId, 20),
   ]);
   const isOwner = userRow.data?.role === "owner";
 
@@ -120,6 +126,32 @@ export default async function SettingsPage({
               Manage billing &rarr;
             </Link>
           </Card>
+
+          {isOwner && (
+            <Card className="flex flex-col gap-3">
+              <h2 className="font-medium">Audit log</h2>
+              <p className="text-sm text-muted">
+                Team and knowledge-base changes on this account, most recent first.
+              </p>
+              {auditLog.length === 0 ? (
+                <p className="text-sm text-muted">Nothing logged yet.</p>
+              ) : (
+                <ul className="flex flex-col gap-2 text-sm">
+                  {auditLog.map((entry) => (
+                    <li key={entry.id} className="flex items-center justify-between gap-3 border-b border-border pb-2 last:border-0 last:pb-0">
+                      <div>
+                        <span className="font-medium">{AUDIT_ACTION_LABELS[entry.action]}</span>
+                        <span className="text-muted"> by {entry.actorEmail}</span>
+                      </div>
+                      <span className="shrink-0 text-xs text-muted">
+                        {new Date(entry.createdAt).toLocaleString()}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+          )}
 
           {isOwner && (
             <Card className="flex flex-col gap-3 border-error-border">

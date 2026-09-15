@@ -10,6 +10,7 @@ import { getStripeClient } from "@/lib/billing/stripe";
 import { changePasswordSchema } from "@/lib/validation/settings";
 import { inviteTeamMemberSchema } from "@/lib/validation/team";
 import { countOwners } from "@/lib/team/service";
+import { writeAuditLog } from "@/lib/audit/service";
 
 export interface SettingsActionState {
   error?: string;
@@ -73,6 +74,10 @@ export async function deleteAccountAction(formData: FormData): Promise<void> {
     await stripe.subscriptions.cancel(subscription.stripe_subscription_id);
   }
 
+  // No audit_log entry for this one: account_id references accounts(id)
+  // on delete cascade (same retention story as every other account-scoped
+  // table — see docs/validation-checklist.md), so a row written here would
+  // be destroyed by the delete below before anyone could read it back.
   const { error: deleteAccountError } = await supabase.from("accounts").delete().eq("id", accountId);
   if (deleteAccountError) throw deleteAccountError;
 
@@ -99,9 +104,11 @@ export async function inviteTeamMemberAction(
   }
 
   let accountId: string;
+  let actorUserId: string;
+  let actorEmail: string;
   try {
     const supabase = await createClient();
-    ({ accountId } = await requireAccountOwner(supabase));
+    ({ accountId, userId: actorUserId, email: actorEmail } = await requireAccountOwner(supabase));
   } catch (err) {
     if (err instanceof ForbiddenError) return { error: err.message };
     throw err;
@@ -121,6 +128,15 @@ export async function inviteTeamMemberAction(
   });
   if (error) return { error: error.message };
 
+  const supabase = await createClient();
+  await writeAuditLog(supabase, {
+    accountId,
+    actorUserId,
+    actorEmail,
+    action: "team.invite",
+    target: parsed.data.email,
+  });
+
   revalidatePath("/dashboard/settings");
   return { success: true };
 }
@@ -131,8 +147,9 @@ export async function removeTeamMemberAction(formData: FormData): Promise<void> 
   const supabase = await createClient();
   let accountId: string;
   let userId: string;
+  let actorEmail: string;
   try {
-    ({ accountId, userId } = await requireAccountOwner(supabase));
+    ({ accountId, userId, email: actorEmail } = await requireAccountOwner(supabase));
   } catch (err) {
     if (err instanceof ForbiddenError) {
       redirect(`/dashboard/settings?teamError=${encodeURIComponent(err.message)}`);
@@ -171,6 +188,15 @@ export async function removeTeamMemberAction(formData: FormData): Promise<void> 
   const { error } = await admin.auth.admin.deleteUser(targetUserId);
   if (error) throw error;
 
+  await writeAuditLog(supabase, {
+    accountId,
+    actorUserId: userId,
+    actorEmail,
+    action: "team.remove",
+    target: targetUserId,
+    metadata: { removedRole: target.role },
+  });
+
   revalidatePath("/dashboard/settings");
   redirect("/dashboard/settings");
 }
@@ -182,8 +208,10 @@ export async function changeTeamMemberRoleAction(formData: FormData): Promise<vo
 
   const supabase = await createClient();
   let accountId: string;
+  let actorUserId: string;
+  let actorEmail: string;
   try {
-    ({ accountId } = await requireAccountOwner(supabase));
+    ({ accountId, userId: actorUserId, email: actorEmail } = await requireAccountOwner(supabase));
   } catch (err) {
     if (err instanceof ForbiddenError) {
       redirect(`/dashboard/settings?teamError=${encodeURIComponent(err.message)}`);
@@ -212,6 +240,15 @@ export async function changeTeamMemberRoleAction(formData: FormData): Promise<vo
     .eq("id", targetUserId)
     .eq("account_id", accountId);
   if (error) throw error;
+
+  await writeAuditLog(supabase, {
+    accountId,
+    actorUserId,
+    actorEmail,
+    action: "team.role_change",
+    target: targetUserId,
+    metadata: { newRole: nextRole },
+  });
 
   revalidatePath("/dashboard/settings");
   redirect("/dashboard/settings");
