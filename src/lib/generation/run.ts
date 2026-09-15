@@ -4,10 +4,22 @@ import { getProject } from "@/lib/projects/service";
 import { deliverableContentSchema } from "@/lib/validation/deliverable";
 import { generateCompletion } from "@/lib/ai/provider";
 import { getRelevantKnowledgeBaseEntries } from "./knowledge-base";
-import { assemblePrompt } from "./prompt";
+import { assemblePrompt, getApplicableSections } from "./prompt";
 import type { PromptTemplateRow } from "./types";
 
 export class GenerationError extends Error {}
+
+// SEC-02 (prompt injection): schema validation alone only checks that the
+// AI's JSON *parses* into the right shape — it says nothing about whether
+// the model actually did the job it was asked to, versus e.g. an embedded
+// instruction in compliance_notes talking it into producing different
+// content under different headings. Comparing the returned headings
+// against the exact required-sections list assemblePrompt built catches
+// that class of drift without needing to inspect prose content.
+export function headingsMatchRequiredSections(actual: string[], required: string[]): boolean {
+  if (actual.length !== required.length) return false;
+  return actual.every((heading, i) => heading.trim() === required[i]);
+}
 
 async function getActiveTemplate(
   supabase: SupabaseClient,
@@ -79,6 +91,7 @@ export async function runGeneration(
     const template = await getActiveTemplate(supabase, deliverableType);
     const services = project.services as ServiceType[];
     const kbEntries = await getRelevantKnowledgeBaseEntries(supabase, services, project.industry);
+    const applicableSections = getApplicableSections(template, services);
     const prompt = assemblePrompt(template, project, services, kbEntries);
 
     const raw = await generateCompletion(prompt);
@@ -94,6 +107,14 @@ export async function runGeneration(
     if (!validated.success) {
       throw new GenerationError(
         `AI response did not match the expected section schema: ${validated.error.message}`,
+      );
+    }
+
+    const requiredHeadings = applicableSections.map((s) => s.heading);
+    const actualHeadings = validated.data.sections.map((s) => s.heading);
+    if (!headingsMatchRequiredSections(actualHeadings, requiredHeadings)) {
+      throw new GenerationError(
+        `AI response used different sections than requested — expected [${requiredHeadings.join(", ")}], got [${actualHeadings.join(", ")}]`,
       );
     }
 
