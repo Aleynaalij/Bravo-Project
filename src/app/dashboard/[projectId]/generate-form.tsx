@@ -19,6 +19,7 @@ import {
 } from "@/components/icons";
 import { generateDeliverablesAction, type GenerateFormState } from "./generate-actions";
 import type { GenerationJobRow } from "@/lib/generation/jobs";
+import { getFriendlyGenerationError } from "@/lib/generation/error-messages";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
 import type { ComponentType, SVGProps } from "react";
@@ -209,7 +210,13 @@ export function GenerateForm({
               <span className="font-medium">
                 {DELIVERABLE_LABELS[job.deliverable_type] ?? job.deliverable_type} failed:
               </span>{" "}
-              <span className="font-mono text-xs">{job.error_message ?? "Unknown error"}</span>
+              {getFriendlyGenerationError(job.error_message)}
+              {job.error_message && (
+                <details className="mt-1">
+                  <summary className="cursor-pointer text-xs text-muted">Technical details</summary>
+                  <span className="mt-1 block font-mono text-xs text-muted">{job.error_message}</span>
+                </details>
+              )}
             </div>
           ))}
         </div>
