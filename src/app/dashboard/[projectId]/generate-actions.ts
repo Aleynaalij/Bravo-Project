@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { requireAccountId } from "@/lib/auth/session";
 import { createAndRunJob } from "@/lib/generation/jobs";
+import { assertUnderGenerationRateLimit, GenerationRateLimitError } from "@/lib/generation/rate-limit";
 import { generateRequestSchema } from "@/lib/validation/deliverable";
 import { DELIVERABLE_LABELS } from "@/lib/domain/labels";
 
@@ -25,6 +27,15 @@ export async function generateDeliverablesAction(
   }
 
   const supabase = await createClient();
+
+  try {
+    const accountId = await requireAccountId(supabase);
+    await assertUnderGenerationRateLimit(supabase, accountId);
+  } catch (err) {
+    if (err instanceof GenerationRateLimitError) return { error: err.message };
+    throw err;
+  }
+
   const failedResults: { deliverableType: string; errorMessage: string }[] = [];
 
   for (const deliverableType of parsed.data.deliverableTypes) {

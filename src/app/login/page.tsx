@@ -55,6 +55,18 @@ export default async function LoginPage({
           </Link>
         </p>
       </Card>
+
+      <p className="text-center text-xs text-muted">
+        By continuing you agree to our{" "}
+        <Link href="/terms" className="hover:underline">
+          Terms
+        </Link>{" "}
+        and{" "}
+        <Link href="/privacy" className="hover:underline">
+          Privacy Policy
+        </Link>
+        .
+      </p>
     </main>
   );
 }
