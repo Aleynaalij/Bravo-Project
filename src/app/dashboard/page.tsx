@@ -2,11 +2,15 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { listProjectsWithServices } from "@/lib/projects/service";
+import { listRecentDeliverables } from "@/lib/vault/service";
+import { VaultEntryCard } from "./vault/vault-entry-card";
 import { Header } from "@/components/header";
 import { LinkButton } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ServiceIcon, SparkleIcon } from "@/components/icons";
 import { SERVICE_LABELS } from "@/lib/domain/labels";
+
+const RECENT_ACTIVITY_LIMIT = 5;
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -18,7 +22,10 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  const projects = await listProjectsWithServices(supabase);
+  const [projects, recentDeliverables] = await Promise.all([
+    listProjectsWithServices(supabase),
+    listRecentDeliverables(supabase, RECENT_ACTIVITY_LIMIT),
+  ]);
 
   return (
     <>
@@ -38,6 +45,30 @@ export default async function DashboardPage() {
               : `${projects.length} project${projects.length === 1 ? "" : "s"} in flight — pick one up or start a new intake.`}
           </p>
         </div>
+
+        {recentDeliverables.length > 0 && (
+          <>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold">Recent activity</h2>
+              <Link href="/dashboard/vault" className="text-sm text-brand hover:underline">
+                View all in FileVault &rarr;
+              </Link>
+            </div>
+            <Card className="mb-8">
+              <div className="flex flex-col">
+                {recentDeliverables.map((entry) => (
+                  <VaultEntryCard
+                    key={entry.deliverableId}
+                    projectId={entry.projectId}
+                    customerName={entry.customerName}
+                    entry={entry}
+                    showCustomerName
+                  />
+                ))}
+              </div>
+            </Card>
+          </>
+        )}
 
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-2xl font-semibold">Projects</h1>

@@ -14,6 +14,11 @@ export interface VaultProjectGroup {
   entries: VaultEntry[];
 }
 
+export interface RecentDeliverable extends VaultEntry {
+  projectId: string;
+  customerName: string;
+}
+
 // The vault doesn't store its own copy of generated files — every DOCX/
 // PDF/PPTX is still built on demand from deliverable_versions.content (see
 // docs/TDD.md §2.6 on why exports are cheap to regenerate rather than
@@ -71,4 +76,28 @@ export async function listVaultEntries(supabase: SupabaseClient): Promise<VaultP
       customerName: p.customer_name,
       entries: entriesByProject.get(p.id)!.sort((a, b) => a.type.localeCompare(b.type)),
     }));
+}
+
+// Powers the dashboard's "Recent activity" widget — the most recently
+// generated deliverables across every project, flattened out of the same
+// grouped data listVaultEntries already computes rather than a second
+// query shape, since account-level deliverable counts are small enough
+// that sorting the already-fetched list is simpler than a bespoke query.
+export async function listRecentDeliverables(
+  supabase: SupabaseClient,
+  limit = 5,
+): Promise<RecentDeliverable[]> {
+  const groups = await listVaultEntries(supabase);
+
+  const flat: RecentDeliverable[] = groups.flatMap((group) =>
+    group.entries.map((entry) => ({
+      ...entry,
+      projectId: group.projectId,
+      customerName: group.customerName,
+    })),
+  );
+
+  return flat
+    .sort((a, b) => new Date(b.generatedAt).getTime() - new Date(a.generatedAt).getTime())
+    .slice(0, limit);
 }

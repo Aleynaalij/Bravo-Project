@@ -118,6 +118,13 @@ Mike asked for multi-seat support — a ~46-person firm getting one individual a
 - 🚫 The actual invite round trip — `inviteUserByEmail` sending a real email, the recipient exchanging the invite code for a session, `handle_new_auth_user()` correctly branching them into the inviter's account as `'member'`, landing on `/set-password` — could not be exercised live. Same network-egress block on the real Supabase host as every other write-path feature in this doc; this one specifically also needs a second real inbox to receive the invite, which this environment has no way to check regardless of network access.
 - ⚠️ Owner-gating on billing/account-deletion actions (`requireAccountOwner`) reviewed against the existing `requireAccountId`/`requirePlatformAdmin` patterns, not exercised against two real accounts with different roles.
 
+## Dashboard recent-activity widget
+
+Small follow-up suggestion Mike accepted: a "Recent activity" panel on the dashboard home page, reusing FileVault's `VaultEntryCard` rather than building a second row UI.
+
+- ✅ Verified via a throwaway preview route + Playwright: since this list spans multiple projects (unlike FileVault, where the project name is already the group heading), added a `showCustomerName` prop to `VaultEntryCard` so each row reads "Customer — Deliverable" here specifically; confirmed FileVault itself is unaffected (prop defaults to `false`, not passed there). Screenshotted at desktop and phone (390px) width — wraps cleanly, no overlap.
+- Hidden entirely (not an empty state) when there's nothing generated yet, consistent with how a brand-new account's dashboard looks today.
+
 ## Things to specifically check once we do test
 
 - Does a failed generation leave the UI in a sane state (no stuck "Generating…" button)?
