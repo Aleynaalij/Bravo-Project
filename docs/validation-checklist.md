@@ -192,6 +192,15 @@ The audit's real Phase 3 is federal readiness (FedRAMP/GCC High hosting, a gover
   - `npx tsc --noEmit`/`eslint`/`npm run test` (28 passing)/`next build` all clean; `/admin/metrics` registers as a route in the production build.
   - **Not live-tested:** the `/admin/metrics` page itself was not rendered in a browser in this pass (no screenshot taken) — its query shapes were verified directly against real data as above, but the page's actual rendering (stat tiles, ranked lists, empty states) relies on code review, not a visual check. `logUsageEvent`'s call site has not been exercised end to end through a real HTTP export request in this environment for the same reason the export route's DOCX/PDF/PPTX generation itself has never been browser-tested elsewhere in this project (see "Things to specifically check once we do test" below).
 
+## Page-intent descriptions on every nav tab
+
+Every page reachable from the header nav should explain what it's for, right under its `<h1>` — not just what it renders. `/dashboard`, `/dashboard/vault`, `/dashboard/settings`, `/admin/metrics`, and `/demo` already did this (contextual copy on `/dashboard`, static one-liners elsewhere). Two were missing one:
+
+- ✅ **Knowledge Base** (`/admin/knowledge-base`) — added: "Reference content tagged by service and industry that every AI generation pulls from, so deliverables start from real Statement-of-Work language instead of a blank page."
+- ✅ **Billing** (`/dashboard/billing`) — added: "This account's BravoPilot subscription — pick a plan below, or once subscribed, open the Stripe customer portal to update payment methods, seats, and invoices."
+
+Verified: `npx next typegen && npx tsc --noEmit`/`eslint` clean, `rm -rf .next && npm run build` clean. Pure static-copy addition (no data/logic change), so no database or query-shape verification applies — instead rendered both blocks through a throwaway preview route (`/preview-tabs-check-x92k`, deleted after) via a real dev server + Playwright screenshot, confirming the new paragraph wraps correctly at `max-w-md`/`max-w-xl` and doesn't misalign the "New entry" button or push layout around. Not screenshotted through the actual authenticated pages (no test-user credentials/service-role key in this sandbox, same constraint noted throughout this doc) — only the isolated markup block was visually verified.
+
 ## Things to specifically check once we do test
 
 - Does a failed generation leave the UI in a sane state (no stuck "Generating…" button)?
