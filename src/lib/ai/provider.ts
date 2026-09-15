@@ -57,3 +57,45 @@ export async function generateCompletion(prompt: string): Promise<string> {
   if (!content) throw new Error("Azure OpenAI returned an empty completion");
   return content;
 }
+
+// Same provider-isolation shape as generateCompletion, for knowledge-base
+// semantic search (src/lib/generation/knowledge-base.ts). text-embedding-3-
+// small produces 1536-dimension vectors, matching the
+// knowledge_base_entries.embedding column (supabase/migrations/
+// 0022_kb_semantic_search.sql) — if the embedding model ever changes, that
+// column's dimension has to change with it.
+//
+// Azure OpenAI deploys embedding models separately from chat models, so
+// this needs its own deployment-name env var — AZURE_OPENAI_DEPLOYMENT_NAME
+// (the chat one) isn't reusable here.
+export async function generateEmbedding(text: string): Promise<number[]> {
+  const openaiApiKey = process.env.OPENAI_API_KEY;
+
+  if (openaiApiKey) {
+    const client = new OpenAI({ apiKey: openaiApiKey });
+    const response = await client.embeddings.create({
+      model: "text-embedding-3-small",
+      input: text,
+    });
+    const embedding = response.data[0]?.embedding;
+    if (!embedding) throw new Error("OpenAI returned no embedding");
+    return embedding;
+  }
+
+  const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
+  const apiKey = process.env.AZURE_OPENAI_API_KEY;
+  const deployment = process.env.AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME;
+  const apiVersion = process.env.AZURE_OPENAI_API_VERSION || "2024-10-21";
+
+  if (!endpoint || !apiKey || !deployment) {
+    throw new Error(
+      "No AI provider configured for embeddings — set OPENAI_API_KEY, or AZURE_OPENAI_ENDPOINT/AZURE_OPENAI_API_KEY/AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME",
+    );
+  }
+
+  const client = new AzureOpenAI({ endpoint, apiKey, deployment, apiVersion });
+  const response = await client.embeddings.create({ model: deployment, input: text });
+  const embedding = response.data[0]?.embedding;
+  if (!embedding) throw new Error("Azure OpenAI returned no embedding");
+  return embedding;
+}
