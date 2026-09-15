@@ -66,6 +66,7 @@ async function syncSubscription(subscription: Stripe.Subscription): Promise<void
   const priceId = subscription.items.data[0]?.price.id;
   const plan = (priceId && planFromPriceId(priceId)) || "trial";
   const periodEndSeconds = subscription.items.data[0]?.current_period_end;
+  const quantity = subscription.items.data[0]?.quantity ?? 1;
 
   await upsertSubscriptionFromStripe({
     accountId,
@@ -74,5 +75,6 @@ async function syncSubscription(subscription: Stripe.Subscription): Promise<void
     status: subscription.status,
     plan,
     currentPeriodEnd: periodEndSeconds ? new Date(periodEndSeconds * 1000).toISOString() : null,
+    quantity,
   });
 }

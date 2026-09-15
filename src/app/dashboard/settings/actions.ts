@@ -1,11 +1,12 @@
 "use server";
 
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAccountOwner, ForbiddenError } from "@/lib/auth/session";
-import { getSubscription } from "@/lib/billing/service";
+import { getSubscription, syncSubscriptionQuantity } from "@/lib/billing/service";
 import { getStripeClient } from "@/lib/billing/stripe";
 import { getSeatLimit } from "@/lib/billing/seats";
 import { changePasswordSchema } from "@/lib/validation/settings";
@@ -16,6 +17,23 @@ import { writeAuditLog } from "@/lib/audit/service";
 export interface SettingsActionState {
   error?: string;
   success?: boolean;
+}
+
+// Best-effort: a Stripe hiccup (or STRIPE_SECRET_KEY simply not being
+// configured, a valid state for a demo/dev deployment) shouldn't block
+// adding or removing a teammate — that's DB/RLS truth, billing is a
+// downstream reflection of it. syncSubscriptionQuantity itself already
+// no-ops cleanly when the account has no active Stripe subscription; this
+// additionally catches getStripeClient() throwing on a missing key, and
+// any transient Stripe API error, without surfacing either to the caller.
+async function syncSeatsBestEffort(supabase: SupabaseClient, accountId: string) {
+  try {
+    const stripe = getStripeClient();
+    const seats = await countTeamMembers(supabase, accountId);
+    await syncSubscriptionQuantity(stripe, accountId, seats);
+  } catch {
+    // Swallowed deliberately — see comment above.
+  }
 }
 
 export async function changePasswordAction(
@@ -143,6 +161,8 @@ export async function inviteTeamMemberAction(
   });
   if (error) return { error: error.message };
 
+  await syncSeatsBestEffort(supabase, accountId);
+
   await writeAuditLog(supabase, {
     accountId,
     actorUserId,
@@ -201,6 +221,8 @@ export async function removeTeamMemberAction(formData: FormData): Promise<void> 
   const admin = createAdminClient();
   const { error } = await admin.auth.admin.deleteUser(targetUserId);
   if (error) throw error;
+
+  await syncSeatsBestEffort(supabase, accountId);
 
   await writeAuditLog(supabase, {
     accountId,
