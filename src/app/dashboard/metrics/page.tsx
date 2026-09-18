@@ -10,6 +10,8 @@ import { DELIVERABLE_LABELS, SERVICE_LABELS } from "@/lib/domain/labels";
 import { Header } from "@/components/header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { BarChart } from "@/components/charts/bar-chart";
+import { StatusBar } from "@/components/charts/status-bar";
 
 // This account's own usage — the same aggregation the admin-only
 // cross-account page at src/app/admin/metrics uses, but handed a regular
@@ -74,11 +76,13 @@ export default async function AccountMetricsPage() {
               missing ready deliverables or has a partial failure, and <strong>healthy</strong>{" "}
               otherwise.
             </p>
-            <div className="flex flex-wrap gap-2">
-              <Badge tone="success">{engagementHealth.counts.healthy} healthy</Badge>
-              <Badge tone="warning">{engagementHealth.counts.review_needed} need review</Badge>
-              <Badge tone="error">{engagementHealth.counts.stalled} stalled</Badge>
-            </div>
+            <StatusBar
+              segments={[
+                { label: "Healthy", count: engagementHealth.counts.healthy, tone: "success" },
+                { label: "Needs review", count: engagementHealth.counts.review_needed, tone: "warning" },
+                { label: "Stalled", count: engagementHealth.counts.stalled, tone: "error" },
+              ]}
+            />
           </Card>
         )}
 
@@ -92,11 +96,13 @@ export default async function AccountMetricsPage() {
               Security &amp; Compliance services in scope at once). 1 point is{" "}
               <strong>elevated</strong>, 3 or more is <strong>high</strong>.
             </p>
-            <div className="flex flex-wrap gap-2">
-              <Badge tone="success">{deliveryRisk.counts.low} low</Badge>
-              <Badge tone="warning">{deliveryRisk.counts.elevated} elevated</Badge>
-              <Badge tone="error">{deliveryRisk.counts.high} high</Badge>
-            </div>
+            <StatusBar
+              segments={[
+                { label: "Low", count: deliveryRisk.counts.low, tone: "success" },
+                { label: "Elevated", count: deliveryRisk.counts.elevated, tone: "warning" },
+                { label: "High", count: deliveryRisk.counts.high, tone: "error" },
+              ]}
+            />
           </Card>
         )}
 
@@ -136,30 +142,30 @@ export default async function AccountMetricsPage() {
                   by real word-level text comparison — a documented heuristic (see
                   docs/validation-checklist.md), not a certified quality score.
                 </p>
-                <div className="flex flex-wrap gap-2">
-                  <Badge tone="success">{sentAsIs} sent as-is</Badge>
-                  <Badge tone="warning">{editSeverity.minorEdit} minor edits</Badge>
-                  <Badge tone="error">{editSeverity.majorEdit} major edits</Badge>
-                </div>
+                <StatusBar
+                  segments={[
+                    { label: "Sent as-is", count: sentAsIs, tone: "success" },
+                    { label: "Minor edits", count: editSeverity.minorEdit, tone: "warning" },
+                    { label: "Major edits", count: editSeverity.majorEdit, tone: "error" },
+                  ]}
+                />
               </Card>
             )}
 
             <Card className="mb-6 flex flex-col gap-3">
               <h2 className="font-medium">Generations by deliverable type</h2>
-              <ul className="flex flex-col gap-2 text-sm">
-                {metrics.generationsByType.map((row) => (
-                  <li
-                    key={row.deliverableType}
-                    className="flex items-center justify-between gap-3 border-b border-border pb-2 last:border-0 last:pb-0"
-                  >
-                    <span>{DELIVERABLE_LABELS[row.deliverableType] ?? row.deliverableType}</span>
+              <BarChart
+                rows={metrics.generationsByType.map((row) => ({
+                  label: DELIVERABLE_LABELS[row.deliverableType] ?? row.deliverableType,
+                  value: row.succeeded + row.failed + row.other,
+                  annotation: (
                     <span className="flex shrink-0 gap-2">
                       <Badge tone="success">{row.succeeded} succeeded</Badge>
                       {row.failed > 0 && <Badge tone="error">{row.failed} failed</Badge>}
                     </span>
-                  </li>
-                ))}
-              </ul>
+                  ),
+                }))}
+              />
             </Card>
 
             <Card className="mb-6 flex flex-col gap-3">
@@ -168,26 +174,22 @@ export default async function AccountMetricsPage() {
                 <p className="text-sm text-muted">No projects yet.</p>
               ) : (
                 <>
-                  <ul className="flex flex-col gap-2 text-sm">
-                    {metrics.servicesBySelection.map((row) => (
-                      <li key={row.serviceType} className="flex items-center justify-between gap-3">
-                        <span>{SERVICE_LABELS[row.serviceType] ?? row.serviceType}</span>
-                        <span className="text-muted">{row.count}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <BarChart
+                    rows={metrics.servicesBySelection.map((row) => ({
+                      label: SERVICE_LABELS[row.serviceType] ?? row.serviceType,
+                      value: row.count,
+                    }))}
+                  />
                   <div className="border-t border-border pt-3">
-                    <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">
+                    <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
                       By practice area
                     </h3>
-                    <ul className="flex flex-col gap-1 text-sm">
-                      {groupServicesByPracticeArea(metrics.servicesBySelection).map((row) => (
-                        <li key={row.practiceArea} className="flex items-center justify-between gap-3">
-                          <span>{row.label}</span>
-                          <span className="text-muted">{row.count}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    <BarChart
+                      rows={groupServicesByPracticeArea(metrics.servicesBySelection).map((row) => ({
+                        label: row.label,
+                        value: row.count,
+                      }))}
+                    />
                   </div>
                 </>
               )}
@@ -200,14 +202,9 @@ export default async function AccountMetricsPage() {
                   No generations have referenced a knowledge base entry yet.
                 </p>
               ) : (
-                <ul className="flex flex-col gap-2 text-sm">
-                  {metrics.topKbEntries.map((entry) => (
-                    <li key={entry.id} className="flex items-center justify-between gap-3">
-                      <span className="truncate">{entry.title}</span>
-                      <span className="shrink-0 text-muted">{entry.useCount}</span>
-                    </li>
-                  ))}
-                </ul>
+                <BarChart
+                  rows={metrics.topKbEntries.map((entry) => ({ label: entry.title, value: entry.useCount }))}
+                />
               )}
             </Card>
 
@@ -216,14 +213,9 @@ export default async function AccountMetricsPage() {
               {metrics.exportsByFormat.length === 0 ? (
                 <p className="text-sm text-muted">No exports yet.</p>
               ) : (
-                <ul className="flex flex-col gap-2 text-sm">
-                  {metrics.exportsByFormat.map((row) => (
-                    <li key={row.format} className="flex items-center justify-between gap-3">
-                      <span className="uppercase">{row.format}</span>
-                      <span className="text-muted">{row.count}</span>
-                    </li>
-                  ))}
-                </ul>
+                <BarChart
+                  rows={metrics.exportsByFormat.map((row) => ({ label: row.format.toUpperCase(), value: row.count }))}
+                />
               )}
             </Card>
           </>

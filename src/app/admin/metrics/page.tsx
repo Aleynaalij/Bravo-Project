@@ -7,6 +7,8 @@ import { DELIVERABLE_LABELS, SERVICE_LABELS } from "@/lib/domain/labels";
 import { Header } from "@/components/header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { BarChart } from "@/components/charts/bar-chart";
+import { StatusBar } from "@/components/charts/status-bar";
 
 // Admin-only cross-account usage metrics — platform-operator visibility
 // across every customer account, distinct from the per-account dashboard
@@ -56,31 +58,27 @@ export default async function MetricsPage() {
             />
           </div>
           <div>
-            <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">
+            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
               Accounts by plan
             </h3>
-            <ul className="flex flex-col gap-1 text-sm">
-              {planDistribution.accountsByPlan.map((row) => (
-                <li key={row.plan} className="flex items-center justify-between gap-3">
-                  <span className="capitalize">{row.plan}</span>
-                  <span className="text-muted">{row.count}</span>
-                </li>
-              ))}
-            </ul>
+            <BarChart
+              rows={planDistribution.accountsByPlan.map((row) => ({
+                label: row.plan.charAt(0).toUpperCase() + row.plan.slice(1),
+                value: row.count,
+              }))}
+            />
           </div>
           {planDistribution.subscriptionsByStatus.length > 0 && (
             <div>
-              <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
                 Subscriptions by status
               </h3>
-              <ul className="flex flex-col gap-1 text-sm">
-                {planDistribution.subscriptionsByStatus.map((row) => (
-                  <li key={row.status} className="flex items-center justify-between gap-3">
-                    <span className="capitalize">{row.status}</span>
-                    <span className="text-muted">{row.count}</span>
-                  </li>
-                ))}
-              </ul>
+              <BarChart
+                rows={planDistribution.subscriptionsByStatus.map((row) => ({
+                  label: row.status.charAt(0).toUpperCase() + row.status.slice(1),
+                  value: row.count,
+                }))}
+              />
             </div>
           )}
           <p className="text-xs text-muted">
@@ -104,11 +102,13 @@ export default async function MetricsPage() {
               real word-level text comparison — a documented heuristic (see
               docs/validation-checklist.md), not a certified quality score.
             </p>
-            <div className="flex flex-wrap gap-2">
-              <Badge tone="success">{sentAsIs} sent as-is</Badge>
-              <Badge tone="warning">{editSeverity.minorEdit} minor edits</Badge>
-              <Badge tone="error">{editSeverity.majorEdit} major edits</Badge>
-            </div>
+            <StatusBar
+              segments={[
+                { label: "Sent as-is", count: sentAsIs, tone: "success" },
+                { label: "Minor edits", count: editSeverity.minorEdit, tone: "warning" },
+                { label: "Major edits", count: editSeverity.majorEdit, tone: "error" },
+              ]}
+            />
           </Card>
         )}
 
@@ -117,20 +117,18 @@ export default async function MetricsPage() {
           {metrics.generationsByType.length === 0 ? (
             <p className="text-sm text-muted">No generations yet.</p>
           ) : (
-            <ul className="flex flex-col gap-2 text-sm">
-              {metrics.generationsByType.map((row) => (
-                <li
-                  key={row.deliverableType}
-                  className="flex items-center justify-between gap-3 border-b border-border pb-2 last:border-0 last:pb-0"
-                >
-                  <span>{DELIVERABLE_LABELS[row.deliverableType] ?? row.deliverableType}</span>
+            <BarChart
+              rows={metrics.generationsByType.map((row) => ({
+                label: DELIVERABLE_LABELS[row.deliverableType] ?? row.deliverableType,
+                value: row.succeeded + row.failed + row.other,
+                annotation: (
                   <span className="flex shrink-0 gap-2">
                     <Badge tone="success">{row.succeeded} succeeded</Badge>
                     {row.failed > 0 && <Badge tone="error">{row.failed} failed</Badge>}
                   </span>
-                </li>
-              ))}
-            </ul>
+                ),
+              }))}
+            />
           )}
         </Card>
 
@@ -140,26 +138,22 @@ export default async function MetricsPage() {
             <p className="text-sm text-muted">No projects yet.</p>
           ) : (
             <>
-              <ul className="flex flex-col gap-2 text-sm">
-                {metrics.servicesBySelection.map((row) => (
-                  <li key={row.serviceType} className="flex items-center justify-between gap-3">
-                    <span>{SERVICE_LABELS[row.serviceType] ?? row.serviceType}</span>
-                    <span className="text-muted">{row.count}</span>
-                  </li>
-                ))}
-              </ul>
+              <BarChart
+                rows={metrics.servicesBySelection.map((row) => ({
+                  label: SERVICE_LABELS[row.serviceType] ?? row.serviceType,
+                  value: row.count,
+                }))}
+              />
               <div className="border-t border-border pt-3">
-                <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
                   By practice area
                 </h3>
-                <ul className="flex flex-col gap-1 text-sm">
-                  {groupServicesByPracticeArea(metrics.servicesBySelection).map((row) => (
-                    <li key={row.practiceArea} className="flex items-center justify-between gap-3">
-                      <span>{row.label}</span>
-                      <span className="text-muted">{row.count}</span>
-                    </li>
-                  ))}
-                </ul>
+                <BarChart
+                  rows={groupServicesByPracticeArea(metrics.servicesBySelection).map((row) => ({
+                    label: row.label,
+                    value: row.count,
+                  }))}
+                />
               </div>
             </>
           )}
@@ -170,14 +164,9 @@ export default async function MetricsPage() {
           {metrics.topKbEntries.length === 0 ? (
             <p className="text-sm text-muted">No generations have referenced a knowledge base entry yet.</p>
           ) : (
-            <ul className="flex flex-col gap-2 text-sm">
-              {metrics.topKbEntries.map((entry) => (
-                <li key={entry.id} className="flex items-center justify-between gap-3">
-                  <span className="truncate">{entry.title}</span>
-                  <span className="shrink-0 text-muted">{entry.useCount}</span>
-                </li>
-              ))}
-            </ul>
+            <BarChart
+              rows={metrics.topKbEntries.map((entry) => ({ label: entry.title, value: entry.useCount }))}
+            />
           )}
         </Card>
 
@@ -205,14 +194,9 @@ export default async function MetricsPage() {
           {metrics.exportsByFormat.length === 0 ? (
             <p className="text-sm text-muted">No exports yet.</p>
           ) : (
-            <ul className="flex flex-col gap-2 text-sm">
-              {metrics.exportsByFormat.map((row) => (
-                <li key={row.format} className="flex items-center justify-between gap-3">
-                  <span className="uppercase">{row.format}</span>
-                  <span className="text-muted">{row.count}</span>
-                </li>
-              ))}
-            </ul>
+            <BarChart
+              rows={metrics.exportsByFormat.map((row) => ({ label: row.format.toUpperCase(), value: row.count }))}
+            />
           )}
         </Card>
       </main>
