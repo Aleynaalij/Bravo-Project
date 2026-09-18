@@ -1,24 +1,28 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DeliverableType, ServiceType } from "@/lib/domain/enums";
 
-// Deliberately reads with the admin (service-role) client, not a session
-// client — this is a cross-account, platform-wide aggregate (exactly what
-// the audit's gap is about), and none of the tables it reads
-// (generation_jobs, deliverable_versions, project_services,
-// deliverable_version_kb_entries, usage_events) have or need an
-// "admin can read every account's rows" RLS policy of their own. The
-// caller (src/app/admin/metrics/page.tsx) is already gated by
-// requirePlatformAdmin at the /admin layout level before this ever runs,
-// the same trust boundary the Stripe webhook handler relies on for its
-// own admin-client reads.
+// Shared by two very different callers, which is exactly why this file
+// does no auth/scoping of its own — every table it reads (generation_jobs,
+// deliverable_versions, project_services, deliverable_version_kb_entries,
+// usage_events) already has RLS restricting rows to the caller's own
+// account (supabase/migrations/0002_rls.sql, 0023_usage_events.sql), so
+// this function's result is scoped entirely by which client it's handed:
+//   - src/app/admin/metrics/page.tsx passes the admin (service-role)
+//     client — RLS doesn't apply, so this becomes the cross-account,
+//     platform-wide aggregate (gated by requirePlatformAdmin at the
+//     /admin layout level before this ever runs).
+//   - src/app/dashboard/metrics/page.tsx passes a regular session
+//     client — RLS restricts every query to that user's own account, so
+//     the exact same queries become that one account's own dashboard,
+//     with zero extra account_id filtering needed here.
 //
 // Aggregation happens in application code, not a SQL function — the
 // project's data volume is genuinely small (an MVP with no real paying
 // customers processing this yet) and every query below is a single
-// unfiltered table scan, so the extra migration/review surface of a set
-// of Postgres aggregate functions isn't worth it at this scale. Revisit
-// if a table here ever gets large enough for that assumption to stop
-// holding.
+// (RLS-filtered) table scan, so the extra migration/review surface of a
+// set of Postgres aggregate functions isn't worth it at this scale.
+// Revisit if a table here ever gets large enough for that assumption to
+// stop holding.
 export interface UsageMetrics {
   generationsByType: {
     deliverableType: DeliverableType;

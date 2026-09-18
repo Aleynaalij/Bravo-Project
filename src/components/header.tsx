@@ -24,6 +24,7 @@ export async function Header() {
 
   const navItems: NavItem[] = [
     { href: "/dashboard", label: "Projects" },
+    { href: "/dashboard/metrics", label: "Dashboards" },
     { href: "/dashboard/vault", label: "FileVault" },
     { href: "/demo", label: "Demo" },
     { href: "/dashboard/billing", label: "Billing" },
@@ -31,7 +32,7 @@ export async function Header() {
     ...(userRow?.is_platform_admin
       ? [
           { href: "/admin/knowledge-base", label: "Knowledge Base" },
-          { href: "/admin/metrics", label: "Metrics" },
+          { href: "/admin/metrics", label: "Platform Metrics" },
         ]
       : []),
   ];
