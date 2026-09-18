@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { listProjectsWithServices } from "@/lib/projects/service";
 import { listRecentDeliverables } from "@/lib/vault/service";
 import { getEngagementHealthSummary, ENGAGEMENT_HEALTH_LABELS, type EngagementHealth } from "@/lib/metrics/engagement";
+import { summarizeDeliveryRisk, DELIVERY_RISK_LABELS, type DeliveryRisk } from "@/lib/metrics/delivery-risk";
 import { VaultEntryCard } from "./vault/vault-entry-card";
 import { Header } from "@/components/header";
 import { LinkButton } from "@/components/ui/button";
@@ -16,6 +17,12 @@ const HEALTH_TONE: Record<EngagementHealth, BadgeTone> = {
   healthy: "success",
   review_needed: "warning",
   stalled: "error",
+};
+
+const RISK_TONE: Record<DeliveryRisk, BadgeTone> = {
+  low: "success",
+  elevated: "warning",
+  high: "error",
 };
 
 const RECENT_ACTIVITY_LIMIT = 5;
@@ -35,6 +42,16 @@ export default async function DashboardPage() {
     listRecentDeliverables(supabase, RECENT_ACTIVITY_LIMIT),
     getEngagementHealthSummary(supabase),
   ]);
+  // Pure derived grouping over the projects already fetched above — no
+  // second query, see src/lib/metrics/delivery-risk.ts.
+  const deliveryRisk = summarizeDeliveryRisk(
+    projects.map((project) => ({
+      id: project.id,
+      userCount: project.user_count,
+      geographicLocations: project.geographic_locations,
+      services: project.services,
+    })),
+  );
 
   return (
     <>
@@ -91,11 +108,20 @@ export default async function DashboardPage() {
         </div>
 
         {projects.length > 0 && (
-          <div className="mb-6 flex flex-wrap items-center gap-2 text-sm text-muted">
+          <div className="mb-2 flex flex-wrap items-center gap-2 text-sm text-muted">
             <span>Engagement health:</span>
             <Badge tone="success">{engagementHealth.counts.healthy} healthy</Badge>
             <Badge tone="warning">{engagementHealth.counts.review_needed} need review</Badge>
             <Badge tone="error">{engagementHealth.counts.stalled} stalled</Badge>
+          </div>
+        )}
+
+        {projects.length > 0 && (
+          <div className="mb-6 flex flex-wrap items-center gap-2 text-sm text-muted">
+            <span>Delivery risk:</span>
+            <Badge tone="success">{deliveryRisk.counts.low} low</Badge>
+            <Badge tone="warning">{deliveryRisk.counts.elevated} elevated</Badge>
+            <Badge tone="error">{deliveryRisk.counts.high} high</Badge>
           </div>
         )}
 
@@ -115,10 +141,13 @@ export default async function DashboardPage() {
                   <Card className="transition-colors hover:border-brand hover:bg-surface-hover">
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <span className="font-medium">{project.customer_name}</span>
                           <Badge tone={HEALTH_TONE[engagementHealth.byProject[project.id] ?? "review_needed"]}>
                             {ENGAGEMENT_HEALTH_LABELS[engagementHealth.byProject[project.id] ?? "review_needed"]}
+                          </Badge>
+                          <Badge tone={RISK_TONE[deliveryRisk.byProject[project.id] ?? "low"]}>
+                            {DELIVERY_RISK_LABELS[deliveryRisk.byProject[project.id] ?? "low"]}
                           </Badge>
                         </div>
                         <div className="text-sm text-muted">{project.industry}</div>
