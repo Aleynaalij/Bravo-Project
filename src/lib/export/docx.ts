@@ -1,7 +1,7 @@
-import { Document, Packer, Paragraph, HeadingLevel, TextRun, ImageRun } from "docx";
+import { Document, Packer, Paragraph, HeadingLevel, TextRun, ImageRun, ShadingType } from "docx";
 import type { DeliverableContent } from "@/lib/validation/deliverable";
 import type { DeliverableType } from "@/lib/domain/enums";
-import { DELIVERABLE_LABELS } from "@/lib/domain/labels";
+import { DELIVERABLE_LABELS, isCodeDeliverable } from "@/lib/domain/labels";
 import type { BrandingInfo } from "@/lib/branding";
 import { resolveAccentColor } from "@/lib/branding";
 import { fetchLogoAsset } from "./logo";
@@ -53,6 +53,8 @@ export async function buildDocx(
     new Paragraph({ text: "" }),
   ];
 
+  const isCode = isCodeDeliverable(deliverableType);
+
   for (const section of content.sections) {
     children.push(
       new Paragraph({
@@ -60,8 +62,25 @@ export async function buildDocx(
         heading: HeadingLevel.HEADING_1,
       }),
     );
-    for (const paragraph of section.paragraphs) {
-      children.push(new Paragraph({ text: paragraph }));
+    if (isCode) {
+      // One continuous shaded/monospace block per section rather than one
+      // per paragraph — matches deliverable-view.tsx's rendering, and
+      // survives the edit-save path (edit-actions.ts) splitting a script
+      // with blank lines into multiple stored paragraphs: joining with the
+      // same "\n\n" it was split on reassembles exactly one script.
+      const lines = section.paragraphs.join("\n\n").split("\n");
+      children.push(
+        new Paragraph({
+          shading: { type: ShadingType.CLEAR, fill: "F0F0F0" },
+          children: lines.map(
+            (line, i) => new TextRun({ text: line, font: "Courier New", size: 18, break: i > 0 ? 1 : undefined }),
+          ),
+        }),
+      );
+    } else {
+      for (const paragraph of section.paragraphs) {
+        children.push(new Paragraph({ text: paragraph }));
+      }
     }
   }
 

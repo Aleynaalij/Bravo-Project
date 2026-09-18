@@ -13,4 +13,22 @@ describe("buildPdf", () => {
     expect(buffer.length).toBeGreaterThan(0);
     expect(buffer.subarray(0, 5).toString("ascii")).toBe("%PDF-");
   });
+
+  it("renders a code-kind deliverable's multi-line script content without throwing", async () => {
+    const scriptContent: DeliverableContent = {
+      sections: [
+        {
+          heading: "DLP Policy Script",
+          paragraphs: [
+            'Connect-IPPSSession\n\nNew-DlpCompliancePolicy -Name "Test" -ExchangeLocation All',
+          ],
+        },
+      ],
+    };
+
+    const buffer = await buildPdf("implementation_script", "Acme Corp", scriptContent, null);
+
+    expect(buffer.length).toBeGreaterThan(0);
+    expect(buffer.subarray(0, 5).toString("ascii")).toBe("%PDF-");
+  });
 });

@@ -16,6 +16,7 @@ import {
   DesignDeliverableIcon,
   ProcessDeliverableIcon,
   ComplianceDeliverableIcon,
+  AutomationDeliverableIcon,
 } from "@/components/icons";
 import { generateDeliverablesAction, type GenerateFormState } from "./generate-actions";
 import type { GenerationJobRow } from "@/lib/generation/jobs";
@@ -32,6 +33,7 @@ const CATEGORY_ICONS: Record<DeliverableCategory, ComponentType<SVGProps<SVGSVGE
   design: DesignDeliverableIcon,
   process: ProcessDeliverableIcon,
   compliance: ComplianceDeliverableIcon,
+  automation: AutomationDeliverableIcon,
 };
 
 export function GenerateForm({
