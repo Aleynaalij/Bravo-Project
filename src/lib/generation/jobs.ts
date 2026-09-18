@@ -151,3 +151,36 @@ export async function processQueuedGenerationJobs(
   }
   return results;
 }
+
+// A queued job that only ever gets picked up by the once-a-day cron tick
+// (see the doc comment above) is broken in practice, not just slow — a
+// consultant selecting a handful of deliverables and then seeing nothing
+// happen for up to 24h reads as "this doesn't work," not "this is eventually
+// consistent." Both generation entry points (generate-actions.ts's Server
+// Action and api/projects/[id]/generate/route.ts) call this via
+// `after()` right after enqueueing, so the batch a user just requested
+// gets processed within the same request's background window instead of
+// waiting for the next cron tick — the daily cron stays as the backstop
+// for whatever this doesn't finish (a bigger batch than the time budget
+// allows, or `after()` not running for some reason), not the only path.
+//
+// Loops processQueuedGenerationJobs (still capped at MAX_JOBS_PER_TICK
+// per call, so the atomic-claim behavior is unchanged) until either the
+// queue is empty or a time budget is spent — a job count cap doesn't
+// make sense here the way it does for a scheduled tick, since this runs
+// once per user action, not once per minute; a time budget is the real
+// constraint (the serverless function's own execution-duration ceiling),
+// so that's what's bounded directly. 8s is a conservative margin under a
+// Hobby-plan function's default duration limit — safe to raise once this
+// account is on a plan with a higher ceiling and/or generation timing
+// against a real AI provider has actually been measured (neither is true
+// in this sandbox).
+const IMMEDIATE_DRAIN_BUDGET_MS = 8000;
+
+export async function drainGenerationQueue(supabase: SupabaseClient): Promise<void> {
+  const start = Date.now();
+  while (Date.now() - start < IMMEDIATE_DRAIN_BUDGET_MS) {
+    const claimed = await processQueuedGenerationJobs(supabase);
+    if (claimed.length === 0) return;
+  }
+}

@@ -18,6 +18,14 @@ import { processQueuedGenerationJobs } from "@/lib/generation/jobs";
 // account's queued jobs and has no other access control of its own. Fails
 // closed: an unconfigured CRON_SECRET means every request is rejected,
 // not "anyone can trigger it."
+//
+// Not the only thing that calls this queue anymore: each generation
+// entry point now also triggers an immediate drain via Next's after()
+// right after enqueueing (drainGenerationQueue in jobs.ts), and
+// .github/workflows/process-generation-queue.yml hits this exact route
+// every 5 minutes as a GitHub-Actions-based backstop Vercel's own plan
+// won't allow natively. This daily tick is the last-resort catch-all
+// under both of those, not the primary path anymore.
 export async function GET(request: Request) {
   const cronSecret = process.env.CRON_SECRET;
   const authHeader = request.headers.get("authorization");

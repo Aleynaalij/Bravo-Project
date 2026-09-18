@@ -1,8 +1,10 @@
 "use server";
 
+import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAccountId } from "@/lib/auth/session";
-import { enqueueGenerationJob } from "@/lib/generation/jobs";
+import { enqueueGenerationJob, drainGenerationQueue } from "@/lib/generation/jobs";
 import { assertUnderGenerationRateLimit, GenerationRateLimitError } from "@/lib/generation/rate-limit";
 import {
   assertTrialNotExhausted,
@@ -53,6 +55,19 @@ export async function generateDeliverablesAction(
     const job = await enqueueGenerationJob(supabase, projectId, deliverableType);
     jobIds.push(job.id);
   }
+
+  // Runs after this response is sent — starts draining the queue this
+  // request just added to immediately, instead of leaving these jobs to
+  // sit until the next once-a-day cron tick (see drainGenerationQueue's
+  // doc comment in jobs.ts). Uses the admin client since queue processing
+  // is deliberately not RLS-scoped, same as the cron route.
+  after(async () => {
+    try {
+      await drainGenerationQueue(createAdminClient());
+    } catch (err) {
+      console.error("[generation] Immediate queue drain failed:", err);
+    }
+  });
 
   return { jobIds, enqueuedAt: Date.now() };
 }

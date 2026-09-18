@@ -1,9 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAccountId, UnauthorizedError } from "@/lib/auth/session";
 import { getProject } from "@/lib/projects/service";
 import { generateRequestSchema } from "@/lib/validation/deliverable";
-import { enqueueGenerationJob } from "@/lib/generation/jobs";
+import { enqueueGenerationJob, drainGenerationQueue } from "@/lib/generation/jobs";
 import { assertUnderGenerationRateLimit, GenerationRateLimitError } from "@/lib/generation/rate-limit";
 import {
   assertTrialNotExhausted,
@@ -62,6 +63,17 @@ export async function POST(request: Request, { params }: Params) {
   for (const deliverableType of parsed.data.deliverableTypes) {
     jobs.push(await enqueueGenerationJob(supabase, id, deliverableType));
   }
+
+  // Starts draining the queue immediately after this response is sent,
+  // rather than leaving these jobs for the next once-a-day cron tick —
+  // see drainGenerationQueue's doc comment in jobs.ts.
+  after(async () => {
+    try {
+      await drainGenerationQueue(createAdminClient());
+    } catch (err) {
+      console.error("[generation] Immediate queue drain failed:", err);
+    }
+  });
 
   return NextResponse.json(jobs, { status: 202 });
 }

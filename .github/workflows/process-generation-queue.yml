@@ -1,0 +1,46 @@
+name: Process Generation Queue
+
+# Backstop for a real gap: this project's Vercel org is on the Hobby
+# plan, which only permits a daily cron schedule (see vercel.json and
+# src/app/api/cron/process-generation-jobs/route.ts's own doc comment) —
+# a queued generation job can otherwise sit for up to ~24h before that
+# route ever claims it. Each generation entry point now also triggers an
+# immediate drain via Next's after() right after enqueueing (see
+# drainGenerationQueue in src/lib/generation/jobs.ts), which covers the
+# common case, but that only helps the request that just enqueued
+# something — it does nothing for a job that's already stuck, or for a
+# batch too large to finish inside one request's background time budget.
+# This workflow is the same shape as backup.yml: no new vendor, just
+# GitHub Actions hitting the same cron route Vercel Cron already calls,
+# on a frequency Vercel's own plan won't allow.
+on:
+  schedule:
+    - cron: "*/5 * * * *" # every 5 minutes — GitHub Actions' own minimum interval
+  workflow_dispatch: {} # manual "drain the queue right now" trigger
+
+jobs:
+  process-queue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check secrets are configured
+        run: |
+          if [ -z "${{ secrets.CRON_SECRET }}" ]; then
+            echo "::error::CRON_SECRET secret is not set on this repo — a repo admin needs to add it (same value as the CRON_SECRET env var configured on the Vercel project). This workflow cannot call the cron route until it is."
+            exit 1
+          fi
+          if [ -z "${{ secrets.PRODUCTION_URL }}" ]; then
+            echo "::error::PRODUCTION_URL secret is not set — a repo admin needs to add it (the deployed app's base URL, e.g. https://your-app.vercel.app, no trailing slash)."
+            exit 1
+          fi
+
+      - name: Call the generation-queue cron route
+        run: |
+          status=$(curl -s -o response.json -w "%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.PRODUCTION_URL }}/api/cron/process-generation-jobs")
+          echo "HTTP status: $status"
+          cat response.json
+          if [ "$status" -ge 300 ]; then
+            echo "::error::Cron route returned $status"
+            exit 1
+          fi
