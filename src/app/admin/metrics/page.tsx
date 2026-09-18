@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getUsageMetrics } from "@/lib/metrics/usage";
+import { getUsageMetrics, groupServicesByPracticeArea } from "@/lib/metrics/usage";
+import { getPlanDistribution } from "@/lib/metrics/billing";
+import { getEditSeverityBreakdown } from "@/lib/metrics/quality";
 import { DELIVERABLE_LABELS, SERVICE_LABELS } from "@/lib/domain/labels";
 import { Header } from "@/components/header";
 import { Card } from "@/components/ui/card";
@@ -16,7 +18,11 @@ import { Badge } from "@/components/ui/badge";
 // of "my account."
 export default async function MetricsPage() {
   const admin = createAdminClient();
-  const metrics = await getUsageMetrics(admin);
+  const [metrics, planDistribution, editSeverity] = await Promise.all([
+    getUsageMetrics(admin),
+    getPlanDistribution(admin),
+    getEditSeverityBreakdown(admin),
+  ]);
 
   const totalSucceeded = metrics.generationsByType.reduce((sum, t) => sum + t.succeeded, 0);
   const successRate =
@@ -25,6 +31,7 @@ export default async function MetricsPage() {
     metrics.editRate.totalDeliverables > 0
       ? Math.round((metrics.editRate.editedDeliverables / metrics.editRate.totalDeliverables) * 100)
       : null;
+  const sentAsIs = metrics.editRate.totalDeliverables - metrics.editRate.editedDeliverables;
 
   return (
     <>
@@ -38,12 +45,72 @@ export default async function MetricsPage() {
           Platform-wide, across every account — not a per-customer analytics view.
         </p>
 
+        <Card className="mb-8 flex flex-col gap-3">
+          <h2 className="font-medium">Accounts &amp; billing</h2>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <StatTile label="Accounts" value={planDistribution.totalAccounts} />
+            <StatTile label="Seats billed" value={planDistribution.totalSeatsBilled} />
+            <StatTile
+              label="No subscription yet"
+              value={planDistribution.accountsWithNoSubscriptionRow}
+            />
+          </div>
+          <div>
+            <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">
+              Accounts by plan
+            </h3>
+            <ul className="flex flex-col gap-1 text-sm">
+              {planDistribution.accountsByPlan.map((row) => (
+                <li key={row.plan} className="flex items-center justify-between gap-3">
+                  <span className="capitalize">{row.plan}</span>
+                  <span className="text-muted">{row.count}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          {planDistribution.subscriptionsByStatus.length > 0 && (
+            <div>
+              <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">
+                Subscriptions by status
+              </h3>
+              <ul className="flex flex-col gap-1 text-sm">
+                {planDistribution.subscriptionsByStatus.map((row) => (
+                  <li key={row.status} className="flex items-center justify-between gap-3">
+                    <span className="capitalize">{row.status}</span>
+                    <span className="text-muted">{row.count}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <p className="text-xs text-muted">
+            No MRR/ARR figure here — that needs each Stripe price&apos;s real dollar amount, which
+            isn&apos;t available without a configured Stripe API key.
+          </p>
+        </Card>
+
         <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatTile label="Generations" value={metrics.totalGenerations} />
           <StatTile label="Success rate" value={successRate === null ? "—" : `${successRate}%`} />
           <StatTile label="Exports" value={metrics.totalExports} />
           <StatTile label="Edit rate" value={editRatePct === null ? "—" : `${editRatePct}%`} />
         </div>
+
+        {metrics.editRate.totalDeliverables > 0 && (
+          <Card className="mb-6 flex flex-col gap-3">
+            <h2 className="font-medium">AI draft quality</h2>
+            <p className="text-sm text-muted">
+              How much of the final delivered content differed from the first AI draft, measured by
+              real word-level text comparison — a documented heuristic (see
+              docs/validation-checklist.md), not a certified quality score.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Badge tone="success">{sentAsIs} sent as-is</Badge>
+              <Badge tone="warning">{editSeverity.minorEdit} minor edits</Badge>
+              <Badge tone="error">{editSeverity.majorEdit} major edits</Badge>
+            </div>
+          </Card>
+        )}
 
         <Card className="mb-6 flex flex-col gap-3">
           <h2 className="font-medium">Generations by deliverable type</h2>
@@ -72,14 +139,29 @@ export default async function MetricsPage() {
           {metrics.servicesBySelection.length === 0 ? (
             <p className="text-sm text-muted">No projects yet.</p>
           ) : (
-            <ul className="flex flex-col gap-2 text-sm">
-              {metrics.servicesBySelection.map((row) => (
-                <li key={row.serviceType} className="flex items-center justify-between gap-3">
-                  <span>{SERVICE_LABELS[row.serviceType] ?? row.serviceType}</span>
-                  <span className="text-muted">{row.count}</span>
-                </li>
-              ))}
-            </ul>
+            <>
+              <ul className="flex flex-col gap-2 text-sm">
+                {metrics.servicesBySelection.map((row) => (
+                  <li key={row.serviceType} className="flex items-center justify-between gap-3">
+                    <span>{SERVICE_LABELS[row.serviceType] ?? row.serviceType}</span>
+                    <span className="text-muted">{row.count}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="border-t border-border pt-3">
+                <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">
+                  By practice area
+                </h3>
+                <ul className="flex flex-col gap-1 text-sm">
+                  {groupServicesByPracticeArea(metrics.servicesBySelection).map((row) => (
+                    <li key={row.practiceArea} className="flex items-center justify-between gap-3">
+                      <span>{row.label}</span>
+                      <span className="text-muted">{row.count}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </>
           )}
         </Card>
 
@@ -93,6 +175,25 @@ export default async function MetricsPage() {
                 <li key={entry.id} className="flex items-center justify-between gap-3">
                   <span className="truncate">{entry.title}</span>
                   <span className="shrink-0 text-muted">{entry.useCount}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+
+        <Card className="mb-6 flex flex-col gap-3">
+          <h2 className="font-medium">Unused knowledge base entries</h2>
+          <p className="text-sm text-muted">
+            Never referenced by any generated deliverable across any account — a candidate for
+            improvement, or evidence nobody needs it in its current form.
+          </p>
+          {metrics.unusedKbEntries.length === 0 ? (
+            <p className="text-sm text-muted">Every entry has been referenced at least once.</p>
+          ) : (
+            <ul className="flex flex-col gap-2 text-sm">
+              {metrics.unusedKbEntries.map((entry) => (
+                <li key={entry.id} className="truncate">
+                  {entry.title}
                 </li>
               ))}
             </ul>

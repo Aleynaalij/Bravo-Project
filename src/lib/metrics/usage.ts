@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DeliverableType, ServiceType } from "@/lib/domain/enums";
+import { PRACTICE_AREA_LABELS, SERVICE_PRACTICE_AREA, type PracticeArea } from "@/lib/domain/labels";
 
 // Shared by two very different callers, which is exactly why this file
 // does no auth/scoping of its own — every table it reads (generation_jobs,
@@ -34,12 +35,36 @@ export interface UsageMetrics {
   servicesBySelection: { serviceType: ServiceType; count: number }[];
   editRate: { totalDeliverables: number; editedDeliverables: number };
   topKbEntries: { id: string; title: string; useCount: number }[];
+  // Entries with zero references anywhere in this result set. Meaningful
+  // platform-wide (the admin page) since the knowledge base is a shared,
+  // platform-managed resource — on the per-account Dashboards page this
+  // would mostly just reflect one account's narrow service scope, not an
+  // actual content gap, so the caller decides whether to show it.
+  unusedKbEntries: { id: string; title: string }[];
   exportsByFormat: { format: string; count: number }[];
   totalExports: number;
 }
 
+// Pure derived grouping over servicesBySelection — no new query, same
+// data this project already groups by practice area in the generate
+// form and intake checklist (labels.ts's SERVICE_PRACTICE_AREA). The
+// brainstorm's "Microsoft Workload Trends" dashboard, in other words,
+// is this exact number reshaped, not a new signal.
+export function groupServicesByPracticeArea(
+  servicesBySelection: UsageMetrics["servicesBySelection"],
+): { practiceArea: PracticeArea; label: string; count: number }[] {
+  const counts = new Map<PracticeArea, number>();
+  for (const row of servicesBySelection) {
+    const area = SERVICE_PRACTICE_AREA[row.serviceType];
+    counts.set(area, (counts.get(area) ?? 0) + row.count);
+  }
+  return Array.from(counts.entries())
+    .map(([practiceArea, count]) => ({ practiceArea, label: PRACTICE_AREA_LABELS[practiceArea], count }))
+    .sort((a, b) => b.count - a.count);
+}
+
 export async function getUsageMetrics(admin: SupabaseClient): Promise<UsageMetrics> {
-  const [jobsResult, servicesResult, versionsResult, kbUsageResult, exportsResult] =
+  const [jobsResult, servicesResult, versionsResult, kbUsageResult, allKbEntriesResult, exportsResult] =
     await Promise.all([
       admin.from("generation_jobs").select("deliverable_type, status"),
       admin.from("project_services").select("service_type"),
@@ -47,6 +72,7 @@ export async function getUsageMetrics(admin: SupabaseClient): Promise<UsageMetri
       admin
         .from("deliverable_version_kb_entries")
         .select("knowledge_base_entry_id, knowledge_base_entries(id, title)"),
+      admin.from("knowledge_base_entries").select("id, title"),
       admin
         .from("usage_events")
         .select("metadata")
@@ -57,6 +83,7 @@ export async function getUsageMetrics(admin: SupabaseClient): Promise<UsageMetri
   if (servicesResult.error) throw servicesResult.error;
   if (versionsResult.error) throw versionsResult.error;
   if (kbUsageResult.error) throw kbUsageResult.error;
+  if (allKbEntriesResult.error) throw allKbEntriesResult.error;
   if (exportsResult.error) throw exportsResult.error;
 
   const jobs = jobsResult.data ?? [];
@@ -110,6 +137,10 @@ export async function getUsageMetrics(admin: SupabaseClient): Promise<UsageMetri
     .sort((a, b) => b.useCount - a.useCount)
     .slice(0, 10);
 
+  const unusedKbEntries = (allKbEntriesResult.data ?? [])
+    .filter((entry) => !kbCounts.has(entry.id))
+    .map((entry) => ({ id: entry.id, title: entry.title }));
+
   const exports = exportsResult.data ?? [];
   const formatCounts = new Map<string, number>();
   for (const row of exports) {
@@ -126,6 +157,7 @@ export async function getUsageMetrics(admin: SupabaseClient): Promise<UsageMetri
     servicesBySelection,
     editRate: { totalDeliverables: allDeliverableIds.size, editedDeliverables: editedDeliverableIds.size },
     topKbEntries,
+    unusedKbEntries,
     exportsByFormat,
     totalExports: exports.length,
   };

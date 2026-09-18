@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { getUsageMetrics } from "@/lib/metrics/usage";
+import { getUsageMetrics, groupServicesByPracticeArea } from "@/lib/metrics/usage";
+import { getEngagementHealthSummary } from "@/lib/metrics/engagement";
+import { getEditSeverityBreakdown } from "@/lib/metrics/quality";
 import { DELIVERABLE_LABELS, SERVICE_LABELS } from "@/lib/domain/labels";
 import { Header } from "@/components/header";
 import { Card } from "@/components/ui/card";
@@ -21,7 +23,13 @@ export default async function AccountMetricsPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const metrics = await getUsageMetrics(supabase);
+  const [metrics, engagementHealth, editSeverity] = await Promise.all([
+    getUsageMetrics(supabase),
+    getEngagementHealthSummary(supabase),
+    getEditSeverityBreakdown(supabase),
+  ]);
+  const totalProjects =
+    engagementHealth.counts.healthy + engagementHealth.counts.review_needed + engagementHealth.counts.stalled;
 
   const totalSucceeded = metrics.generationsByType.reduce((sum, t) => sum + t.succeeded, 0);
   const successRate =
@@ -30,6 +38,7 @@ export default async function AccountMetricsPage() {
     metrics.editRate.totalDeliverables > 0
       ? Math.round((metrics.editRate.editedDeliverables / metrics.editRate.totalDeliverables) * 100)
       : null;
+  const sentAsIs = metrics.editRate.totalDeliverables - metrics.editRate.editedDeliverables;
   const mostUsedType = metrics.generationsByType[0];
 
   return (
@@ -44,6 +53,23 @@ export default async function AccountMetricsPage() {
           This account&apos;s own generation activity — every number below comes straight from your
           team&apos;s projects and deliverables, nothing estimated or industry-averaged.
         </p>
+
+        {totalProjects > 0 && (
+          <Card className="mb-8 flex flex-col gap-3">
+            <h2 className="font-medium">Engagement health</h2>
+            <p className="text-sm text-muted">
+              A project is <strong>stalled</strong> if every deliverable attempted so far failed (or
+              nothing was ever started, a week or more in), <strong>needs review</strong> if it&apos;s
+              missing ready deliverables or has a partial failure, and <strong>healthy</strong>{" "}
+              otherwise.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Badge tone="success">{engagementHealth.counts.healthy} healthy</Badge>
+              <Badge tone="warning">{engagementHealth.counts.review_needed} need review</Badge>
+              <Badge tone="error">{engagementHealth.counts.stalled} stalled</Badge>
+            </div>
+          </Card>
+        )}
 
         {metrics.totalGenerations === 0 ? (
           <Card>
@@ -73,6 +99,22 @@ export default async function AccountMetricsPage() {
               </Card>
             )}
 
+            {metrics.editRate.totalDeliverables > 0 && (
+              <Card className="mb-6 flex flex-col gap-3">
+                <h2 className="font-medium">AI draft quality</h2>
+                <p className="text-sm text-muted">
+                  How much of the final delivered content differed from the first AI draft, measured
+                  by real word-level text comparison — a documented heuristic (see
+                  docs/validation-checklist.md), not a certified quality score.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Badge tone="success">{sentAsIs} sent as-is</Badge>
+                  <Badge tone="warning">{editSeverity.minorEdit} minor edits</Badge>
+                  <Badge tone="error">{editSeverity.majorEdit} major edits</Badge>
+                </div>
+              </Card>
+            )}
+
             <Card className="mb-6 flex flex-col gap-3">
               <h2 className="font-medium">Generations by deliverable type</h2>
               <ul className="flex flex-col gap-2 text-sm">
@@ -96,14 +138,29 @@ export default async function AccountMetricsPage() {
               {metrics.servicesBySelection.length === 0 ? (
                 <p className="text-sm text-muted">No projects yet.</p>
               ) : (
-                <ul className="flex flex-col gap-2 text-sm">
-                  {metrics.servicesBySelection.map((row) => (
-                    <li key={row.serviceType} className="flex items-center justify-between gap-3">
-                      <span>{SERVICE_LABELS[row.serviceType] ?? row.serviceType}</span>
-                      <span className="text-muted">{row.count}</span>
-                    </li>
-                  ))}
-                </ul>
+                <>
+                  <ul className="flex flex-col gap-2 text-sm">
+                    {metrics.servicesBySelection.map((row) => (
+                      <li key={row.serviceType} className="flex items-center justify-between gap-3">
+                        <span>{SERVICE_LABELS[row.serviceType] ?? row.serviceType}</span>
+                        <span className="text-muted">{row.count}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="border-t border-border pt-3">
+                    <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">
+                      By practice area
+                    </h3>
+                    <ul className="flex flex-col gap-1 text-sm">
+                      {groupServicesByPracticeArea(metrics.servicesBySelection).map((row) => (
+                        <li key={row.practiceArea} className="flex items-center justify-between gap-3">
+                          <span>{row.label}</span>
+                          <span className="text-muted">{row.count}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </>
               )}
             </Card>
 
