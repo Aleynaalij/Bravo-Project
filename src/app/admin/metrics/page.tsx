@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getUsageMetrics, groupServicesByPracticeArea } from "@/lib/metrics/usage";
 import { getPlanDistribution } from "@/lib/metrics/billing";
 import { getEditSeverityBreakdown } from "@/lib/metrics/quality";
+import { getCrossSellSummary } from "@/lib/metrics/cross-sell";
 import { DELIVERABLE_LABELS, SERVICE_LABELS } from "@/lib/domain/labels";
 import { Header } from "@/components/header";
 import { Card } from "@/components/ui/card";
@@ -20,10 +21,11 @@ import { StatusBar } from "@/components/charts/status-bar";
 // of "my account."
 export default async function MetricsPage() {
   const admin = createAdminClient();
-  const [metrics, planDistribution, editSeverity] = await Promise.all([
+  const [metrics, planDistribution, editSeverity, crossSell] = await Promise.all([
     getUsageMetrics(admin),
     getPlanDistribution(admin),
     getEditSeverityBreakdown(admin),
+    getCrossSellSummary(admin),
   ]);
 
   const totalSucceeded = metrics.generationsByType.reduce((sum, t) => sum + t.succeeded, 0);
@@ -85,6 +87,60 @@ export default async function MetricsPage() {
             No MRR/ARR figure here — that needs each Stripe price&apos;s real dollar amount, which
             isn&apos;t available without a configured Stripe API key.
           </p>
+        </Card>
+
+        <Card className="mb-8 flex flex-col gap-3">
+          <h2 className="font-medium">Cross-sell opportunities</h2>
+          <p className="text-sm text-muted">
+            A co-occurrence signal over real service selections, not a predicted likelihood to
+            buy: when two services are commonly scoped together across accounts, an account with
+            only one of the two looks like a plausible candidate for the other. A pairing needs to
+            appear for at least 2 accounts before it counts as a pattern.
+          </p>
+          {crossSell.topPairs.length === 0 ? (
+            <p className="text-sm text-muted">
+              Not enough accounts with multiple services in scope yet to detect a pattern.
+            </p>
+          ) : (
+            <>
+              <div>
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
+                  Most common service pairings
+                </h3>
+                <BarChart
+                  rows={crossSell.topPairs.map((pair) => ({
+                    label: `${SERVICE_LABELS[pair.serviceA]} + ${SERVICE_LABELS[pair.serviceB]}`,
+                    value: pair.accountCount,
+                  }))}
+                />
+              </div>
+              <div className="border-t border-border pt-3">
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
+                  Accounts with a gap
+                </h3>
+                {crossSell.opportunities.length === 0 ? (
+                  <p className="text-sm text-muted">
+                    No accounts currently missing one side of a common pairing.
+                  </p>
+                ) : (
+                  <ul className="flex flex-col gap-2 text-sm">
+                    {crossSell.opportunities.map((opportunity, index) => (
+                      <li
+                        key={`${opportunity.accountId}-${opportunity.missingService}-${index}`}
+                        className="flex flex-col gap-1.5 border-b border-border pb-2 last:border-0 last:pb-0"
+                      >
+                        <span className="truncate font-medium">{opportunity.accountLabel}</span>
+                        <span className="flex flex-wrap gap-2">
+                          <Badge tone="brand">has {SERVICE_LABELS[opportunity.hasService]}</Badge>
+                          <Badge tone="warning">missing {SERVICE_LABELS[opportunity.missingService]}</Badge>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </>
+          )}
         </Card>
 
         <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
