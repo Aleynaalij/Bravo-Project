@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { deliverableContentSchema } from "@/lib/validation/deliverable";
+import { getDeliverableWithContent } from "@/lib/generation/deliverables";
 
 export interface EditFormState {
   error?: string;
@@ -28,12 +29,20 @@ export async function saveEditedVersionAction(
       .filter(Boolean),
   }));
 
-  const parsed = deliverableContentSchema.safeParse({ sections });
+  const supabase = await createClient();
+
+  // The edit form has no diagram inputs (the diagram isn't inline-editable
+  // yet — see docs/validation-checklist.md), so without this a save would
+  // silently drop it from the new version. Carry the current version's
+  // diagram forward unchanged, same as every other field this form doesn't
+  // expose.
+  const current = await getDeliverableWithContent(supabase, deliverableId);
+  const diagram = current?.content?.diagram;
+
+  const parsed = deliverableContentSchema.safeParse({ sections, ...(diagram ? { diagram } : {}) });
   if (!parsed.success) {
     return { error: "Every section needs a heading and at least one non-empty paragraph" };
   }
-
-  const supabase = await createClient();
 
   const { data: nextVersionRow } = await supabase
     .from("deliverable_versions")

@@ -95,6 +95,20 @@ export function isCodeDeliverable(type: DeliverableType): boolean {
   return CODE_DELIVERABLE_TYPES.has(type);
 }
 
+// Deliverable types the generation prompt asks to also produce a
+// structured architecture diagram (src/lib/validation/deliverable.ts's
+// `diagram` field) alongside its normal sections — see
+// src/lib/generation/prompt.ts and the export builders' diagram
+// rendering. Starting with just High-Level Design (the one deliverable
+// that's literally an architecture design) rather than every "design"-
+// category type — a deliberate first tier, same as implementation_script
+// was for automation; see docs/validation-checklist.md.
+export const DIAGRAM_DELIVERABLE_TYPES: ReadonlySet<DeliverableType> = new Set(["high_level_design"]);
+
+export function supportsArchitectureDiagram(type: DeliverableType): boolean {
+  return DIAGRAM_DELIVERABLE_TYPES.has(type);
+}
+
 export const SERVICE_LABELS: Record<ServiceType, string> = {
   dlp: "Data Loss Prevention (DLP)",
   retention: "Retention Policies / Records Management",

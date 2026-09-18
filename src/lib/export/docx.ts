@@ -1,10 +1,84 @@
-import { Document, Packer, Paragraph, HeadingLevel, TextRun, ImageRun, ShadingType } from "docx";
+import {
+  Document,
+  Packer,
+  Paragraph,
+  HeadingLevel,
+  TextRun,
+  ImageRun,
+  ShadingType,
+  Table,
+  TableRow,
+  TableCell,
+  WidthType,
+} from "docx";
 import type { DeliverableContent } from "@/lib/validation/deliverable";
 import type { DeliverableType } from "@/lib/domain/enums";
-import { DELIVERABLE_LABELS, isCodeDeliverable } from "@/lib/domain/labels";
+import { DELIVERABLE_LABELS, isCodeDeliverable, supportsArchitectureDiagram } from "@/lib/domain/labels";
 import type { BrandingInfo } from "@/lib/branding";
 import { resolveAccentColor } from "@/lib/branding";
 import { fetchLogoAsset } from "./logo";
+import type { ArchitectureDiagram } from "@/lib/diagram/layout";
+
+const DIAGRAM_KIND_LABELS: Record<ArchitectureDiagram["nodes"][number]["kind"], string> = {
+  boundary: "Tenant / Boundary",
+  service: "Service",
+  external: "External System",
+  user: "User Population",
+};
+
+// docx has no supported freeform shape-canvas API (only a low-level,
+// largely undocumented DrawingML group/shape run) — building a real
+// box-and-arrow diagram on it isn't worth the risk of shipping malformed
+// XML nobody can visually verify here. PDF/PPTX get real vector diagrams
+// (react-pdf's <Svg> primitives, pptxgenjs's native addShape); DOCX gets
+// the same data as a components table + a connections list instead, which
+// is an honest, still-useful representation rather than a fake picture.
+function buildDiagramBlock(diagram: ArchitectureDiagram, accentColor: string): (Paragraph | Table)[] {
+  const labelById = new Map(diagram.nodes.map((n) => [n.id, n.label]));
+
+  const table = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    rows: [
+      new TableRow({
+        children: [
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Component", bold: true })] })] }),
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Type", bold: true })] })] }),
+        ],
+      }),
+      ...diagram.nodes.map(
+        (node) =>
+          new TableRow({
+            children: [
+              new TableCell({ children: [new Paragraph({ text: node.label })] }),
+              new TableCell({ children: [new Paragraph({ text: DIAGRAM_KIND_LABELS[node.kind] })] }),
+            ],
+          }),
+      ),
+    ],
+  });
+
+  const connectionParagraphs =
+    diagram.edges.length > 0
+      ? diagram.edges.map(
+          (edge) =>
+            new Paragraph({
+              text: `${labelById.get(edge.from) ?? edge.from} → ${labelById.get(edge.to) ?? edge.to}${edge.label ? ` (${edge.label})` : ""}`,
+              bullet: { level: 0 },
+            }),
+        )
+      : [new Paragraph({ text: "(no connections specified)" })];
+
+  return [
+    new Paragraph({
+      children: [new TextRun({ text: diagram.title || "Architecture Diagram", color: accentColor })],
+      heading: HeadingLevel.HEADING_1,
+    }),
+    table,
+    new Paragraph({ text: "" }),
+    new Paragraph({ children: [new TextRun({ text: "Connections", bold: true })] }),
+    ...connectionParagraphs,
+  ];
+}
 
 // Templated generation (title + heading + paragraphs), not free-form AI
 // text dropped into a blank document — see docs/TDD.md §2.6.
@@ -18,7 +92,7 @@ export async function buildDocx(
   const accentColor = resolveAccentColor(branding?.primaryColor);
   const logo = branding?.logoUrl ? await fetchLogoAsset(branding.logoUrl) : null;
 
-  const children: Paragraph[] = [
+  const children: (Paragraph | Table)[] = [
     ...(logo
       ? [
           new Paragraph({
@@ -82,6 +156,10 @@ export async function buildDocx(
         children.push(new Paragraph({ text: paragraph }));
       }
     }
+  }
+
+  if (content.diagram && supportsArchitectureDiagram(deliverableType)) {
+    children.push(...buildDiagramBlock(content.diagram, accentColor));
   }
 
   const doc = new Document({

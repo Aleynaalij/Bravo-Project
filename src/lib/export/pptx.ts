@@ -1,10 +1,15 @@
 import PptxGenJS from "pptxgenjs";
 import type { DeliverableContent } from "@/lib/validation/deliverable";
 import type { DeliverableType } from "@/lib/domain/enums";
-import { DELIVERABLE_LABELS, isCodeDeliverable } from "@/lib/domain/labels";
+import { DELIVERABLE_LABELS, isCodeDeliverable, supportsArchitectureDiagram } from "@/lib/domain/labels";
 import type { BrandingInfo } from "@/lib/branding";
 import { resolveAccentColor } from "@/lib/branding";
 import { fetchLogoAsset } from "./logo";
+import { layoutDiagram, scaleToFit, edgeLine, DIAGRAM_KIND_COLORS, type ArchitectureDiagram } from "@/lib/diagram/layout";
+
+// Content-area box the diagram is scaled into — same box addBullets/
+// addCodeBlock use, so a diagram slide matches every other slide's margins.
+const DIAGRAM_BOX = { x: 0.5, y: 1.3, w: 12.33, h: 5.6 };
 
 // A section's paragraphs are split across multiple slides once they'd
 // overflow a single slide — this is a presentation deck, not a page-for-page
@@ -113,6 +118,12 @@ export async function buildPptx(
     addBullets(slide, bullets);
   }
 
+  if (content.diagram && supportsArchitectureDiagram(deliverableType)) {
+    const slide = pptx.addSlide();
+    addSlideHeading(slide, content.diagram.title || "Architecture Diagram", accentColor);
+    addDiagram(slide, content.diagram);
+  }
+
   const buffer = await pptx.write({ outputType: "nodebuffer" });
   return buffer as Buffer;
 }
@@ -141,6 +152,65 @@ function addCodeBlock(slide: PptxGenJS.Slide, code: string) {
     color: "1A1A2E",
     valign: "top",
   });
+}
+
+// Real native pptxgenjs shapes (addShape rect/line), not a rasterized
+// image — PPTX has first-class support for exactly this, no rasterizer
+// dependency needed. Uses the same grid layout the PDF/in-app renderers
+// share, scaled into this deck's content-area box.
+function addDiagram(slide: PptxGenJS.Slide, diagram: ArchitectureDiagram) {
+  const layout = layoutDiagram(diagram);
+  const { scale, offsetX, offsetY } = scaleToFit(layout, DIAGRAM_BOX.w, DIAGRAM_BOX.h);
+  const tx = (x: number) => DIAGRAM_BOX.x + offsetX + x * scale;
+  const ty = (y: number) => DIAGRAM_BOX.y + offsetY + y * scale;
+  const nodeById = new Map(layout.nodes.map((n) => [n.id, n]));
+
+  for (const edge of layout.edges) {
+    const from = nodeById.get(edge.from);
+    const to = nodeById.get(edge.to);
+    if (!from || !to) continue;
+    const { x1, y1, x2, y2 } = edgeLine(from, to);
+    const px1 = tx(x1);
+    const py1 = ty(y1);
+    const px2 = tx(x2);
+    const py2 = ty(y2);
+    slide.addShape("line", {
+      x: Math.min(px1, px2),
+      y: Math.min(py1, py2),
+      w: Math.max(Math.abs(px2 - px1), 0.01),
+      h: Math.max(Math.abs(py2 - py1), 0.01),
+      flipH: px1 > px2,
+      flipV: py1 > py2,
+      line: { color: "8B96A5", width: 1, endArrowType: "triangle" },
+    });
+  }
+
+  for (const node of layout.nodes) {
+    const colors = DIAGRAM_KIND_COLORS[node.kind];
+    const x = tx(node.x);
+    const y = ty(node.y);
+    const w = node.w * scale;
+    const h = node.h * scale;
+    slide.addShape("roundRect", {
+      x,
+      y,
+      w,
+      h,
+      rectRadius: 0.06,
+      fill: { color: colors.fill },
+      line: { color: "DDE2E8", width: 1 },
+    });
+    slide.addText(node.label, {
+      x,
+      y,
+      w,
+      h,
+      align: "center",
+      valign: "middle",
+      fontSize: 10,
+      color: colors.text,
+    });
+  }
 }
 
 function addBullets(slide: PptxGenJS.Slide, paragraphs: string[]) {

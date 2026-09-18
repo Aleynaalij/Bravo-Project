@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { DELIVERABLE_LABELS, DELIVERABLE_CATEGORY, isCodeDeliverable } from "@/lib/domain/labels";
 import type { DeliverableWithContent } from "@/lib/generation/deliverables";
 import { saveEditedVersionAction, type EditFormState } from "./edit-actions";
+import { ArchitectureDiagramView } from "@/components/architecture-diagram";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert } from "@/components/ui/alert";
@@ -151,6 +152,14 @@ export function DeliverableView({
               )}
             </div>
           ))}
+          {deliverable.content.diagram && (
+            <div>
+              <h4 className="mb-1 text-sm font-semibold text-brand-dark">
+                {deliverable.content.diagram.title || "Architecture Diagram"}
+              </h4>
+              <ArchitectureDiagramView diagram={deliverable.content.diagram} />
+            </div>
+          )}
         </div>
       ) : (
         <form action={formAction} className="flex flex-col gap-4">
