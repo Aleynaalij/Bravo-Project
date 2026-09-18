@@ -80,12 +80,18 @@ async function runClaimedJobToCompletion(
   }
 }
 
-// Vercel Cron's finest granularity is once a minute, so a job can sit
-// queued for up to ~60s before a tick even looks at it — an accepted
-// trade-off for background processing built entirely on infrastructure
-// this project already has (Vercel + Supabase), not a real message
-// queue's sub-second dispatch. Capped per tick so one cron invocation
-// can't itself run long enough to overlap the next one under real load.
+// Runs once a day now (see vercel.json and process-generation-jobs/
+// route.ts for why — a Hobby-plan Vercel limitation, not a design
+// choice), so a job can sit queued for up to ~24h before a tick even
+// looks at it, and — because only MAX_JOBS_PER_TICK processes per tick —
+// a queue deeper than this cap takes multiple *days* to fully drain, not
+// multiple ticks a minute apart the way this cap originally assumed.
+// Left at 5 rather than raised speculatively: the value that actually
+// matters now is how long each job takes against a real AI provider
+// (unmeasured — no provider key in this sandbox) versus the serverless
+// function's execution-duration ceiling, and getting that wrong in the
+// other direction (too high) risks the function itself timing out
+// mid-batch. Revisit alongside upgrading off the Hobby plan.
 const MAX_JOBS_PER_TICK = 5;
 
 // Called from the cron route (src/app/api/cron/process-generation-jobs)
