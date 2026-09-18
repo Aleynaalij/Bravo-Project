@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireAccountId } from "@/lib/auth/session";
 import { getSubscription } from "@/lib/billing/service";
+import { getTrialStatus } from "@/lib/billing/trial";
 import { startCheckoutAction, openBillingPortalAction } from "./actions";
 import { Header } from "@/components/header";
 import { Card } from "@/components/ui/card";
@@ -28,9 +29,10 @@ export default async function BillingPage({
   if (!user) redirect("/login");
 
   const accountId = await requireAccountId(supabase);
-  const [subscription, userRow] = await Promise.all([
+  const [subscription, userRow, trialStatus] = await Promise.all([
     getSubscription(supabase, accountId),
     supabase.from("users").select("role").eq("id", user.id).single(),
+    getTrialStatus(supabase, accountId),
   ]);
   const isOwner = userRow.data?.role === "owner";
   const hasActiveSubscription =
@@ -69,6 +71,19 @@ export default async function BillingPage({
         {!isOwner && (
           <Alert variant="info" className="mb-4">
             Only the account owner can manage billing.
+          </Alert>
+        )}
+
+        {trialStatus && (
+          <Alert
+            variant={trialStatus.isTimeExpired || trialStatus.isGenerationLimitReached ? "warning" : "info"}
+            className="mb-4"
+          >
+            {trialStatus.isTimeExpired
+              ? "Your trial has ended. Subscribe below to keep generating deliverables — your existing projects and content aren't going anywhere."
+              : trialStatus.isGenerationLimitReached
+                ? `You've used all ${trialStatus.generationLimit} deliverable generations included in your trial. Subscribe below to keep generating.`
+                : `${trialStatus.daysRemaining} day${trialStatus.daysRemaining === 1 ? "" : "s"} left in your trial · ${trialStatus.generationsUsed} of ${trialStatus.generationLimit} generations used.`}
           </Alert>
         )}
 

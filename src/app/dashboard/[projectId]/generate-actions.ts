@@ -4,6 +4,11 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAccountId } from "@/lib/auth/session";
 import { enqueueGenerationJob } from "@/lib/generation/jobs";
 import { assertUnderGenerationRateLimit, GenerationRateLimitError } from "@/lib/generation/rate-limit";
+import {
+  assertTrialNotExhausted,
+  TrialExpiredError,
+  TrialGenerationLimitError,
+} from "@/lib/billing/trial";
 import { generateRequestSchema } from "@/lib/validation/deliverable";
 
 export interface GenerateFormState {
@@ -29,8 +34,12 @@ export async function generateDeliverablesAction(
   try {
     const accountId = await requireAccountId(supabase);
     await assertUnderGenerationRateLimit(supabase, accountId);
+    await assertTrialNotExhausted(supabase, accountId);
   } catch (err) {
     if (err instanceof GenerationRateLimitError) return { error: err.message };
+    if (err instanceof TrialExpiredError || err instanceof TrialGenerationLimitError) {
+      return { error: err.message };
+    }
     throw err;
   }
 
