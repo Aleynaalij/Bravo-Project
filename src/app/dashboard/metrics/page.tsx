@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getUsageMetrics, groupServicesByPracticeArea } from "@/lib/metrics/usage";
 import { getEngagementHealthSummary } from "@/lib/metrics/engagement";
 import { getEditSeverityBreakdown } from "@/lib/metrics/quality";
+import { summarizeDeliveryRisk } from "@/lib/metrics/delivery-risk";
+import { listProjectsWithServices } from "@/lib/projects/service";
 import { DELIVERABLE_LABELS, SERVICE_LABELS } from "@/lib/domain/labels";
 import { Header } from "@/components/header";
 import { Card } from "@/components/ui/card";
@@ -23,13 +25,22 @@ export default async function AccountMetricsPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [metrics, engagementHealth, editSeverity] = await Promise.all([
+  const [metrics, engagementHealth, editSeverity, projects] = await Promise.all([
     getUsageMetrics(supabase),
     getEngagementHealthSummary(supabase),
     getEditSeverityBreakdown(supabase),
+    listProjectsWithServices(supabase),
   ]);
   const totalProjects =
     engagementHealth.counts.healthy + engagementHealth.counts.review_needed + engagementHealth.counts.stalled;
+  const deliveryRisk = summarizeDeliveryRisk(
+    projects.map((project) => ({
+      id: project.id,
+      userCount: project.user_count,
+      geographicLocations: project.geographic_locations,
+      services: project.services,
+    })),
+  );
 
   const totalSucceeded = metrics.generationsByType.reduce((sum, t) => sum + t.succeeded, 0);
   const successRate =
@@ -67,6 +78,24 @@ export default async function AccountMetricsPage() {
               <Badge tone="success">{engagementHealth.counts.healthy} healthy</Badge>
               <Badge tone="warning">{engagementHealth.counts.review_needed} need review</Badge>
               <Badge tone="error">{engagementHealth.counts.stalled} stalled</Badge>
+            </div>
+          </Card>
+        )}
+
+        {totalProjects > 0 && (
+          <Card className="mb-8 flex flex-col gap-3">
+            <h2 className="font-medium">Delivery risk</h2>
+            <p className="text-sm text-muted">
+              A scoping-time signal from this project&apos;s own intake data, not a prediction:
+              points accrue for a large user population (1,000+, another point at 5,000+),
+              multi-region scope, and a wide compliance-service footprint (4 or more Data
+              Security &amp; Compliance services in scope at once). 1 point is{" "}
+              <strong>elevated</strong>, 3 or more is <strong>high</strong>.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Badge tone="success">{deliveryRisk.counts.low} low</Badge>
+              <Badge tone="warning">{deliveryRisk.counts.elevated} elevated</Badge>
+              <Badge tone="error">{deliveryRisk.counts.high} high</Badge>
             </div>
           </Card>
         )}
