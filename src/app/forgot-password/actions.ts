@@ -9,7 +9,7 @@ export interface ForgotPasswordState {
 
 // Always reports success regardless of whether the email exists — a
 // different response for "no account" vs "email sent" would let anyone
-// enumerate which emails have BravoPilot accounts. Supabase's own error
+// enumerate which emails have QuePilot accounts. Supabase's own error
 // for a genuinely malformed address (e.g. missing @) is still surfaced,
 // since that's a client-side input mistake, not an enumeration signal.
 export async function requestPasswordResetAction(

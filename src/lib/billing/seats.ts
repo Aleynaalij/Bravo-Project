@@ -11,7 +11,7 @@
 // real ones. Consultant matches its own name/positioning (one consultant,
 // one seat) — that's the exact scenario the audit named. Professional's
 // cap is a bounded-but-generous default for a small firm team; it is not
-// sized for Bravo Consulting Group's actual ~46-person headcount (see
+// sized for a mid-size consulting firm's full headcount (see
 // docs/validation-checklist.md's multi-seat teams entry) — a firm that
 // size needs a real pricing conversation (a higher tier, or real per-seat
 // billing), not a cap picked here.

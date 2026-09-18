@@ -11,7 +11,7 @@ export function ForgotPasswordForm() {
   const [state, formAction, isPending] = useActionState(requestPasswordResetAction, initialState);
 
   if (state.submitted) {
-    return <Alert variant="success">If that email has a BravoPilot account, a reset link is on its way.</Alert>;
+    return <Alert variant="success">If that email has a QuePilot account, a reset link is on its way.</Alert>;
   }
 
   return (

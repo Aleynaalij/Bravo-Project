@@ -104,7 +104,7 @@ export default async function SettingsPage({
 
           <Card className="flex flex-col gap-3">
             <h2 className="font-medium">Appearance</h2>
-            <p className="text-sm text-muted">Choose how BravoPilot looks on this device.</p>
+            <p className="text-sm text-muted">Choose how QuePilot looks on this device.</p>
             <ThemeToggle />
           </Card>
 

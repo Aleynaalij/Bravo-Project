@@ -1,21 +1,21 @@
 import { LegalPage } from "@/components/legal-page";
 
-export const metadata = { title: "Terms of Service — BravoPilot" };
+export const metadata = { title: "Terms of Service — QuePilot" };
 
 export default function TermsPage() {
   return (
     <LegalPage title="Terms of Service" lastUpdated="[DATE — fill in on publish]">
       <p>
-        These Terms of Service (&quot;Terms&quot;) govern access to and use of BravoPilot, a service
-        operated by <strong>[LEGAL ENTITY NAME]</strong> (&quot;BravoPilot,&quot; &quot;we,&quot;
-        &quot;us&quot;). By creating an account or otherwise using BravoPilot, you agree to these
+        These Terms of Service (&quot;Terms&quot;) govern access to and use of QuePilot, a service
+        operated by <strong>[LEGAL ENTITY NAME]</strong> (&quot;QuePilot,&quot; &quot;we,&quot;
+        &quot;us&quot;). By creating an account or otherwise using QuePilot, you agree to these
         Terms. If you&apos;re accepting on behalf of an organization, you&apos;re confirming you have
         authority to bind that organization.
       </p>
 
-      <h2>1. What BravoPilot Does</h2>
+      <h2>1. What QuePilot Does</h2>
       <p>
-        BravoPilot helps Microsoft consulting professionals draft client deliverables — executive
+        QuePilot helps Microsoft consulting professionals draft client deliverables — executive
         summaries, statements of work, design documents, and related artifacts — using AI models
         combined with a curated knowledge base. It is a drafting accelerator, not a substitute for
         professional judgment.
@@ -24,13 +24,13 @@ export default function TermsPage() {
       <h2>2. AI-Generated Content — Read This Before You Send Anything to a Client</h2>
       <ul>
         <li>
-          Every deliverable BravoPilot generates is a <strong>first draft produced by an AI
+          Every deliverable QuePilot generates is a <strong>first draft produced by an AI
           model</strong>, not certified compliance, legal, security, or architectural advice, and not
           reviewed by a subject-matter expert before it reaches you.
         </li>
         <li>
           You are solely responsible for reviewing, editing, and validating any generated content
-          before relying on it or delivering it to a client. BravoPilot is not responsible for
+          before relying on it or delivering it to a client. QuePilot is not responsible for
           inaccuracies, omissions, or consequences that follow from unreviewed AI output.
         </li>
         <li>
@@ -64,7 +64,7 @@ export default function TermsPage() {
       <h2>5. Acceptable Use</h2>
       <p>You agree not to:</p>
       <ul>
-        <li>Use BravoPilot to generate unlawful, infringing, or deliberately deceptive content.</li>
+        <li>Use QuePilot to generate unlawful, infringing, or deliberately deceptive content.</li>
         <li>Attempt to circumvent rate limits, usage safeguards, or account-scoping controls.</li>
         <li>Probe, scan, or attempt to access another account&apos;s data.</li>
         <li>Resell or provide third-party access to the service outside your own organization without our written consent.</li>
@@ -72,7 +72,7 @@ export default function TermsPage() {
 
       <h2>6. Your Content</h2>
       <p>
-        You retain ownership of the project information you enter and the deliverables BravoPilot
+        You retain ownership of the project information you enter and the deliverables QuePilot
         generates for you. You grant us a license to process that content — including sending it to
         the AI model provider configured for your account — solely to provide and improve the
         service. See our <a href="/privacy">Privacy Policy</a> for how project data, including any
@@ -81,10 +81,10 @@ export default function TermsPage() {
 
       <h2>7. Third-Party Services</h2>
       <p>
-        BravoPilot is built on and relies on third-party infrastructure to operate, including
+        QuePilot is built on and relies on third-party infrastructure to operate, including
         database/authentication hosting, application hosting, payment processing, and an AI model
         provider. A current, detailed list is on our <a href="/subprocessors">Sub-processors</a>{" "}
-        page. Your use of BravoPilot is also subject to the acceptable-use terms of the AI model
+        page. Your use of QuePilot is also subject to the acceptable-use terms of the AI model
         provider processing your requests. If your organization needs a signed Data Processing
         Agreement covering these subprocessors, see <a href="/dpa">/dpa</a>.
       </p>
@@ -99,7 +99,7 @@ export default function TermsPage() {
 
       <h2>9. Disclaimers &amp; Limitation of Liability</h2>
       <p>
-        BravoPilot is provided &quot;as is&quot; without warranties of any kind, express or implied.
+        QuePilot is provided &quot;as is&quot; without warranties of any kind, express or implied.
         To the maximum extent permitted by law, [LEGAL ENTITY NAME] is not liable for indirect,
         incidental, or consequential damages, or for any decision made or action taken in reliance on
         AI-generated content. [Insert a liability cap tied to fees paid, reviewed by counsel.]

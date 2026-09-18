@@ -1,4 +1,4 @@
-# BravoPilot.ai — Database ERD (MVP)
+# QuePilot.ai — Database ERD (MVP)
 
 **Status:** Draft v1
 **Target DB:** Supabase Postgres (MVP) — schema deliberately avoids Postgres-only constructs beyond `jsonb`, so it ports cleanly to Azure SQL for the target architecture.
@@ -137,7 +137,7 @@ One row per paying customer (an individual consultant, or later a firm/MSP with 
 Individual login identities. No longer 1:1 with account — multi-seat shipped (migration 0017) exactly the way this table was designed to allow: relaxing the assumption in application logic (an auth-trigger branch, new RLS policy, an invite flow) with no schema migration to the table's shape itself, only a `role` check constraint (`'owner' | 'member'`). Every account-scoped RLS policy already keyed off `auth_account_id()` rather than a specific user id, so a second `users` row under the same `account_id` gets full data access for free; `role` only gates account-level actions (team management, billing, account deletion) at the application layer, not project/deliverable access.
 
 ### branding
-1:1 with account. Used to stamp exported DOCX/PDF deliverables with the consultant's/firm's own branding rather than BravoPilot's.
+1:1 with account. Used to stamp exported DOCX/PDF deliverables with the consultant's/firm's own branding rather than QuePilot's.
 
 ### subscriptions
 1:1 with account. Mirrors Stripe subscription state; updated via Stripe webhook handler.

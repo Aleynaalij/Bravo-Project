@@ -1,12 +1,12 @@
 // Mirrors the enums defined in docs/openapi.yaml and docs/ERD.md.
 // Keep these three files in sync when the deliverable/service catalog changes.
 
-// MVP + Sprint 2 covered Bravo's Data Security & Compliance practice
-// (the 8 Purview-based service types below) exclusively. This "Bravo
-// practice areas" expansion adds one service per Bravo's other named
-// practice areas (docs/PRD.md — see the design-partner notes), so the
-// platform reflects the whole firm's Microsoft expertise, not just
-// Purview. See PRACTICE_AREA in labels.ts for the grouping.
+// MVP + Sprint 2 covered a Data Security & Compliance practice (the 8
+// Purview-based service types below) exclusively. This "practice areas"
+// expansion adds one service per additional named practice area
+// (docs/PRD.md — see the design-partner notes), so the platform reflects
+// a consulting firm's whole Microsoft expertise, not just Purview. See
+// PRACTICE_AREA in labels.ts for the grouping.
 export const SERVICE_TYPES = [
   "dlp",
   "retention",
@@ -26,7 +26,7 @@ export type ServiceType = (typeof SERVICE_TYPES)[number];
 
 // MVP shipped the first three (Sprint 1); Sprint 2 added the rest across
 // three batches, completing the full Phase 2 catalog (docs/PRD.md §9).
-// The Bravo practice-area expansion then added one flagship deliverable
+// The practice-area expansion then added one flagship deliverable
 // per new practice area, each gated to its matching service (see
 // DELIVERABLE_REQUIRES_SERVICE in labels.ts) the same way DLP Design etc.
 // are gated to their Purview service.
