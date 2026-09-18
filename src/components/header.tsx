@@ -28,11 +28,13 @@ export async function Header() {
     { href: "/dashboard/vault", label: "FileVault" },
     { href: "/demo", label: "Demo" },
     { href: "/dashboard/billing", label: "Billing" },
+    { href: "/dashboard/support", label: "Support" },
     { href: "/dashboard/settings", label: "Settings" },
     ...(userRow?.is_platform_admin
       ? [
           { href: "/admin/knowledge-base", label: "Knowledge Base" },
           { href: "/admin/metrics", label: "Platform Metrics" },
+          { href: "/admin/support", label: "Support Requests" },
         ]
       : []),
   ];
