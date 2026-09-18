@@ -18,6 +18,7 @@ import { Header } from "@/components/header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert } from "@/components/ui/alert";
+import { ScoreBar } from "@/components/charts/score-bar";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export default async function SettingsPage({
@@ -133,6 +134,7 @@ export default async function SettingsPage({
               <h2 className="font-medium">Security score</h2>
               <Badge tone={scoreTone}>{securityScore.score}/100</Badge>
             </div>
+            <ScoreBar value={securityScore.score} tone={scoreTone} />
             <p className="text-sm text-muted">
               Two real, checkable signals about this account&apos;s own security posture — not a
               compliance certification or an industry benchmark.
