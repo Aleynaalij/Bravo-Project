@@ -7,6 +7,7 @@ import { getSubscription } from "@/lib/billing/service";
 import { getSeatLimit } from "@/lib/billing/seats";
 import { listTeamMembers } from "@/lib/team/service";
 import { listAuditLog, AUDIT_ACTION_LABELS } from "@/lib/audit/service";
+import { getSecurityScore } from "@/lib/security/score";
 import { BrandingForm } from "../branding/branding-form";
 import { ChangePasswordForm } from "./change-password-form";
 import { DeleteAccountForm } from "./delete-account-form";
@@ -32,19 +33,22 @@ export default async function SettingsPage({
   if (!user) redirect("/login");
 
   const accountId = await requireAccountId(supabase);
-  const [branding, subscription, userRow, accountRow, teamMembers, auditLog] = await Promise.all([
-    getBranding(supabase, accountId),
-    getSubscription(supabase, accountId),
-    supabase.from("users").select("role, created_at").eq("id", user.id).single(),
-    supabase.from("accounts").select("firm_name, created_at").eq("id", accountId).single(),
-    listTeamMembers(supabase, accountId),
-    // RLS already restricts this to an account owner (see
-    // supabase/migrations/0019_audit_log.sql) — a non-owner just gets an
-    // empty list back, which is why this runs unconditionally rather than
-    // being gated on isOwner first.
-    listAuditLog(supabase, accountId, 20),
-  ]);
+  const [branding, subscription, userRow, accountRow, teamMembers, auditLog, securityScore] =
+    await Promise.all([
+      getBranding(supabase, accountId),
+      getSubscription(supabase, accountId),
+      supabase.from("users").select("role, created_at").eq("id", user.id).single(),
+      supabase.from("accounts").select("firm_name, created_at").eq("id", accountId).single(),
+      listTeamMembers(supabase, accountId),
+      // RLS already restricts this to an account owner (see
+      // supabase/migrations/0019_audit_log.sql) — a non-owner just gets an
+      // empty list back, which is why this runs unconditionally rather than
+      // being gated on isOwner first.
+      listAuditLog(supabase, accountId, 20),
+      getSecurityScore(supabase, accountId),
+    ]);
   const isOwner = userRow.data?.role === "owner";
+  const scoreTone = securityScore.score >= 80 ? "success" : securityScore.score >= 50 ? "warning" : "error";
 
   return (
     <>
@@ -122,6 +126,37 @@ export default async function SettingsPage({
             <h2 className="font-medium">Appearance</h2>
             <p className="text-sm text-muted">Choose how QuePilot looks on this device.</p>
             <ThemeToggle />
+          </Card>
+
+          <Card className="flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="font-medium">Security score</h2>
+              <Badge tone={scoreTone}>{securityScore.score}/100</Badge>
+            </div>
+            <p className="text-sm text-muted">
+              Two real, checkable signals about this account&apos;s own security posture — not a
+              compliance certification or an industry benchmark.
+            </p>
+            <ul className="flex flex-col gap-2 text-sm">
+              {securityScore.checks.map((check) => (
+                <li
+                  key={check.id}
+                  className="flex flex-col gap-1 border-b border-border pb-2 last:border-0 last:pb-0"
+                >
+                  <span className="font-medium">{check.label}</span>
+                  <span className="flex items-start gap-2 text-xs text-muted">
+                    <Badge
+                      tone={
+                        check.status === "pass" ? "success" : check.status === "fail" ? "error" : "neutral"
+                      }
+                    >
+                      {check.status === "pass" ? "Pass" : check.status === "fail" ? "Needs attention" : "Unavailable"}
+                    </Badge>
+                    {check.detail}
+                  </span>
+                </li>
+              ))}
+            </ul>
           </Card>
 
           <Card className="flex flex-col gap-3">
