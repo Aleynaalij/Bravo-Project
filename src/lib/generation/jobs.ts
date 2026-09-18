@@ -1,6 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DeliverableType } from "@/lib/domain/enums";
 import { runGeneration, upsertDeliverable } from "./run";
+import { getProject } from "@/lib/projects/service";
+import { listTeamMembers } from "@/lib/team/service";
+import { sendEmail } from "@/lib/email/client";
+import { generationFailedEmail } from "@/lib/email/templates";
 
 export interface GenerationJobRow {
   id: string;
@@ -76,7 +80,38 @@ async function runClaimedJobToCompletion(
       .eq("id", job.id)
       .select("*")
       .single();
+    await notifyGenerationFailure(supabase, job, message);
     return updated ?? { ...job, status: "failed", error_message: message };
+  }
+}
+
+// Best-effort — a Resend outage or an email misconfiguration should never
+// make a queued job harder to retry than it already is. The job's own
+// failed status (recorded above) is the source of truth either way; this
+// is purely an out-of-band nudge so the team doesn't have to notice it in
+// the UI on their own.
+async function notifyGenerationFailure(
+  supabase: SupabaseClient,
+  job: GenerationJobRow,
+  errorMessage: string,
+): Promise<void> {
+  try {
+    const project = await getProject(supabase, job.project_id);
+    if (!project) return;
+
+    const team = await listTeamMembers(supabase, project.account_id);
+    const recipients = team.map((member) => member.email);
+    if (recipients.length === 0) return;
+
+    const { subject, html } = generationFailedEmail({
+      projectName: project.customer_name,
+      deliverableType: job.deliverable_type,
+      errorMessage,
+      projectUrl: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard/${project.id}`,
+    });
+    await sendEmail({ to: recipients, subject, html });
+  } catch (notifyErr) {
+    console.error("[email] Failed to send generation-failure notification:", notifyErr);
   }
 }
 
