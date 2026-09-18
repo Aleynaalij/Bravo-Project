@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getUsageMetrics } from "@/lib/metrics/usage";
 import { getEngagementHealthSummary } from "@/lib/metrics/engagement";
+import { getEditSeverityBreakdown } from "@/lib/metrics/quality";
 import { DELIVERABLE_LABELS, SERVICE_LABELS } from "@/lib/domain/labels";
 import { Header } from "@/components/header";
 import { Card } from "@/components/ui/card";
@@ -22,9 +23,10 @@ export default async function AccountMetricsPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [metrics, engagementHealth] = await Promise.all([
+  const [metrics, engagementHealth, editSeverity] = await Promise.all([
     getUsageMetrics(supabase),
     getEngagementHealthSummary(supabase),
+    getEditSeverityBreakdown(supabase),
   ]);
   const totalProjects =
     engagementHealth.counts.healthy + engagementHealth.counts.review_needed + engagementHealth.counts.stalled;
@@ -36,6 +38,7 @@ export default async function AccountMetricsPage() {
     metrics.editRate.totalDeliverables > 0
       ? Math.round((metrics.editRate.editedDeliverables / metrics.editRate.totalDeliverables) * 100)
       : null;
+  const sentAsIs = metrics.editRate.totalDeliverables - metrics.editRate.editedDeliverables;
   const mostUsedType = metrics.generationsByType[0];
 
   return (
@@ -93,6 +96,22 @@ export default async function AccountMetricsPage() {
                 <span className="text-sm text-muted">
                   {mostUsedType.succeeded + mostUsedType.failed + mostUsedType.other} generations
                 </span>
+              </Card>
+            )}
+
+            {metrics.editRate.totalDeliverables > 0 && (
+              <Card className="mb-6 flex flex-col gap-3">
+                <h2 className="font-medium">AI draft quality</h2>
+                <p className="text-sm text-muted">
+                  How much of the final delivered content differed from the first AI draft, measured
+                  by real word-level text comparison — a documented heuristic (see
+                  docs/validation-checklist.md), not a certified quality score.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Badge tone="success">{sentAsIs} sent as-is</Badge>
+                  <Badge tone="warning">{editSeverity.minorEdit} minor edits</Badge>
+                  <Badge tone="error">{editSeverity.majorEdit} major edits</Badge>
+                </div>
               </Card>
             )}
 

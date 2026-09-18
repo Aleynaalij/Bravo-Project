@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getUsageMetrics } from "@/lib/metrics/usage";
 import { getPlanDistribution } from "@/lib/metrics/billing";
+import { getEditSeverityBreakdown } from "@/lib/metrics/quality";
 import { DELIVERABLE_LABELS, SERVICE_LABELS } from "@/lib/domain/labels";
 import { Header } from "@/components/header";
 import { Card } from "@/components/ui/card";
@@ -17,9 +18,10 @@ import { Badge } from "@/components/ui/badge";
 // of "my account."
 export default async function MetricsPage() {
   const admin = createAdminClient();
-  const [metrics, planDistribution] = await Promise.all([
+  const [metrics, planDistribution, editSeverity] = await Promise.all([
     getUsageMetrics(admin),
     getPlanDistribution(admin),
+    getEditSeverityBreakdown(admin),
   ]);
 
   const totalSucceeded = metrics.generationsByType.reduce((sum, t) => sum + t.succeeded, 0);
@@ -29,6 +31,7 @@ export default async function MetricsPage() {
     metrics.editRate.totalDeliverables > 0
       ? Math.round((metrics.editRate.editedDeliverables / metrics.editRate.totalDeliverables) * 100)
       : null;
+  const sentAsIs = metrics.editRate.totalDeliverables - metrics.editRate.editedDeliverables;
 
   return (
     <>
@@ -92,6 +95,22 @@ export default async function MetricsPage() {
           <StatTile label="Exports" value={metrics.totalExports} />
           <StatTile label="Edit rate" value={editRatePct === null ? "—" : `${editRatePct}%`} />
         </div>
+
+        {metrics.editRate.totalDeliverables > 0 && (
+          <Card className="mb-6 flex flex-col gap-3">
+            <h2 className="font-medium">AI draft quality</h2>
+            <p className="text-sm text-muted">
+              How much of the final delivered content differed from the first AI draft, measured by
+              real word-level text comparison — a documented heuristic (see
+              docs/validation-checklist.md), not a certified quality score.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Badge tone="success">{sentAsIs} sent as-is</Badge>
+              <Badge tone="warning">{editSeverity.minorEdit} minor edits</Badge>
+              <Badge tone="error">{editSeverity.majorEdit} major edits</Badge>
+            </div>
+          </Card>
+        )}
 
         <Card className="mb-6 flex flex-col gap-3">
           <h2 className="font-medium">Generations by deliverable type</h2>
