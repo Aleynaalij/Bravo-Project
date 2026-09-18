@@ -1,4 +1,4 @@
-# BravoPilot.ai — Incident Response Runbook
+# QuePilot.ai — Incident Response Runbook
 
 **Status:** Draft v1 — sized for the team that actually exists today (no on-call rotation, no NOC), not an aspirational enterprise process
 **Last updated:** 2026-09-15

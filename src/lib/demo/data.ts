@@ -37,7 +37,7 @@ export const DEMO_CONTENT: Record<(typeof DEMO_CANDIDATE_DELIVERABLES)[number], 
       {
         heading: "Overview",
         paragraphs: [
-          "Contoso Federal Services has engaged Bravo Consulting Group to strengthen data protection controls across Microsoft 365 and to plan the migration of its remaining on-premises Exchange environment to Exchange Online, ahead of a FedRAMP Moderate authorization renewal.",
+          "Contoso Federal Services has engaged [Your Firm] to strengthen data protection controls across Microsoft 365 and to plan the migration of its remaining on-premises Exchange environment to Exchange Online, ahead of a FedRAMP Moderate authorization renewal.",
         ],
       },
       {
@@ -79,7 +79,7 @@ export const DEMO_CONTENT: Record<(typeof DEMO_CANDIDATE_DELIVERABLES)[number], 
       {
         heading: "Project Overview",
         paragraphs: [
-          "Bravo Consulting Group will deliver Data Loss Prevention policy design, a Retention Strategy, and a phased Cloud Migration plan for Contoso Federal Services' Microsoft 365 environment.",
+          "[Your Firm] will deliver Data Loss Prevention policy design, a Retention Strategy, and a phased Cloud Migration plan for Contoso Federal Services' Microsoft 365 environment.",
         ],
       },
       {
@@ -105,7 +105,7 @@ export const DEMO_CONTENT: Record<(typeof DEMO_CANDIDATE_DELIVERABLES)[number], 
       {
         heading: "Roles & Responsibilities",
         paragraphs: [
-          "Bravo Consulting Group: solution design, configuration, and migration execution. Contoso Federal Services: pilot user nomination, business-unit sign-off on retention categories, and change-freeze coordination during cutover windows.",
+          "[Your Firm]: solution design, configuration, and migration execution. Contoso Federal Services: pilot user nomination, business-unit sign-off on retention categories, and change-freeze coordination during cutover windows.",
         ],
       },
       {

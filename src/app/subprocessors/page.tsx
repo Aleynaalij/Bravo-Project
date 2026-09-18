@@ -1,6 +1,6 @@
 import { LegalPage } from "@/components/legal-page";
 
-export const metadata = { title: "Sub-processors — BravoPilot" };
+export const metadata = { title: "Sub-processors — QuePilot" };
 
 const SUBPROCESSORS = [
   {
@@ -20,13 +20,13 @@ const SUBPROCESSORS = [
   {
     name: "Stripe",
     purpose: "Payment processing and subscription billing",
-    data: "Billing email, plan/subscription status, payment method (Stripe holds full card details directly — BravoPilot never receives them)",
+    data: "Billing email, plan/subscription status, payment method (Stripe holds full card details directly — QuePilot never receives them)",
     location: "US-based company, global processing infrastructure",
     link: "https://stripe.com/privacy",
   },
   {
     name: "OpenAI or Microsoft Azure OpenAI",
-    purpose: "AI-generated deliverable drafting — whichever provider a given BravoPilot deployment is configured to use (src/lib/ai/provider.ts)",
+    purpose: "AI-generated deliverable drafting — whichever provider a given QuePilot deployment is configured to use (src/lib/ai/provider.ts)",
     data: "Project intake data sent as part of the generation prompt: customer name, industry, user count, licensing tier, geographic locations, and free-text compliance notes",
     location: "Depends on configured provider/region — confirm the specific deployment's terms before entering highly sensitive client information",
     link: "https://openai.com/policies/privacy-policy",
@@ -47,7 +47,7 @@ export default function SubprocessorsPage() {
         This is the detailed, current list referenced from our{" "}
         <a href="/privacy">Privacy Policy</a> (§4) and <a href="/dpa">Data Processing Agreement</a>{" "}
         (§6). A sub-processor is any third party we use that processes account or project data on
-        our behalf to operate BravoPilot.
+        our behalf to operate QuePilot.
       </p>
 
       <p>

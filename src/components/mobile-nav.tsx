@@ -71,7 +71,7 @@ export function MobileNav({
           >
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
               <span className="text-sm font-semibold">
-                Bravo<span className="text-brand">Pilot</span>
+                Que<span className="text-brand">Pilot</span>
               </span>
               <button
                 type="button"

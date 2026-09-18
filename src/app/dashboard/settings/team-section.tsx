@@ -91,7 +91,7 @@ export function TeamSection({
               id="invite-email"
               name="email"
               type="email"
-              placeholder="teammate@bravocg.com"
+              placeholder="teammate@yourfirm.com"
               required
               className="rounded-md border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none"
             />

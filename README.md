@@ -1,6 +1,6 @@
-# BravoPilot.ai
+# QuePilot.ai
 
-AI-powered SaaS platform for Bravo Consulting Group's Microsoft technology practice — security & compliance, cloud migration, app modernization, SharePoint, and analytics/AI. A consultant completes a guided intake questionnaire and BravoPilot generates client-ready deliverables (executive summaries, SOWs, architecture designs, and more) in minutes instead of hours.
+AI-powered SaaS platform for Microsoft consulting practices — security & compliance, cloud migration, app modernization, SharePoint, and analytics/AI. A consultant completes a guided intake questionnaire and QuePilot generates client-ready deliverables (executive summaries, SOWs, architecture designs, and more) in minutes instead of hours.
 
 ## Planning Documents
 

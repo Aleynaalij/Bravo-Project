@@ -1,13 +1,13 @@
 openapi: 3.1.0
 info:
-  title: BravoPilot.ai API
+  title: QuePilot.ai API
   description: >
-    MVP REST API for BravoPilot.ai — project intake, AI-generated deliverables,
+    MVP REST API for QuePilot.ai — project intake, AI-generated deliverables,
     and knowledge base administration. Auth is handled by Supabase Auth; this
     surface covers application resources built on top of it.
   version: 0.1.0-mvp
 servers:
-  - url: https://app.bravopilot.ai/api
+  - url: https://app.quepilot.ai/api
     description: Production
   - url: http://localhost:3000/api
     description: Local development
@@ -522,10 +522,10 @@ components:
         - sharepoint
         - analytics_ai
       description: >
-        The first 8 are Bravo's Data Security & Compliance practice
+        The first 8 are a Data Security & Compliance practice
         (Purview-based, MVP + Sprint 2). The last 4 are one service per
-        Bravo's other named practice areas (bravocg.com), added so the
-        platform reflects Bravo's whole Microsoft practice, not just
+        other named practice area, added so the platform reflects a
+        consulting firm's whole Microsoft practice, not just
         Purview — see docs/PRD.md.
 
     DeliverableType:
@@ -554,7 +554,7 @@ components:
       description: >
         MVP shipped the first three; Sprint 2 (Phase 2, docs/PRD.md §9)
         added the rest of the Purview-based catalog across three batches.
-        The last 4 are one flagship deliverable per Bravo practice area
+        The last 4 are one flagship deliverable per practice area
         added outside Purview scope, each gated to its matching service.
 
     ProjectCreate:

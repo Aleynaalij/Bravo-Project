@@ -18,7 +18,7 @@ export function Logo({ href = "/dashboard" }: { href?: string }) {
         <ShieldTaskRegular className="h-4 w-4" />
       </span>
       <span>
-        Bravo<span className="text-brand">Pilot</span>
+        Que<span className="text-brand">Pilot</span>
       </span>
     </Link>
   );

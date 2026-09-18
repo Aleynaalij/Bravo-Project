@@ -22,7 +22,7 @@ export default async function SetPasswordPage() {
 
       <Card className="flex flex-col gap-6">
         <div>
-          <h1 className="text-xl font-semibold">Welcome to BravoPilot</h1>
+          <h1 className="text-xl font-semibold">Welcome to QuePilot</h1>
           <p className="text-sm text-muted">Set a password to finish joining your team.</p>
         </div>
         <SetPasswordForm />
