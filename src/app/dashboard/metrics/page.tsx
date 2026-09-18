@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getUsageMetrics } from "@/lib/metrics/usage";
+import { getEngagementHealthSummary } from "@/lib/metrics/engagement";
 import { DELIVERABLE_LABELS, SERVICE_LABELS } from "@/lib/domain/labels";
 import { Header } from "@/components/header";
 import { Card } from "@/components/ui/card";
@@ -21,7 +22,12 @@ export default async function AccountMetricsPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const metrics = await getUsageMetrics(supabase);
+  const [metrics, engagementHealth] = await Promise.all([
+    getUsageMetrics(supabase),
+    getEngagementHealthSummary(supabase),
+  ]);
+  const totalProjects =
+    engagementHealth.counts.healthy + engagementHealth.counts.review_needed + engagementHealth.counts.stalled;
 
   const totalSucceeded = metrics.generationsByType.reduce((sum, t) => sum + t.succeeded, 0);
   const successRate =
@@ -44,6 +50,23 @@ export default async function AccountMetricsPage() {
           This account&apos;s own generation activity — every number below comes straight from your
           team&apos;s projects and deliverables, nothing estimated or industry-averaged.
         </p>
+
+        {totalProjects > 0 && (
+          <Card className="mb-8 flex flex-col gap-3">
+            <h2 className="font-medium">Engagement health</h2>
+            <p className="text-sm text-muted">
+              A project is <strong>stalled</strong> if every deliverable attempted so far failed (or
+              nothing was ever started, a week or more in), <strong>needs review</strong> if it&apos;s
+              missing ready deliverables or has a partial failure, and <strong>healthy</strong>{" "}
+              otherwise.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <Badge tone="success">{engagementHealth.counts.healthy} healthy</Badge>
+              <Badge tone="warning">{engagementHealth.counts.review_needed} need review</Badge>
+              <Badge tone="error">{engagementHealth.counts.stalled} stalled</Badge>
+            </div>
+          </Card>
+        )}
 
         {metrics.totalGenerations === 0 ? (
           <Card>

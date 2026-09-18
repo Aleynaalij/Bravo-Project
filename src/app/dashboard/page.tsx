@@ -3,12 +3,20 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { listProjectsWithServices } from "@/lib/projects/service";
 import { listRecentDeliverables } from "@/lib/vault/service";
+import { getEngagementHealthSummary, ENGAGEMENT_HEALTH_LABELS, type EngagementHealth } from "@/lib/metrics/engagement";
 import { VaultEntryCard } from "./vault/vault-entry-card";
 import { Header } from "@/components/header";
 import { LinkButton } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { ServiceIcon } from "@/components/icons";
 import { SERVICE_LABELS } from "@/lib/domain/labels";
+
+const HEALTH_TONE: Record<EngagementHealth, BadgeTone> = {
+  healthy: "success",
+  review_needed: "warning",
+  stalled: "error",
+};
 
 const RECENT_ACTIVITY_LIMIT = 5;
 
@@ -22,9 +30,10 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  const [projects, recentDeliverables] = await Promise.all([
+  const [projects, recentDeliverables, engagementHealth] = await Promise.all([
     listProjectsWithServices(supabase),
     listRecentDeliverables(supabase, RECENT_ACTIVITY_LIMIT),
+    getEngagementHealthSummary(supabase),
   ]);
 
   return (
@@ -76,10 +85,19 @@ export default async function DashboardPage() {
           </>
         )}
 
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-2xl font-semibold">Projects</h1>
           <LinkButton href="/dashboard/new">New project</LinkButton>
         </div>
+
+        {projects.length > 0 && (
+          <div className="mb-6 flex flex-wrap items-center gap-2 text-sm text-muted">
+            <span>Engagement health:</span>
+            <Badge tone="success">{engagementHealth.counts.healthy} healthy</Badge>
+            <Badge tone="warning">{engagementHealth.counts.review_needed} need review</Badge>
+            <Badge tone="error">{engagementHealth.counts.stalled} stalled</Badge>
+          </div>
+        )}
 
         {projects.length === 0 ? (
           <Card className="text-sm text-muted">
@@ -97,7 +115,12 @@ export default async function DashboardPage() {
                   <Card className="transition-colors hover:border-brand hover:bg-surface-hover">
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <div className="font-medium">{project.customer_name}</div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{project.customer_name}</span>
+                          <Badge tone={HEALTH_TONE[engagementHealth.byProject[project.id] ?? "review_needed"]}>
+                            {ENGAGEMENT_HEALTH_LABELS[engagementHealth.byProject[project.id] ?? "review_needed"]}
+                          </Badge>
+                        </div>
                         <div className="text-sm text-muted">{project.industry}</div>
                       </div>
                       {project.services.length > 0 && (

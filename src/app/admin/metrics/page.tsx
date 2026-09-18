@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getUsageMetrics } from "@/lib/metrics/usage";
+import { getPlanDistribution } from "@/lib/metrics/billing";
 import { DELIVERABLE_LABELS, SERVICE_LABELS } from "@/lib/domain/labels";
 import { Header } from "@/components/header";
 import { Card } from "@/components/ui/card";
@@ -16,7 +17,10 @@ import { Badge } from "@/components/ui/badge";
 // of "my account."
 export default async function MetricsPage() {
   const admin = createAdminClient();
-  const metrics = await getUsageMetrics(admin);
+  const [metrics, planDistribution] = await Promise.all([
+    getUsageMetrics(admin),
+    getPlanDistribution(admin),
+  ]);
 
   const totalSucceeded = metrics.generationsByType.reduce((sum, t) => sum + t.succeeded, 0);
   const successRate =
@@ -37,6 +41,50 @@ export default async function MetricsPage() {
         <p className="mb-8 text-sm text-muted">
           Platform-wide, across every account — not a per-customer analytics view.
         </p>
+
+        <Card className="mb-8 flex flex-col gap-3">
+          <h2 className="font-medium">Accounts &amp; billing</h2>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <StatTile label="Accounts" value={planDistribution.totalAccounts} />
+            <StatTile label="Seats billed" value={planDistribution.totalSeatsBilled} />
+            <StatTile
+              label="No subscription yet"
+              value={planDistribution.accountsWithNoSubscriptionRow}
+            />
+          </div>
+          <div>
+            <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">
+              Accounts by plan
+            </h3>
+            <ul className="flex flex-col gap-1 text-sm">
+              {planDistribution.accountsByPlan.map((row) => (
+                <li key={row.plan} className="flex items-center justify-between gap-3">
+                  <span className="capitalize">{row.plan}</span>
+                  <span className="text-muted">{row.count}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          {planDistribution.subscriptionsByStatus.length > 0 && (
+            <div>
+              <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">
+                Subscriptions by status
+              </h3>
+              <ul className="flex flex-col gap-1 text-sm">
+                {planDistribution.subscriptionsByStatus.map((row) => (
+                  <li key={row.status} className="flex items-center justify-between gap-3">
+                    <span className="capitalize">{row.status}</span>
+                    <span className="text-muted">{row.count}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <p className="text-xs text-muted">
+            No MRR/ARR figure here — that needs each Stripe price&apos;s real dollar amount, which
+            isn&apos;t available without a configured Stripe API key.
+          </p>
+        </Card>
 
         <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatTile label="Generations" value={metrics.totalGenerations} />
@@ -93,6 +141,25 @@ export default async function MetricsPage() {
                 <li key={entry.id} className="flex items-center justify-between gap-3">
                   <span className="truncate">{entry.title}</span>
                   <span className="shrink-0 text-muted">{entry.useCount}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+
+        <Card className="mb-6 flex flex-col gap-3">
+          <h2 className="font-medium">Unused knowledge base entries</h2>
+          <p className="text-sm text-muted">
+            Never referenced by any generated deliverable across any account — a candidate for
+            improvement, or evidence nobody needs it in its current form.
+          </p>
+          {metrics.unusedKbEntries.length === 0 ? (
+            <p className="text-sm text-muted">Every entry has been referenced at least once.</p>
+          ) : (
+            <ul className="flex flex-col gap-2 text-sm">
+              {metrics.unusedKbEntries.map((entry) => (
+                <li key={entry.id} className="truncate">
+                  {entry.title}
                 </li>
               ))}
             </ul>
