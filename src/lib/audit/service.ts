@@ -8,6 +8,7 @@ export type AuditAction =
   | "team.invite"
   | "team.remove"
   | "team.role_change"
+  | "account.rename"
   | "kb.create"
   | "kb.update"
   | "kb.delete";
@@ -16,6 +17,7 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   "team.invite": "Invited teammate",
   "team.remove": "Removed teammate",
   "team.role_change": "Changed teammate role",
+  "account.rename": "Renamed organization",
   "kb.create": "Created knowledge base entry",
   "kb.update": "Updated knowledge base entry",
   "kb.delete": "Deleted knowledge base entry",

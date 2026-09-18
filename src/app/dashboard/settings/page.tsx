@@ -11,6 +11,7 @@ import { BrandingForm } from "../branding/branding-form";
 import { ChangePasswordForm } from "./change-password-form";
 import { DeleteAccountForm } from "./delete-account-form";
 import { TeamSection } from "./team-section";
+import { OrganizationSection } from "./organization-section";
 import { MfaSection } from "./mfa-section";
 import { Header } from "@/components/header";
 import { Card } from "@/components/ui/card";
@@ -31,10 +32,11 @@ export default async function SettingsPage({
   if (!user) redirect("/login");
 
   const accountId = await requireAccountId(supabase);
-  const [branding, subscription, userRow, teamMembers, auditLog] = await Promise.all([
+  const [branding, subscription, userRow, accountRow, teamMembers, auditLog] = await Promise.all([
     getBranding(supabase, accountId),
     getSubscription(supabase, accountId),
     supabase.from("users").select("role, created_at").eq("id", user.id).single(),
+    supabase.from("accounts").select("firm_name, created_at").eq("id", accountId).single(),
     listTeamMembers(supabase, accountId),
     // RLS already restricts this to an account owner (see
     // supabase/migrations/0019_audit_log.sql) — a non-owner just gets an
@@ -87,6 +89,20 @@ export default async function SettingsPage({
                 </dd>
               </div>
             </dl>
+          </Card>
+
+          <Card className="flex flex-col gap-3">
+            <h2 className="font-medium">Organization</h2>
+            <p className="text-sm text-muted">
+              The account (tenant) your projects, deliverables, and team live under — distinct from
+              any customer&apos;s own Microsoft 365 tenant, which this app never connects to.
+            </p>
+            <OrganizationSection
+              accountId={accountId}
+              firmName={accountRow.data?.firm_name ?? null}
+              createdAt={accountRow.data?.created_at ?? new Date().toISOString()}
+              isOwner={isOwner}
+            />
           </Card>
 
           <Card className="flex flex-col gap-3">

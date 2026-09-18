@@ -9,7 +9,7 @@ import { requireAccountOwner, ForbiddenError } from "@/lib/auth/session";
 import { getSubscription, syncSubscriptionQuantity } from "@/lib/billing/service";
 import { getStripeClient } from "@/lib/billing/stripe";
 import { getSeatLimit } from "@/lib/billing/seats";
-import { changePasswordSchema } from "@/lib/validation/settings";
+import { changePasswordSchema, updateOrganizationNameSchema } from "@/lib/validation/settings";
 import { inviteTeamMemberSchema } from "@/lib/validation/team";
 import { countOwners, countTeamMembers } from "@/lib/team/service";
 import { writeAuditLog } from "@/lib/audit/service";
@@ -106,6 +106,60 @@ export async function deleteAccountAction(formData: FormData): Promise<void> {
 
   await supabase.auth.signOut();
   redirect("/login?message=Your account has been deleted");
+}
+
+// Distinct from SettingsActionState (rather than reusing it) so the
+// organization-name form can auto-collapse back to its read-only summary
+// on a genuinely new save, the same savedAt-comparison pattern
+// deliverable-view.tsx uses — a plain `success: true` can't tell a fresh
+// save apart from a stale one still sitting in state after a revalidation.
+export interface OrganizationActionState extends SettingsActionState {
+  savedAt?: number;
+}
+
+// accounts.firm_name (docs/ERD.md) has existed in the schema since the
+// original migration but was never actually read or written anywhere in
+// the app — every account's organization name has been silently null.
+// Owner-only, same rationale as team/billing management: it's account-
+// level identity, not a per-user preference.
+export async function updateOrganizationNameAction(
+  _prevState: OrganizationActionState,
+  formData: FormData,
+): Promise<OrganizationActionState> {
+  const parsed = updateOrganizationNameSchema.safeParse({
+    firmName: String(formData.get("firmName") ?? ""),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Enter an organization name" };
+  }
+
+  const supabase = await createClient();
+  let accountId: string;
+  let actorUserId: string;
+  let actorEmail: string;
+  try {
+    ({ accountId, userId: actorUserId, email: actorEmail } = await requireAccountOwner(supabase));
+  } catch (err) {
+    if (err instanceof ForbiddenError) return { error: err.message };
+    throw err;
+  }
+
+  const { error } = await supabase
+    .from("accounts")
+    .update({ firm_name: parsed.data.firmName })
+    .eq("id", accountId);
+  if (error) return { error: error.message };
+
+  await writeAuditLog(supabase, {
+    accountId,
+    actorUserId,
+    actorEmail,
+    action: "account.rename",
+    target: parsed.data.firmName,
+  });
+
+  revalidatePath("/dashboard/settings");
+  return { success: true, savedAt: Date.now() };
 }
 
 export interface TeamActionState {
