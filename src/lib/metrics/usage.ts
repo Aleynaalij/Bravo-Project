@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DeliverableType, ServiceType } from "@/lib/domain/enums";
+import { PRACTICE_AREA_LABELS, SERVICE_PRACTICE_AREA, type PracticeArea } from "@/lib/domain/labels";
 
 // Shared by two very different callers, which is exactly why this file
 // does no auth/scoping of its own — every table it reads (generation_jobs,
@@ -42,6 +43,24 @@ export interface UsageMetrics {
   unusedKbEntries: { id: string; title: string }[];
   exportsByFormat: { format: string; count: number }[];
   totalExports: number;
+}
+
+// Pure derived grouping over servicesBySelection — no new query, same
+// data this project already groups by practice area in the generate
+// form and intake checklist (labels.ts's SERVICE_PRACTICE_AREA). The
+// brainstorm's "Microsoft Workload Trends" dashboard, in other words,
+// is this exact number reshaped, not a new signal.
+export function groupServicesByPracticeArea(
+  servicesBySelection: UsageMetrics["servicesBySelection"],
+): { practiceArea: PracticeArea; label: string; count: number }[] {
+  const counts = new Map<PracticeArea, number>();
+  for (const row of servicesBySelection) {
+    const area = SERVICE_PRACTICE_AREA[row.serviceType];
+    counts.set(area, (counts.get(area) ?? 0) + row.count);
+  }
+  return Array.from(counts.entries())
+    .map(([practiceArea, count]) => ({ practiceArea, label: PRACTICE_AREA_LABELS[practiceArea], count }))
+    .sort((a, b) => b.count - a.count);
 }
 
 export async function getUsageMetrics(admin: SupabaseClient): Promise<UsageMetrics> {

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getUsageMetrics } from "@/lib/metrics/usage";
+import { getUsageMetrics, groupServicesByPracticeArea } from "@/lib/metrics/usage";
 import { getPlanDistribution } from "@/lib/metrics/billing";
 import { getEditSeverityBreakdown } from "@/lib/metrics/quality";
 import { DELIVERABLE_LABELS, SERVICE_LABELS } from "@/lib/domain/labels";
@@ -139,14 +139,29 @@ export default async function MetricsPage() {
           {metrics.servicesBySelection.length === 0 ? (
             <p className="text-sm text-muted">No projects yet.</p>
           ) : (
-            <ul className="flex flex-col gap-2 text-sm">
-              {metrics.servicesBySelection.map((row) => (
-                <li key={row.serviceType} className="flex items-center justify-between gap-3">
-                  <span>{SERVICE_LABELS[row.serviceType] ?? row.serviceType}</span>
-                  <span className="text-muted">{row.count}</span>
-                </li>
-              ))}
-            </ul>
+            <>
+              <ul className="flex flex-col gap-2 text-sm">
+                {metrics.servicesBySelection.map((row) => (
+                  <li key={row.serviceType} className="flex items-center justify-between gap-3">
+                    <span>{SERVICE_LABELS[row.serviceType] ?? row.serviceType}</span>
+                    <span className="text-muted">{row.count}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="border-t border-border pt-3">
+                <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">
+                  By practice area
+                </h3>
+                <ul className="flex flex-col gap-1 text-sm">
+                  {groupServicesByPracticeArea(metrics.servicesBySelection).map((row) => (
+                    <li key={row.practiceArea} className="flex items-center justify-between gap-3">
+                      <span>{row.label}</span>
+                      <span className="text-muted">{row.count}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </>
           )}
         </Card>
 
