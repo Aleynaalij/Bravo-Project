@@ -5,6 +5,11 @@ import { getProject } from "@/lib/projects/service";
 import { generateRequestSchema } from "@/lib/validation/deliverable";
 import { enqueueGenerationJob } from "@/lib/generation/jobs";
 import { assertUnderGenerationRateLimit, GenerationRateLimitError } from "@/lib/generation/rate-limit";
+import {
+  assertTrialNotExhausted,
+  TrialExpiredError,
+  TrialGenerationLimitError,
+} from "@/lib/billing/trial";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -24,9 +29,13 @@ export async function POST(request: Request, { params }: Params) {
 
   try {
     await assertUnderGenerationRateLimit(supabase, accountId);
+    await assertTrialNotExhausted(supabase, accountId);
   } catch (err) {
     if (err instanceof GenerationRateLimitError) {
       return NextResponse.json({ code: "rate_limited", message: err.message }, { status: 429 });
+    }
+    if (err instanceof TrialExpiredError || err instanceof TrialGenerationLimitError) {
+      return NextResponse.json({ code: "trial_exhausted", message: err.message }, { status: 402 });
     }
     throw err;
   }
