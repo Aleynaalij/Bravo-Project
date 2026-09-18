@@ -1,17 +1,19 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getUsageMetrics } from "@/lib/admin/metrics";
+import { getUsageMetrics } from "@/lib/metrics/usage";
 import { DELIVERABLE_LABELS, SERVICE_LABELS } from "@/lib/domain/labels";
 import { Header } from "@/components/header";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
-// Admin-only cross-account usage metrics (audit's own named gap: "no way
-// to know which deliverable types are actually used, where consultants
-// drop off, or whether generated content gets edited heavily"). Gated by
-// the /admin layout's requirePlatformAdmin — this page itself does no
-// further access check. Reads via the admin client, not a session client
-// — see src/lib/admin/metrics.ts's own docstring for why.
+// Admin-only cross-account usage metrics — platform-operator visibility
+// across every customer account, distinct from the per-account dashboard
+// at src/app/dashboard/metrics (one consultant firm's own numbers).
+// Gated by the /admin layout's requirePlatformAdmin — this page itself
+// does no further access check. Reads via the admin client, not a
+// session client — see src/lib/metrics/usage.ts's own docstring for why
+// that one client choice is what scopes this to "every account" instead
+// of "my account."
 export default async function MetricsPage() {
   const admin = createAdminClient();
   const metrics = await getUsageMetrics(admin);

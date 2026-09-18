@@ -9,6 +9,7 @@ import {
   DELIVERABLE_CATEGORIES,
   DELIVERABLE_CATEGORY,
   DELIVERABLE_CATEGORY_LABELS,
+  SERVICE_LABELS,
   type DeliverableCategory,
 } from "@/lib/domain/labels";
 import {
@@ -104,6 +105,10 @@ export function GenerateForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.jobIds, state.enqueuedAt]);
 
+  // Every deliverable type is shown, not just the ones this project's
+  // current services unlock — an unavailable type renders disabled with
+  // the service it needs, rather than disappearing, so the full catalog's
+  // breadth stays visible regardless of how narrow one project's scope is.
   const availableTypes = DELIVERABLE_TYPES.filter((type) => {
     const requiredService = DELIVERABLE_REQUIRES_SERVICE[type];
     return !requiredService || services.includes(requiredService);
@@ -155,7 +160,10 @@ export function GenerateForm({
       </div>
 
       {DELIVERABLE_CATEGORIES.map((category) => {
-        const typesInCategory = availableTypes.filter((type) => DELIVERABLE_CATEGORY[type] === category);
+        // Every type in the category renders, not just the ones this
+        // project's services unlock — an unavailable type shows disabled
+        // with the service that unlocks it, rather than vanishing.
+        const typesInCategory = DELIVERABLE_TYPES.filter((type) => DELIVERABLE_CATEGORY[type] === category);
         if (typesInCategory.length === 0) return null;
         const CategoryIcon = CATEGORY_ICONS[category];
 
@@ -168,6 +176,24 @@ export function GenerateForm({
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {typesInCategory.map((type) => {
                 const isChecked = selected.has(type);
+                const isAvailable = availableTypes.includes(type);
+                const requiredService = DELIVERABLE_REQUIRES_SERVICE[type];
+
+                if (!isAvailable) {
+                  return (
+                    <div
+                      key={type}
+                      title={`Requires ${requiredService ? SERVICE_LABELS[requiredService] : "a different service"} in scope`}
+                      className="flex cursor-not-allowed flex-col gap-0.5 rounded-md border border-dashed border-border px-3 py-2 text-sm text-muted opacity-60"
+                    >
+                      <span>{DELIVERABLE_LABELS[type]}</span>
+                      <span className="text-xs">
+                        Requires {requiredService ? SERVICE_LABELS[requiredService] : "another service"}
+                      </span>
+                    </div>
+                  );
+                }
+
                 return (
                   <label
                     key={type}
