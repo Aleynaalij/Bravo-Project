@@ -7,9 +7,8 @@
  * Fluent 2's brand blue; --gradient-brand pairs it with a Purview-flavored
  * purple for hero/personality moments (used sparingly, not on every
  * surface — a gradient everywhere reads as decoration, not identity).
- * bravocg.com itself isn't reachable from this environment (network
- * egress policy), so if Bravo's own brand should take priority over the
- * Microsoft-product-family look, swap the values below.
+ * No specific external brand reference drives this palette — swap the
+ * values below once a real brand identity exists.
  *
  * Light tokens live on bare :root. Dark overrides apply twice: once under
  * prefers-color-scheme for a user who hasn't picked explicitly (guarded by

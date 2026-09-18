@@ -50,7 +50,7 @@ export default function GlobalError({
             SOMETHING WENT WRONG
           </p>
           <h1 style={{ fontSize: "1.125rem", fontWeight: 600, margin: "0 0 0.5rem" }}>
-            BravoPilot hit an unexpected error
+            QuePilot hit an unexpected error
           </h1>
           <p style={{ fontSize: "0.875rem", color: "#5b6785", margin: "0 0 1rem" }}>
             It&apos;s been reported and we&apos;re looking into it.

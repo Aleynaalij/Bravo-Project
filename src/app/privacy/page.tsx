@@ -1,12 +1,12 @@
 import { LegalPage } from "@/components/legal-page";
 
-export const metadata = { title: "Privacy Policy — BravoPilot" };
+export const metadata = { title: "Privacy Policy — QuePilot" };
 
 export default function PrivacyPage() {
   return (
     <LegalPage title="Privacy Policy" lastUpdated="[DATE — fill in on publish]">
       <p>
-        This Privacy Policy explains what information BravoPilot (operated by
+        This Privacy Policy explains what information QuePilot (operated by
         <strong> [LEGAL ENTITY NAME]</strong>) collects, how it&apos;s used, and who it&apos;s shared
         with. It&apos;s written to describe what the product actually does today, not aspirationally.
       </p>
@@ -20,7 +20,7 @@ export default function PrivacyPage() {
           compliance notes. If you enter your own client&apos;s information here, you are responsible
           for having the right to do so.
         </li>
-        <li><strong>Generated content:</strong> every deliverable BravoPilot generates or you edit, and its full version history.</li>
+        <li><strong>Generated content:</strong> every deliverable QuePilot generates or you edit, and its full version history.</li>
         <li><strong>Branding assets:</strong> firm name, accent color, and a logo URL you provide, used to stamp your exports.</li>
         <li><strong>Billing data:</strong> plan and subscription status. Payment card details are collected and stored by Stripe directly — we never receive or store your full card number.</li>
         <li><strong>Usage data:</strong> basic operational records (e.g., generation timestamps) used to enforce fair-use limits described below.</li>
@@ -39,7 +39,7 @@ export default function PrivacyPage() {
       <p>
         Generating a deliverable sends your project data — including the compliance notes field and
         the knowledge-base reference content relevant to your selected services — to a third-party AI
-        model provider (OpenAI or Microsoft Azure OpenAI, depending on how your BravoPilot deployment
+        model provider (OpenAI or Microsoft Azure OpenAI, depending on how your QuePilot deployment
         is configured) in order to produce the draft. <strong>We rely on that provider&apos;s own data
         handling and retention terms for what happens to your content once it reaches them</strong> —
         confirm the specific data-retention and training-use terms in effect for your deployment
@@ -50,13 +50,13 @@ export default function PrivacyPage() {
       <h2>4. Who We Share Information With</h2>
       <p>
         We use a small set of subprocessors to provide the service, and don&apos;t share your
-        information with anyone beyond what&apos;s needed to run BravoPilot. The current, detailed
+        information with anyone beyond what&apos;s needed to run QuePilot. The current, detailed
         list — what each one does, what data it touches, and where it&apos;s hosted — is maintained
         on our <a href="/subprocessors">Sub-processors</a> page rather than duplicated here, so it
         stays accurate as our infrastructure changes. A business customer needing a Data Processing
         Agreement covering these subprocessors can find one at <a href="/dpa">/dpa</a>.
       </p>
-      <p>We may also disclose information if required by law or to protect the rights, safety, or property of BravoPilot or others.</p>
+      <p>We may also disclose information if required by law or to protect the rights, safety, or property of QuePilot or others.</p>
 
       <h2>5. Data Retention &amp; Deletion</h2>
       <p>
@@ -85,11 +85,11 @@ export default function PrivacyPage() {
       </p>
 
       <h2>8. Children</h2>
-      <p>BravoPilot is a business tool and is not directed at, or intended for use by, children.</p>
+      <p>QuePilot is a business tool and is not directed at, or intended for use by, children.</p>
 
       <h2>9. International Data Transfers</h2>
       <p>
-        BravoPilot&apos;s infrastructure is hosted in a single region today ([region]). If you access
+        QuePilot&apos;s infrastructure is hosted in a single region today ([region]). If you access
         the service from outside that region, your information will be transferred to and processed
         there. We do not currently offer region-specific or data-residency-controlled hosting.
       </p>

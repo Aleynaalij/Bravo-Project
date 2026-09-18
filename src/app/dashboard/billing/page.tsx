@@ -46,7 +46,7 @@ export default async function BillingPage({
 
         <h1 className="mb-1 mt-4 text-2xl font-semibold">Billing</h1>
         <p className="mb-6 text-sm text-muted">
-          This account&apos;s BravoPilot subscription — pick a plan below, or once subscribed, open
+          This account&apos;s QuePilot subscription — pick a plan below, or once subscribed, open
           the Stripe customer portal to update payment methods, seats, and invoices.
         </p>
 

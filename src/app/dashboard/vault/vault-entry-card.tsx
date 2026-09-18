@@ -29,7 +29,7 @@ export function VaultEntryCard({
   function emailLink() {
     const url = `${window.location.origin}${base}?format=pdf`;
     const subject = `${customerName} — ${label}`;
-    const body = `Here's the "${label}" deliverable for ${customerName}:\n\n${url}\n\nYou'll need to be signed in to BravoPilot to open this link.`;
+    const body = `Here's the "${label}" deliverable for ${customerName}:\n\n${url}\n\nYou'll need to be signed in to QuePilot to open this link.`;
     window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   }
 

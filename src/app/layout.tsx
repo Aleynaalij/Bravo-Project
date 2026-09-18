@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BravoPilot",
+  title: "QuePilot",
   description:
     "AI-drafted Microsoft consulting deliverables — security & compliance, cloud migration, app modernization, SharePoint, and analytics/AI.",
 };

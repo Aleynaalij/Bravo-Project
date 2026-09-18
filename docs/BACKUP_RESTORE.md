@@ -1,4 +1,4 @@
-# BravoPilot.ai — Backup & Restore Procedure
+# QuePilot.ai — Backup & Restore Procedure
 
 **Status:** Draft v1 — reflects the live Supabase project as it actually exists today, not an aspirational posture
 **Last updated:** 2026-09-15

@@ -1,6 +1,6 @@
 import { LegalPage } from "@/components/legal-page";
 
-export const metadata = { title: "Data Processing Agreement — BravoPilot" };
+export const metadata = { title: "Data Processing Agreement — QuePilot" };
 
 export default function DpaPage() {
   return (
@@ -8,7 +8,7 @@ export default function DpaPage() {
       <p>
         This Data Processing Agreement (&quot;DPA&quot;) supplements our{" "}
         <a href="/terms">Terms of Service</a> whenever a customer (&quot;Controller&quot;) has
-        BravoPilot (&quot;Processor,&quot; operated by <strong>[LEGAL ENTITY NAME]</strong>) process
+        QuePilot (&quot;Processor,&quot; operated by <strong>[LEGAL ENTITY NAME]</strong>) process
         personal data on its behalf — most relevantly, any client information a consultant enters
         into a project&apos;s intake fields. It does not replace those Terms; where the two
         conflict on a data-protection matter, this DPA controls.
@@ -16,7 +16,7 @@ export default function DpaPage() {
 
       <h2>1. Scope &amp; Duration</h2>
       <p>
-        This DPA applies for as long as BravoPilot processes personal data on the Controller&apos;s
+        This DPA applies for as long as QuePilot processes personal data on the Controller&apos;s
         behalf under the Terms — i.e., for the life of the Controller&apos;s account, ending when
         the account is deleted and any retained backups (see our{" "}
         <a href="/subprocessors">Sub-processors</a> page and internal backup procedure) are purged
@@ -25,7 +25,7 @@ export default function DpaPage() {
 
       <h2>2. Subject Matter &amp; Nature of Processing</h2>
       <p>
-        BravoPilot processes personal data to the extent a Controller&apos;s own consultants enter
+        QuePilot processes personal data to the extent a Controller&apos;s own consultants enter
         it into project intake fields (customer name, industry, user counts, licensing tier,
         geographic locations, free-text compliance notes) and to the extent that data is included in
         AI-generated deliverable content derived from it. Processing consists of storage, display,
@@ -38,7 +38,7 @@ export default function DpaPage() {
         <li>
           <strong>Data subjects:</strong> individuals whose information a Controller&apos;s
           consultants choose to enter — typically the Controller&apos;s own end clients&apos;
-          personnel or organizational contacts, at the Controller&apos;s discretion. BravoPilot has
+          personnel or organizational contacts, at the Controller&apos;s discretion. QuePilot has
           no visibility into who these individuals are beyond what&apos;s typed into free-text
           fields.
         </li>
@@ -75,7 +75,7 @@ export default function DpaPage() {
 
       <h2>6. Sub-processors</h2>
       <p>
-        The Controller consents to BravoPilot&apos;s use of the sub-processors listed on our{" "}
+        The Controller consents to QuePilot&apos;s use of the sub-processors listed on our{" "}
         <a href="/subprocessors">Sub-processors</a> page, which is the authoritative, current list —
         not duplicated here so it can be kept up to date in one place. [Insert the actual
         advance-notice mechanism for a new sub-processor once one exists — a real DPA typically
@@ -85,16 +85,16 @@ export default function DpaPage() {
 
       <h2>7. Data Subject Rights</h2>
       <p>
-        BravoPilot will provide reasonable assistance to the Controller in responding to a data
+        QuePilot will provide reasonable assistance to the Controller in responding to a data
         subject&apos;s request to access, correct, or delete their personal data, to the extent
-        that data is stored within a Controller&apos;s BravoPilot account. In most cases the
+        that data is stored within a Controller&apos;s QuePilot account. In most cases the
         Controller can act directly — editing or deleting the relevant project data through the
         product itself is faster than routing the request through us.
       </p>
 
       <h2>8. Breach Notification</h2>
       <p>
-        BravoPilot will notify the Controller without undue delay after becoming aware of a
+        QuePilot will notify the Controller without undue delay after becoming aware of a
         personal data breach affecting the Controller&apos;s data, describing (to the extent then
         known) its nature, likely consequences, and the measures taken or proposed. [Insert a
         specific notification window — e.g., 72 hours — once agreed; this needs a real operational
@@ -114,7 +114,7 @@ export default function DpaPage() {
 
       <h2>10. International Transfers</h2>
       <p>
-        BravoPilot&apos;s infrastructure is hosted in a single region today (see our{" "}
+        QuePilot&apos;s infrastructure is hosted in a single region today (see our{" "}
         <a href="/subprocessors">Sub-processors</a> page for the current region). [Insert Standard
         Contractual Clauses or another transfer mechanism if/when a Controller outside that
         region&apos;s adequacy framework requires one — not needed for the single-design-partner

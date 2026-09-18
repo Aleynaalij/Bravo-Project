@@ -110,10 +110,10 @@ export const SERVICE_LABELS: Record<ServiceType, string> = {
   analytics_ai: "Analytics, Data & AI (Fabric, Copilot)",
 };
 
-// Bravo's practice areas (docs/PRD.md design-partner notes) — Data
-// Security & Compliance is the original Purview-based scope; the rest
-// were added so the platform reflects Bravo's whole Microsoft practice,
-// not just Purview. Purely presentational (groups the services checklist
+// A consulting firm's practice areas (docs/PRD.md design-partner notes) —
+// Data Security & Compliance is the original Purview-based scope; the
+// rest were added so the platform reflects a firm's whole Microsoft
+// practice, not just Purview. Purely presentational (groups the services checklist
 // and intake form the same way DELIVERABLE_CATEGORY groups deliverables);
 // no DB column backs this.
 export const PRACTICE_AREAS = [

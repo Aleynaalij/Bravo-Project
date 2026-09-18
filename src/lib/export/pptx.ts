@@ -38,8 +38,8 @@ export async function buildPptx(
   const accentColor = resolveAccentColor(branding?.primaryColor);
   const logo = branding?.logoUrl ? await fetchLogoAsset(branding.logoUrl) : null;
   const pptx = new PptxGenJS();
-  pptx.defineLayout({ name: "BRAVOPILOT_16X9", width: 13.33, height: 7.5 });
-  pptx.layout = "BRAVOPILOT_16X9";
+  pptx.defineLayout({ name: "QUEPILOT_16X9", width: 13.33, height: 7.5 });
+  pptx.layout = "QUEPILOT_16X9";
 
   const titleSlide = pptx.addSlide();
   if (logo) {
