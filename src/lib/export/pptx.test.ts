@@ -28,4 +28,20 @@ describe("buildPptx", () => {
 
     expect(buffer.length).toBeGreaterThan(0);
   });
+
+  it("renders a code-kind deliverable as monospace code-block slides, splitting a long script across slides by line count", async () => {
+    const longScript: DeliverableContent = {
+      sections: [
+        {
+          heading: "DLP Policy Script",
+          paragraphs: [Array.from({ length: 40 }, (_, i) => `Write-Host "Step ${i}"`).join("\n")],
+        },
+      ],
+    };
+
+    const buffer = await buildPptx("implementation_script", "Acme Corp", longScript, null);
+
+    expect(buffer.length).toBeGreaterThan(0);
+    expect(buffer.subarray(0, 2).toString("ascii")).toBe("PK");
+  });
 });

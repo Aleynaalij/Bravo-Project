@@ -1,7 +1,7 @@
 import { Document, Page, Text, View, Image, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
 import type { DeliverableContent } from "@/lib/validation/deliverable";
 import type { DeliverableType } from "@/lib/domain/enums";
-import { DELIVERABLE_LABELS } from "@/lib/domain/labels";
+import { DELIVERABLE_LABELS, isCodeDeliverable } from "@/lib/domain/labels";
 import type { BrandingInfo } from "@/lib/branding";
 import { resolveAccentColor } from "@/lib/branding";
 import { fetchLogoAsset } from "./logo";
@@ -14,6 +14,14 @@ const styles = StyleSheet.create({
   disclaimer: { fontSize: 9, fontStyle: "italic", color: "#996600", marginBottom: 16 },
   heading: { fontSize: 13, marginTop: 14, marginBottom: 6, fontWeight: 700 },
   paragraph: { marginBottom: 6, lineHeight: 1.4 },
+  codeBlock: {
+    marginBottom: 6,
+    padding: 8,
+    backgroundColor: "#F0F0F0",
+    fontFamily: "Courier",
+    fontSize: 9,
+    lineHeight: 1.35,
+  },
 });
 
 // Uses @react-pdf/renderer rather than the Puppeteer approach in
@@ -50,11 +58,18 @@ export async function buildPdf(
         {content.sections.map((section, i) => (
           <View key={i}>
             <Text style={{ ...styles.heading, color: accentColor }}>{section.heading}</Text>
-            {section.paragraphs.map((paragraph, j) => (
-              <Text key={j} style={styles.paragraph}>
-                {paragraph}
-              </Text>
-            ))}
+            {isCodeDeliverable(deliverableType) ? (
+              // One block per section, paragraphs rejoined with the same
+              // separator edit-actions.ts splits on — see docx.ts's builder
+              // for why that matters for a script with blank lines in it.
+              <Text style={styles.codeBlock}>{section.paragraphs.join("\n\n")}</Text>
+            ) : (
+              section.paragraphs.map((paragraph, j) => (
+                <Text key={j} style={styles.paragraph}>
+                  {paragraph}
+                </Text>
+              ))
+            )}
           </View>
         ))}
       </Page>

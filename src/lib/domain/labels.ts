@@ -19,6 +19,7 @@ export const DELIVERABLE_LABELS: Record<DeliverableType, string> = {
   app_modernization_plan: "App Modernization Plan",
   sharepoint_governance_plan: "SharePoint Governance Plan",
   data_analytics_strategy: "Data & Analytics Strategy",
+  implementation_script: "Implementation Script",
 };
 
 // Deliverable types that only make sense when a specific service is in
@@ -26,6 +27,14 @@ export const DELIVERABLE_LABELS: Record<DeliverableType, string> = {
 // Generation offers these only when the mapped service is selected —
 // generating e.g. a DLP Design for a project with no DLP in scope would
 // have nothing real to draw on.
+// implementation_script is deliberately absent here even though it's only
+// really useful with DLP, retention, or sensitivity labels in scope —
+// this map only expresses a single required service, and that script
+// deliverable's sections are individually gated to each of those three
+// (see supabase/migrations for its prompt_templates section_schema), so
+// leaving it ungated (like Executive Summary/SOW/HLD) is correct: with
+// none of the three in scope it still generates, just with only its
+// always-present prerequisites/connection section.
 export const DELIVERABLE_REQUIRES_SERVICE: Partial<Record<DeliverableType, ServiceType>> = {
   dlp_design: "dlp",
   retention_strategy: "retention",
@@ -36,7 +45,7 @@ export const DELIVERABLE_REQUIRES_SERVICE: Partial<Record<DeliverableType, Servi
   data_analytics_strategy: "analytics_ai",
 };
 
-export const DELIVERABLE_CATEGORIES = ["core", "design", "process", "compliance"] as const;
+export const DELIVERABLE_CATEGORIES = ["core", "design", "process", "compliance", "automation"] as const;
 export type DeliverableCategory = (typeof DELIVERABLE_CATEGORIES)[number];
 
 export const DELIVERABLE_CATEGORY_LABELS: Record<DeliverableCategory, string> = {
@@ -44,6 +53,7 @@ export const DELIVERABLE_CATEGORY_LABELS: Record<DeliverableCategory, string> = 
   design: "Design",
   process: "Testing & Change",
   compliance: "Compliance",
+  automation: "Automation",
 };
 
 // Groups the catalog for the generate form's module-card layout — purely
@@ -70,7 +80,20 @@ export const DELIVERABLE_CATEGORY: Record<DeliverableType, DeliverableCategory> 
   app_modernization_plan: "design",
   sharepoint_governance_plan: "design",
   data_analytics_strategy: "design",
+  implementation_script: "automation",
 };
+
+// Deliverable types whose paragraphs are actual runnable script content
+// (PowerShell/Microsoft Graph), not prose — rendered and exported in a
+// monospace code block instead of normal body text. See
+// src/lib/generation/prompt.ts's per-type instruction branch for how the
+// model is told to produce plain script text (no markdown fences) so
+// what's stored is exactly what a consultant would paste into a terminal.
+export const CODE_DELIVERABLE_TYPES: ReadonlySet<DeliverableType> = new Set(["implementation_script"]);
+
+export function isCodeDeliverable(type: DeliverableType): boolean {
+  return CODE_DELIVERABLE_TYPES.has(type);
+}
 
 export const SERVICE_LABELS: Record<ServiceType, string> = {
   dlp: "Data Loss Prevention (DLP)",

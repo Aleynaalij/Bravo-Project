@@ -24,6 +24,7 @@ export {
   FlowchartRegular as DesignDeliverableIcon,
   ArrowRepeatAllRegular as ProcessDeliverableIcon,
   CertificateRegular as ComplianceDeliverableIcon,
+  WindowConsoleRegular as AutomationDeliverableIcon,
   DocumentTableRegular as DocxIcon,
   DocumentPdfRegular as PdfIcon,
   SlideTextRegular as PptxIcon,

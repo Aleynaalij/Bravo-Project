@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { DELIVERABLE_LABELS, DELIVERABLE_CATEGORY } from "@/lib/domain/labels";
+import { DELIVERABLE_LABELS, DELIVERABLE_CATEGORY, isCodeDeliverable } from "@/lib/domain/labels";
 import type { DeliverableWithContent } from "@/lib/generation/deliverables";
 import { saveEditedVersionAction, type EditFormState } from "./edit-actions";
 import { Card } from "@/components/ui/card";
@@ -16,6 +16,7 @@ import {
   DesignDeliverableIcon,
   ProcessDeliverableIcon,
   ComplianceDeliverableIcon,
+  AutomationDeliverableIcon,
 } from "@/components/icons";
 import type { ComponentType, SVGProps } from "react";
 import type { DeliverableCategory } from "@/lib/domain/labels";
@@ -25,6 +26,7 @@ const CATEGORY_ICONS: Record<DeliverableCategory, ComponentType<SVGProps<SVGSVGE
   design: DesignDeliverableIcon,
   process: ProcessDeliverableIcon,
   compliance: ComplianceDeliverableIcon,
+  automation: AutomationDeliverableIcon,
 };
 
 const initialState: EditFormState = {};
@@ -49,6 +51,7 @@ export function DeliverableView({
   }
 
   const CategoryIcon = CATEGORY_ICONS[DELIVERABLE_CATEGORY[deliverable.type]];
+  const isCode = isCodeDeliverable(deliverable.type);
 
   if (deliverable.status === "failed") {
     return (
@@ -129,11 +132,23 @@ export function DeliverableView({
           {deliverable.content.sections.map((section, i) => (
             <div key={i}>
               <h4 className="mb-1 text-sm font-semibold text-brand-dark">{section.heading}</h4>
-              {section.paragraphs.map((p, j) => (
-                <p key={j} className="mb-1 text-sm text-foreground/80">
-                  {p}
-                </p>
-              ))}
+              {isCode ? (
+                // Joined rather than one <pre> per paragraph: the edit-save
+                // path (edit-actions.ts) splits saved text on blank lines,
+                // so a script with intentional blank lines can come back as
+                // several paragraph entries — re-joining with the same
+                // separator reassembles exactly one continuous script,
+                // whether it's stored as 1 paragraph or several.
+                <pre className="mb-1 overflow-x-auto rounded-md bg-surface-hover p-3 font-mono text-xs text-foreground/80">
+                  {section.paragraphs.join("\n\n")}
+                </pre>
+              ) : (
+                section.paragraphs.map((p, j) => (
+                  <p key={j} className="mb-1 text-sm text-foreground/80">
+                    {p}
+                  </p>
+                ))
+              )}
             </div>
           ))}
         </div>
@@ -152,10 +167,14 @@ export function DeliverableView({
               <textarea
                 name="paragraphs"
                 defaultValue={section.paragraphs.join("\n\n")}
-                rows={Math.max(3, section.paragraphs.length * 2)}
-                className="rounded-md border border-border px-2 py-1 text-sm focus:border-brand focus:outline-none"
+                rows={isCode ? Math.max(8, section.paragraphs.join("\n\n").split("\n").length + 2) : Math.max(3, section.paragraphs.length * 2)}
+                className={`rounded-md border border-border px-2 py-1 text-sm focus:border-brand focus:outline-none ${isCode ? "font-mono text-xs" : ""}`}
               />
-              <span className="text-xs text-muted">Separate paragraphs with a blank line</span>
+              <span className="text-xs text-muted">
+                {isCode
+                  ? "This is a script — a blank line inside it will be treated as a paragraph break, which is harmless (it's rejoined on save/display), but keep edits intentional."
+                  : "Separate paragraphs with a blank line"}
+              </span>
             </div>
           ))}
 
