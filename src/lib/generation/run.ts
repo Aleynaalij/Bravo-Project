@@ -95,7 +95,7 @@ export async function runGeneration(
     const services = project.services as ServiceType[];
     const kbEntries = await getRelevantKnowledgeBaseEntries(supabase, services, project.industry);
     const applicableSections = getApplicableSections(template, services);
-    const prompt = assemblePrompt(template, project, services, kbEntries);
+    const prompt = assemblePrompt(template, deliverableType, project, services, kbEntries);
 
     const raw = await generateCompletion(prompt);
 

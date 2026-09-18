@@ -6,6 +6,24 @@ const content: DeliverableContent = {
   sections: [{ heading: "Overview", paragraphs: ["First paragraph.", "Second paragraph."] }],
 };
 
+const diagramContent: DeliverableContent = {
+  sections: [{ heading: "Proposed Architecture Overview", paragraphs: ["Overview text."] }],
+  diagram: {
+    title: "Target Architecture",
+    nodes: [
+      { id: "tenant", label: "Customer M365 Tenant", kind: "boundary" },
+      { id: "dlp", label: "DLP Policies", kind: "service" },
+      { id: "retention", label: "Retention Policies", kind: "service" },
+      { id: "idp", label: "External IdP", kind: "external" },
+    ],
+    edges: [
+      { from: "tenant", to: "dlp", label: "enforces" },
+      { from: "tenant", to: "retention" },
+      { from: "idp", to: "tenant", label: "federates" },
+    ],
+  },
+};
+
 describe("buildDocx", () => {
   it("produces a non-empty DOCX (zip) buffer with no branding", async () => {
     const buffer = await buildDocx("executive_summary", "Acme Corp", content, null);
@@ -33,6 +51,23 @@ describe("buildDocx", () => {
     };
 
     const buffer = await buildDocx("implementation_script", "Acme Corp", scriptContent, null);
+
+    expect(buffer.length).toBeGreaterThan(0);
+    expect(buffer.subarray(0, 2).toString("ascii")).toBe("PK");
+  });
+
+  it("renders an architecture diagram as a components table + connections list for a diagram-supporting type", async () => {
+    const buffer = await buildDocx("high_level_design", "Acme Corp", diagramContent, null);
+
+    expect(buffer.length).toBeGreaterThan(0);
+    expect(buffer.subarray(0, 2).toString("ascii")).toBe("PK");
+  });
+
+  it("ignores a diagram field for a deliverable type that doesn't support one", async () => {
+    // Defense in depth: even if content somehow carried a diagram for a
+    // non-diagram type, the builder should still produce a valid document
+    // rather than rendering an unrequested diagram block.
+    const buffer = await buildDocx("executive_summary", "Acme Corp", diagramContent, null);
 
     expect(buffer.length).toBeGreaterThan(0);
     expect(buffer.subarray(0, 2).toString("ascii")).toBe("PK");

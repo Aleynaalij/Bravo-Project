@@ -1,10 +1,15 @@
-import { Document, Page, Text, View, Image, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
+import { Fragment } from "react";
+import { Document, Page, Text, View, Image, Svg, Rect, Line, Polygon, StyleSheet, renderToBuffer } from "@react-pdf/renderer";
 import type { DeliverableContent } from "@/lib/validation/deliverable";
 import type { DeliverableType } from "@/lib/domain/enums";
-import { DELIVERABLE_LABELS, isCodeDeliverable } from "@/lib/domain/labels";
+import { DELIVERABLE_LABELS, isCodeDeliverable, supportsArchitectureDiagram } from "@/lib/domain/labels";
 import type { BrandingInfo } from "@/lib/branding";
 import { resolveAccentColor } from "@/lib/branding";
 import { fetchLogoAsset } from "./logo";
+import { layoutDiagram, scaleToFit, edgeLine, DIAGRAM_KIND_COLORS, type ArchitectureDiagram } from "@/lib/diagram/layout";
+
+const DIAGRAM_CANVAS_WIDTH = 480; // points, within an A4 page's content width
+const DIAGRAM_CANVAS_HEIGHT = 320;
 
 const styles = StyleSheet.create({
   page: { padding: 48, fontSize: 11, fontFamily: "Helvetica" },
@@ -22,7 +27,63 @@ const styles = StyleSheet.create({
     fontSize: 9,
     lineHeight: 1.35,
   },
+  diagramTitle: { fontSize: 10, marginBottom: 4, fontStyle: "italic" },
 });
+
+function arrowheadPoints(x: number, y: number, angle: number, size = 6): string {
+  const a1 = angle + Math.PI * 0.85;
+  const a2 = angle - Math.PI * 0.85;
+  return `${x},${y} ${x + size * Math.cos(a1)},${y + size * Math.sin(a1)} ${x + size * Math.cos(a2)},${y + size * Math.sin(a2)}`;
+}
+
+// Real vector output (react-pdf's <Svg> primitives), not a rasterized
+// image — no image-generation provider or rasterizer dependency needed.
+// Uses the same grid layout (src/lib/diagram/layout.ts) the in-app SVG
+// preview and PPTX export share, scaled to fit a fixed canvas.
+function DiagramSvg({ diagram, accentColor }: { diagram: ArchitectureDiagram; accentColor: string }) {
+  const layout = layoutDiagram(diagram);
+  const { scale, offsetX, offsetY } = scaleToFit(layout, DIAGRAM_CANVAS_WIDTH, DIAGRAM_CANVAS_HEIGHT);
+  const tx = (x: number) => offsetX + x * scale;
+  const ty = (y: number) => offsetY + y * scale;
+  const nodeById = new Map(layout.nodes.map((n) => [n.id, n]));
+
+  return (
+    <Svg width={DIAGRAM_CANVAS_WIDTH} height={DIAGRAM_CANVAS_HEIGHT} viewBox={`0 0 ${DIAGRAM_CANVAS_WIDTH} ${DIAGRAM_CANVAS_HEIGHT}`}>
+      {layout.edges.map((edge, i) => {
+        const from = nodeById.get(edge.from);
+        const to = nodeById.get(edge.to);
+        if (!from || !to) return null;
+        const { x1, y1, x2, y2 } = edgeLine(from, to);
+        const px1 = tx(x1);
+        const py1 = ty(y1);
+        const px2 = tx(x2);
+        const py2 = ty(y2);
+        const angle = Math.atan2(py2 - py1, px2 - px1);
+        return (
+          <Fragment key={i}>
+            <Line x1={px1} y1={py1} x2={px2} y2={py2} stroke="#8b96a5" strokeWidth={1} />
+            <Polygon points={arrowheadPoints(px2, py2, angle)} fill="#8b96a5" />
+          </Fragment>
+        );
+      })}
+      {layout.nodes.map((node) => {
+        const colors = DIAGRAM_KIND_COLORS[node.kind];
+        const x = tx(node.x);
+        const y = ty(node.y);
+        const w = node.w * scale;
+        const h = node.h * scale;
+        return (
+          <Fragment key={node.id}>
+            <Rect x={x} y={y} width={w} height={h} fill={`#${colors.fill}`} stroke={accentColor} strokeWidth={1} rx={4} />
+            <Text x={x + w / 2} y={y + h / 2 + 3} textAnchor="middle" fill={`#${colors.text}`} style={{ fontSize: 8 }}>
+              {node.label}
+            </Text>
+          </Fragment>
+        );
+      })}
+    </Svg>
+  );
+}
 
 // Uses @react-pdf/renderer rather than the Puppeteer approach in
 // docs/TDD.md §2.6 — a pure-JS renderer avoids bundling headless Chromium
@@ -72,6 +133,12 @@ export async function buildPdf(
             )}
           </View>
         ))}
+        {content.diagram && supportsArchitectureDiagram(deliverableType) && (
+          <View>
+            <Text style={{ ...styles.heading, color: accentColor }}>{content.diagram.title || "Architecture Diagram"}</Text>
+            <DiagramSvg diagram={content.diagram} accentColor={accentColor} />
+          </View>
+        )}
       </Page>
     </Document>
   );

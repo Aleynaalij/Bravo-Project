@@ -1,5 +1,5 @@
-import type { ServiceType } from "@/lib/domain/enums";
-import { SERVICE_LABELS } from "@/lib/domain/labels";
+import type { DeliverableType, ServiceType } from "@/lib/domain/enums";
+import { SERVICE_LABELS, supportsArchitectureDiagram } from "@/lib/domain/labels";
 import type { ProjectRow } from "@/lib/projects/service";
 import type { KnowledgeBaseEntryRow, PromptTemplateRow, SectionSchemaEntry } from "./types";
 
@@ -27,11 +27,13 @@ function untrustedDataTag(): string {
 
 export function assemblePrompt(
   template: PromptTemplateRow,
+  deliverableType: DeliverableType,
   project: ProjectRow,
   services: ServiceType[],
   kbEntries: KnowledgeBaseEntryRow[],
 ): string {
   const applicableSections = getApplicableSections(template, services);
+  const wantsDiagram = supportsArchitectureDiagram(deliverableType);
   const tag = untrustedDataTag();
 
   const kbBlock =
@@ -68,6 +70,17 @@ ${kbBlock}
 
 REQUIRED SECTIONS (produce exactly these headings, in this exact order, nothing else)
 ${applicableSections.map((s, i) => `${i + 1}. ${s.heading}`).join("\n")}
-
-Respond with a single JSON object: {"sections": [{"heading": string, "paragraphs": string[]}, ...]} — one entry per required section above, in order, using the exact heading text given. No text outside the JSON object.`;
+${
+    wantsDiagram
+      ? `
+ARCHITECTURE DIAGRAM
+Also produce a "diagram" object summarizing the proposed architecture as a node/edge graph — a boundary node for the customer's Microsoft 365 tenant, one node per service/capability actually being designed (matching the design sections above), and a node for any external system or user population the design depends on. Use short labels (2-4 words). Every edge's "from"/"to" must reference a node "id" that appears in "nodes". Keep it to 4-10 nodes — this renders into a fixed-size diagram, not a full network topology.
+`
+      : ""
+  }
+Respond with a single JSON object: {"sections": [{"heading": string, "paragraphs": string[]}, ...]${
+    wantsDiagram
+      ? ', "diagram": {"title": string, "nodes": [{"id": string, "label": string, "kind": "boundary"|"service"|"external"|"user"}, ...], "edges": [{"from": string, "to": string, "label": string}, ...]}'
+      : ""
+  }} — one entry per required section above, in order, using the exact heading text given. No text outside the JSON object.`;
 }
