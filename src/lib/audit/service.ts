@@ -26,6 +26,7 @@ export type AuditAction =
   | "automation.script.promote"
   | "project.close"
   | "sop.create"
+  | "sop.generate"
   | "sop.update"
   | "sop.delete"
   | "sop.publish";
@@ -52,6 +53,7 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   "automation.script.promote": "Promoted a generated script to the Script Vault",
   "project.close": "Closed project",
   "sop.create": "Created SOP",
+  "sop.generate": "Generated SOP with AI",
   "sop.update": "Updated SOP",
   "sop.delete": "Deleted SOP",
   "sop.publish": "Published SOP",
