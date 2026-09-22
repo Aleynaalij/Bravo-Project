@@ -24,7 +24,11 @@ export type AuditAction =
   | "automation.audit.run"
   | "automation.creator.generate"
   | "automation.script.promote"
-  | "project.close";
+  | "project.close"
+  | "sop.create"
+  | "sop.update"
+  | "sop.delete"
+  | "sop.publish";
 
 export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   "team.invite": "Invited teammate",
@@ -47,6 +51,10 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   "automation.creator.generate": "Ran Code Creator",
   "automation.script.promote": "Promoted a generated script to the Script Vault",
   "project.close": "Closed project",
+  "sop.create": "Created SOP",
+  "sop.update": "Updated SOP",
+  "sop.delete": "Deleted SOP",
+  "sop.publish": "Published SOP",
 };
 
 export interface WriteAuditLogInput {

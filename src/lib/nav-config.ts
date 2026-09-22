@@ -36,6 +36,7 @@ export function buildNavEntries(isPlatformAdmin: boolean): NavEntry[] {
       items: [
         { href: "/dashboard/vault", label: "FileVault" },
         { href: "/dashboard/knowledge-vault", label: "Knowledge Vault" },
+        { href: "/dashboard/sops", label: "SOPs" },
       ],
     },
     {
