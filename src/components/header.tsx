@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/login/actions";
 import { Logo } from "./logo";
 import { Button } from "./ui/button";
-import { NavLinks, type NavItem } from "./nav-links";
+import { NavLinks, type NavEntry } from "./nav-links";
 import { MobileNav } from "./mobile-nav";
 
 // Renders on every authenticated page. Re-queries is_platform_admin itself
@@ -22,20 +22,38 @@ export async function Header() {
     .eq("id", user.id)
     .single();
 
-  const navItems: NavItem[] = [
+  // Grouped into a couple of dropdowns instead of one flat, ever-growing
+  // link row — "Projects"/"Dashboards" stay direct links since they're the
+  // most-used pages, everything else nests under a labeled group so adding
+  // a future tab doesn't widen the row again.
+  const navEntries: NavEntry[] = [
     { href: "/dashboard", label: "Projects" },
     { href: "/dashboard/metrics", label: "Dashboards" },
-    { href: "/dashboard/vault", label: "FileVault" },
-    { href: "/dashboard/knowledge-vault", label: "Knowledge Vault" },
-    { href: "/demo", label: "Demo" },
-    { href: "/dashboard/billing", label: "Billing" },
-    { href: "/dashboard/support", label: "Support" },
-    { href: "/dashboard/settings", label: "Settings" },
+    {
+      label: "Knowledge",
+      items: [
+        { href: "/dashboard/vault", label: "FileVault" },
+        { href: "/dashboard/knowledge-vault", label: "Knowledge Vault" },
+      ],
+    },
+    {
+      label: "Account",
+      items: [
+        { href: "/dashboard/billing", label: "Billing" },
+        { href: "/dashboard/support", label: "Support" },
+        { href: "/dashboard/settings", label: "Settings" },
+      ],
+    },
     ...(userRow?.is_platform_admin
       ? [
-          { href: "/admin/knowledge-base", label: "Knowledge Base" },
-          { href: "/admin/metrics", label: "Platform Metrics" },
-          { href: "/admin/support", label: "Support Requests" },
+          {
+            label: "Admin",
+            items: [
+              { href: "/admin/knowledge-base", label: "Knowledge Base" },
+              { href: "/admin/metrics", label: "Platform Metrics" },
+              { href: "/admin/support", label: "Support Requests" },
+            ],
+          },
         ]
       : []),
   ];
@@ -45,14 +63,14 @@ export async function Header() {
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
         <Logo />
         <nav className="hidden items-center gap-x-4 text-sm md:flex">
-          <NavLinks items={navItems} />
+          <NavLinks entries={navEntries} />
           <form action={signOut}>
             <Button type="submit" variant="secondary" size="sm">
               Sign out
             </Button>
           </form>
         </nav>
-        <MobileNav items={navItems} userEmail={user.email ?? ""} signOutAction={signOut} />
+        <MobileNav entries={navEntries} userEmail={user.email ?? ""} signOutAction={signOut} />
       </div>
     </header>
   );

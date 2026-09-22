@@ -3,24 +3,46 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { getActiveHref, type NavItem } from "./nav-links";
+import { flattenNavEntries, getActiveHref, type NavEntry, type NavItem } from "./nav-links";
 import { Button } from "./ui/button";
+
+function isGroup(entry: NavEntry): entry is Extract<NavEntry, { items: NavItem[] }> {
+  return "items" in entry;
+}
+
+function MobileNavRow({ item, isActive }: { item: NavItem; isActive: boolean }) {
+  return (
+    <Link
+      href={item.href}
+      aria-current={isActive ? "page" : undefined}
+      className={`flex items-center justify-between border-b border-border px-4 py-3.5 text-[15px] font-semibold ${
+        isActive ? "text-brand" : "text-foreground"
+      }`}
+    >
+      {item.label}
+      <span className={isActive ? "text-brand" : "text-muted"}>&rsaquo;</span>
+    </Link>
+  );
+}
 
 // The header's own nav row is hidden below md (see header.tsx); this is
 // what replaces it — a slide-out drawer with full-width rows instead of a
-// cramped wrapped link row, per the style-direction review.
+// cramped wrapped link row, per the style-direction review. Groups render
+// as a section label over their rows rather than a nested dropdown — the
+// drawer is already off-canvas, so there's no horizontal-space problem to
+// solve here the way there is in the desktop inline nav.
 export function MobileNav({
-  items,
+  entries,
   userEmail,
   signOutAction,
 }: {
-  items: NavItem[];
+  entries: NavEntry[];
   userEmail: string;
   signOutAction: () => void | Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
-  const activeHref = getActiveHref(pathname, items);
+  const activeHref = getActiveHref(pathname, flattenNavEntries(entries));
 
   // Close on navigation — adjusting state during render (React's
   // documented pattern, already used the same way in deliverable-view.tsx)
@@ -86,22 +108,20 @@ export function MobileNav({
             </div>
 
             <nav className="flex flex-1 flex-col overflow-y-auto py-1">
-              {items.map((item) => {
-                const isActive = item.href === activeHref;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    aria-current={isActive ? "page" : undefined}
-                    className={`flex items-center justify-between border-b border-border px-4 py-3.5 text-[15px] font-semibold ${
-                      isActive ? "text-brand" : "text-foreground"
-                    }`}
-                  >
-                    {item.label}
-                    <span className={isActive ? "text-brand" : "text-muted"}>&rsaquo;</span>
-                  </Link>
-                );
-              })}
+              {entries.map((entry) =>
+                isGroup(entry) ? (
+                  <div key={entry.label}>
+                    <div className="px-4 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-muted">
+                      {entry.label}
+                    </div>
+                    {entry.items.map((item) => (
+                      <MobileNavRow key={item.href} item={item} isActive={item.href === activeHref} />
+                    ))}
+                  </div>
+                ) : (
+                  <MobileNavRow key={entry.href} item={entry} isActive={entry.href === activeHref} />
+                ),
+              )}
             </nav>
 
             <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-3">
