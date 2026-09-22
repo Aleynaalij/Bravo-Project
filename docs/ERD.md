@@ -17,10 +17,12 @@ erDiagram
     ACCOUNTS ||--o{ AUTOMATION_REQUESTS : logs
     ACCOUNTS ||--o{ SOPS : "defines (private)"
     ACCOUNTS ||--o{ PLAYBOOKS : "defines (private)"
+    ACCOUNTS ||--o{ EKS_REQUESTS : logs
 
     PROJECTS ||--o{ PROJECT_SERVICES : "in scope"
     PROJECTS ||--o{ DELIVERABLES : generates
     PROJECTS |o--o{ KNOWLEDGE_VAULT_ENTRIES : "sourced from (optional)"
+    EKS_REQUESTS }o--o{ KNOWLEDGE_VAULT_ENTRIES : "surfaced (optional)"
 
     DELIVERABLES ||--o{ DELIVERABLE_VERSIONS : "has versions"
     DELIVERABLE_VERSIONS }o--o{ KNOWLEDGE_BASE_ENTRIES : references
@@ -222,6 +224,24 @@ erDiagram
         int version
         timestamptz created_at
     }
+
+    EKS_REQUESTS {
+        uuid id PK
+        uuid account_id FK
+        uuid user_id FK
+        text user_email
+        text feature
+        uuid project_id FK
+        jsonb input
+        jsonb output
+        text error_message
+        timestamptz created_at
+    }
+
+    EKS_REQUEST_VAULT_ENTRIES {
+        uuid eks_request_id PK_FK
+        uuid knowledge_vault_entry_id PK_FK
+    }
 ```
 
 *(`DELIVERABLE_VERSIONS }o--o{ KNOWLEDGE_BASE_ENTRIES` is realized via the join table `DELIVERABLE_VERSION_KB_ENTRIES`.)*
@@ -282,6 +302,12 @@ Account-private SOP library (Expert Knowledge System Phase 2, migration 0032) �
 ### playbooks
 Account-private playbook library (Expert Knowledge System Phase 2, migration 0033) — a firm's own deployment/rollout playbooks (DLP deployment, records management, insider risk, communication compliance, eDiscovery, information protection). Identical shape and rationale to `sops` in every respect (ownership/RLS, `content` jsonb, manual-entry-first sequencing, `source_project_id`, day-one `updated_at`) — the only difference is `playbook_type`'s six values and the fixed 12-heading structure a playbook follows (Discovery, Requirements, Planning, Design, Implementation, Testing, Pilot, Rollout, Monitoring, Operations, Success Criteria, Lessons Learned), which walks a deployment project through phases rather than documenting a repeatable operational procedure like an SOP's headings do.
 
+### eks_requests
+Shared append-only request log (Expert Knowledge System Phase 2, migration 0034) for the EKS reasoning-layer family — Troubleshooting Engine and Architecture Advisor (`feature` discriminates the two). Deliberately not a widened `automation_requests`: EKS reasoning calls optionally link back to a `project_id` and cross-reference Knowledge Vault entries, a usage pattern `automation_requests` doesn't have, so this gets its own table and its own rate limit (`src/lib/eks/rate-limit.ts`) rather than sharing either `automation_requests`' or `generation_jobs`' budget. Same select-plus-insert-only, account-scoped shape as `automation_requests`.
+
+### eks_request_vault_entries
+Join table recording exactly which `knowledge_vault_entries` rows `searchVault` surfaced as "similar historical issues" for a given `eks_requests` row — mirrors `deliverable_version_kb_entries` exactly, including its RLS shape (ownership checked via the parent `eks_requests` row, since this table has no `account_id` of its own). This is what a later "most cross-referenced content" dashboard metric reads from.
+
 ## Row-Level Security (Supabase)
 
 Every account-scoped table (`projects`, `deliverables`, `deliverable_versions`, `generation_jobs`, `branding`, `subscriptions`) has an RLS policy restricting rows to `account_id = auth.uid()`'s owning account (via `users.account_id`). `knowledge_base_entries` and `prompt_templates` are platform-managed (admin-write, authenticated-read) rather than account-scoped.
@@ -291,6 +317,8 @@ Every account-scoped table (`projects`, `deliverables`, `deliverable_versions`, 
 `coding_standards` follows the identical private, no-admin-override, all-four-verbs pattern. `automation_requests` is account-scoped but **select + insert only** — no update/delete policy — since it's an append-only call log/history, the same append-only convention as `audit_log`.
 
 `sops` and `playbooks` both follow the identical private, no-admin-override, all-four-verbs pattern (`sops_select/insert/update/delete`, `playbooks_select/insert/update/delete`).
+
+`eks_requests` is account-scoped, **select + insert only**, same append-only convention as `automation_requests`/`audit_log`. `eks_request_vault_entries` has no `account_id` column of its own — its select/insert policies check ownership via an `exists` subquery against the parent `eks_requests` row, the same pattern `deliverable_version_kb_entries_all_via_version` (migration 0002) uses to check ownership through `deliverable_versions` → `deliverables` → `projects`.
 
 ## Indexes (MVP-critical)
 
@@ -305,3 +333,4 @@ Every account-scoped table (`projects`, `deliverables`, `deliverable_versions`, 
 - `automation_requests(account_id, created_at desc)`, `automation_requests(user_id)`
 - `sops(account_id)`, `sops(account_id, sop_type)`, `sops(author_user_id)`, `sops(source_project_id)`
 - `playbooks(account_id)`, `playbooks(account_id, playbook_type)`, `playbooks(author_user_id)`, `playbooks(source_project_id)`
+- `eks_requests(account_id, created_at desc)`, `eks_requests(user_id)`, `eks_requests(project_id)`, `eks_request_vault_entries(knowledge_vault_entry_id)`
