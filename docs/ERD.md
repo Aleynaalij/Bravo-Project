@@ -13,6 +13,8 @@ erDiagram
     ACCOUNTS ||--o| SUBSCRIPTIONS : has
     ACCOUNTS ||--o{ KNOWLEDGE_VAULT_ENTRIES : "captures (private)"
     ACCOUNTS ||--o{ KNOWLEDGE_SCRIPTS : "captures (private)"
+    ACCOUNTS ||--o{ CODING_STANDARDS : "defines (private)"
+    ACCOUNTS ||--o{ AUTOMATION_REQUESTS : logs
 
     PROJECTS ||--o{ PROJECT_SERVICES : "in scope"
     PROJECTS ||--o{ DELIVERABLES : generates
@@ -152,6 +154,34 @@ erDiagram
         text[] tags
         vector embedding
         int version
+        boolean is_approved_pattern
+        text source
+        timestamptz created_at
+    }
+
+    CODING_STANDARDS {
+        uuid id PK
+        uuid account_id FK
+        text script_type
+        text[] required_elements
+        text notes
+        uuid author_user_id FK
+        text author_email
+        int version
+        timestamptz created_at
+    }
+
+    AUTOMATION_REQUESTS {
+        uuid id PK
+        uuid account_id FK
+        uuid user_id FK
+        text user_email
+        text feature
+        text script_type
+        text environment_profile
+        text input
+        jsonb output
+        text error_message
         timestamptz created_at
     }
 ```
@@ -200,13 +230,21 @@ Tracks async generation requests (OpenAPI `GenerationJob`). On success, `result_
 Account-private institutional memory (TDD §2.10, Expert Knowledge System MVP) — one consulting team's own lessons learned and incidents, unified into one table via the `entry_type` discriminator (`'lesson_learned' | 'incident'`) rather than two near-duplicate tables, the same convention `generation_jobs` uses for its `deliverable_type` column. `project_id` optionally links back to the source engagement (`on delete set null` — the entry outlives the project). `author_user_id` is nullable (`on delete set null`) with `author_email` denormalized alongside it, same rationale as `audit_log.actor_email`: the entry stays attributable even after the author's `users` row is gone. `embedding`/`version` follow the same shape as `knowledge_base_entries`. **Not** platform-admin readable — see Row-Level Security below.
 
 ### knowledge_scripts
-Account-private reusable script library (TDD §2.10) — PowerShell, Graph API, KQL, JSON, Terraform, Bicep, or ARM template snippets a team has actually used and wants to reuse, with a `risk_level` self-rating. Same account-ownership, authorship, and embedding/versioning shape as `knowledge_vault_entries`; a separate table rather than another `entry_type` value because a script's fields (`content`, `risk_level`, `dependencies`, `rollback_steps`) don't meaningfully overlap with a narrative entry's.
+Account-private reusable script library (TDD §2.10) — PowerShell, Graph API, KQL, JSON, Terraform, Bicep, or ARM template snippets a team has actually used and wants to reuse, with a `risk_level` self-rating. Same account-ownership, authorship, and embedding/versioning shape as `knowledge_vault_entries`; a separate table rather than another `entry_type` value because a script's fields (`content`, `risk_level`, `dependencies`, `rollback_steps`) don't meaningfully overlap with a narrative entry's. `is_approved_pattern`/`source` (migration 0029, additive) support the Automation Center (TDD §2.11): `is_approved_pattern` is the "Approved Patterns" vetted-template flag; `source` (`'manual' | 'ai_generated' | 'promoted'`, default `'manual'`) distinguishes a hand-entered script from one Code Creator generated and the author promoted into the vault.
+
+### coding_standards
+Account-private "how WE write PowerShell" templates (TDD §2.11) — one row per `(account_id, script_type)`, `required_elements text[]` as the checklist Code Auditor grades against and Code Creator generates to satisfy, plus freeform `notes`. Same account-ownership/RLS shape as `knowledge_vault_entries`, no embedding (these aren't semantically searched, only looked up by exact script type via `getCodingStandardByScriptType`). `version` bumps on every edit, same convention as `knowledge_scripts`.
+
+### automation_requests
+Append-only log of every Code Auditor/Code Creator call (TDD §2.11) — `feature` discriminates `'code_audit' | 'code_generate'`, `input` holds the pasted code (audit) or a JSON-serialized requirements object (creator), `output` holds the validated AI response, `error_message` is set instead when the call or its validation failed. Doubles as the source for `assertUnderAutomationRateLimit`'s daily counter, the same dual role `generation_jobs` plays for deliverable generation's own rate limit.
 
 ## Row-Level Security (Supabase)
 
 Every account-scoped table (`projects`, `deliverables`, `deliverable_versions`, `generation_jobs`, `branding`, `subscriptions`) has an RLS policy restricting rows to `account_id = auth.uid()`'s owning account (via `users.account_id`). `knowledge_base_entries` and `prompt_templates` are platform-managed (admin-write, authenticated-read) rather than account-scoped.
 
 `knowledge_vault_entries` and `knowledge_scripts` are also account-scoped (`account_id = auth_account_id()`, all four verbs), but deliberately **without** the platform-admin read override that exists elsewhere in the schema (e.g. `is_platform_admin()` gating admin routes) — this is private per-account institutional memory, not platform-managed content, so QuePilot staff get no special read access to it. Their `match_knowledge_vault_entries`/`match_knowledge_scripts` search RPCs are `security invoker` rather than `security definer` for the same reason: they run as the calling user and inherit this RLS automatically.
+
+`coding_standards` follows the identical private, no-admin-override, all-four-verbs pattern. `automation_requests` is account-scoped but **select + insert only** — no update/delete policy — since it's an append-only call log/history, the same append-only convention as `audit_log`.
 
 ## Indexes (MVP-critical)
 
@@ -217,3 +255,5 @@ Every account-scoped table (`projects`, `deliverables`, `deliverable_versions`, 
 - `generation_jobs(project_id, status)`
 - `knowledge_vault_entries(account_id)`, `knowledge_vault_entries(account_id, entry_type)`, GIN on `tags`, HNSW on `embedding`
 - `knowledge_scripts(account_id)`, GIN on `tags`, HNSW on `embedding`
+- `coding_standards(account_id)`, unique on `(account_id, script_type)`
+- `automation_requests(account_id, created_at desc)`, `automation_requests(user_id)`
