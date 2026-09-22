@@ -5,6 +5,7 @@ import { getUsageMetrics, groupServicesByPracticeArea } from "@/lib/metrics/usag
 import { getEngagementHealthSummary } from "@/lib/metrics/engagement";
 import { getEditSeverityBreakdown } from "@/lib/metrics/quality";
 import { summarizeDeliveryRisk } from "@/lib/metrics/delivery-risk";
+import { getVaultMetrics } from "@/lib/metrics/vault";
 import { listProjectsWithServices } from "@/lib/projects/service";
 import { DELIVERABLE_LABELS, SERVICE_LABELS } from "@/lib/domain/labels";
 import { Card } from "@/components/ui/card";
@@ -26,11 +27,12 @@ export default async function AccountMetricsPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [metrics, engagementHealth, editSeverity, projects] = await Promise.all([
+  const [metrics, engagementHealth, editSeverity, projects, vaultMetrics] = await Promise.all([
     getUsageMetrics(supabase),
     getEngagementHealthSummary(supabase),
     getEditSeverityBreakdown(supabase),
     listProjectsWithServices(supabase),
+    getVaultMetrics(supabase),
   ]);
   const totalProjects =
     engagementHealth.counts.healthy + engagementHealth.counts.review_needed + engagementHealth.counts.stalled;
@@ -100,6 +102,46 @@ export default async function AccountMetricsPage() {
               { label: "High", count: deliveryRisk.counts.high, tone: "error" },
             ]}
           />
+        </Card>
+      )}
+
+      {(vaultMetrics.totalEntries > 0 || vaultMetrics.totalScripts > 0) && (
+        <Card className="mb-8 flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="font-medium">Knowledge vault</h2>
+            <Link href="/dashboard/knowledge-vault" className="text-sm text-brand hover:underline">
+              Open vault &rarr;
+            </Link>
+          </div>
+          <p className="text-sm text-muted">
+            Your team&apos;s own captured lessons learned, incidents, and scripts — private to this
+            account.
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <StatTile label="Lessons &amp; incidents" value={vaultMetrics.totalEntries} />
+            <StatTile label="Scripts" value={vaultMetrics.totalScripts} />
+          </div>
+          {vaultMetrics.totalEntries > 0 && (
+            <StatusBar
+              segments={[
+                { label: "Lessons learned", count: vaultMetrics.counts.lessonLearned, tone: "success" },
+                { label: "Incidents", count: vaultMetrics.counts.incident, tone: "warning" },
+              ]}
+            />
+          )}
+          {vaultMetrics.entriesByService.length > 0 && (
+            <div className="border-t border-border pt-3">
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
+                Entries by service
+              </h3>
+              <BarChart
+                rows={vaultMetrics.entriesByService.map((row) => ({
+                  label: SERVICE_LABELS[row.serviceType] ?? row.serviceType,
+                  value: row.count,
+                }))}
+              />
+            </div>
+          )}
         </Card>
       )}
 
