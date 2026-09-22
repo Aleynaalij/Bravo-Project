@@ -15,6 +15,7 @@ erDiagram
     ACCOUNTS ||--o{ KNOWLEDGE_SCRIPTS : "captures (private)"
     ACCOUNTS ||--o{ CODING_STANDARDS : "defines (private)"
     ACCOUNTS ||--o{ AUTOMATION_REQUESTS : logs
+    ACCOUNTS ||--o{ SOPS : "defines (private)"
 
     PROJECTS ||--o{ PROJECT_SERVICES : "in scope"
     PROJECTS ||--o{ DELIVERABLES : generates
@@ -186,6 +187,23 @@ erDiagram
         text error_message
         timestamptz created_at
     }
+
+    SOPS {
+        uuid id PK
+        uuid account_id FK
+        text sop_type
+        text title
+        text service_type
+        text status
+        jsonb content
+        text prompt_template_version
+        uuid author_user_id FK
+        text author_email
+        uuid source_project_id FK
+        timestamptz updated_at
+        int version
+        timestamptz created_at
+    }
 ```
 
 *(`DELIVERABLE_VERSIONS }o--o{ KNOWLEDGE_BASE_ENTRIES` is realized via the join table `DELIVERABLE_VERSION_KB_ENTRIES`.)*
@@ -240,6 +258,9 @@ Account-private "how WE write PowerShell" templates (TDD §2.11) — one row per
 ### automation_requests
 Append-only log of every Code Auditor/Code Creator call (TDD §2.11) — `feature` discriminates `'code_audit' | 'code_generate'`, `input` holds the pasted code (audit) or a JSON-serialized requirements object (creator), `output` holds the validated AI response, `error_message` is set instead when the call or its validation failed. Doubles as the source for `assertUnderAutomationRateLimit`'s daily counter, the same dual role `generation_jobs` plays for deliverable generation's own rate limit.
 
+### sops
+Account-private SOP library (Expert Knowledge System Phase 2, migration 0032) — a firm's own standard operating procedures (daily operations, DLP administration, label management, retention, etc.), not scoped to any one project. Same ownership/RLS shape as `knowledge_vault_entries`/`coding_standards`: `account_id = auth_account_id()`, all four verbs, no platform-admin override. `content` is `jsonb` shaped exactly like `deliverable_versions.content` (`{sections:[{heading,paragraphs}]}`), Zod-validated against a fixed 12-heading structure common to every `sop_type` (Purpose, Scope, Roles, Responsibilities, Prerequisites, Procedure, Validation, Exception Handling, Reporting, Escalation, References, Revision History) — this migration ships manual entry only; AI generation and an `embedding` column for semantic search land in later steps of the same phase. `source_project_id` optionally links back to the engagement that prompted writing it (`on delete set null`, same "outlives the project" rationale as `knowledge_vault_entries.project_id`) without scoping visibility — `account_id` does that. `updated_at` exists from day one (unlike `knowledge_vault_entries`/`knowledge_scripts`, retrofitted in a later step) since `updateSop` already needs a last-edited timestamp.
+
 ## Row-Level Security (Supabase)
 
 Every account-scoped table (`projects`, `deliverables`, `deliverable_versions`, `generation_jobs`, `branding`, `subscriptions`) has an RLS policy restricting rows to `account_id = auth.uid()`'s owning account (via `users.account_id`). `knowledge_base_entries` and `prompt_templates` are platform-managed (admin-write, authenticated-read) rather than account-scoped.
@@ -247,6 +268,8 @@ Every account-scoped table (`projects`, `deliverables`, `deliverable_versions`, 
 `knowledge_vault_entries` and `knowledge_scripts` are also account-scoped (`account_id = auth_account_id()`, all four verbs), but deliberately **without** the platform-admin read override that exists elsewhere in the schema (e.g. `is_platform_admin()` gating admin routes) — this is private per-account institutional memory, not platform-managed content, so QuePilot staff get no special read access to it. Their `match_knowledge_vault_entries`/`match_knowledge_scripts` search RPCs are `security invoker` rather than `security definer` for the same reason: they run as the calling user and inherit this RLS automatically.
 
 `coding_standards` follows the identical private, no-admin-override, all-four-verbs pattern. `automation_requests` is account-scoped but **select + insert only** — no update/delete policy — since it's an append-only call log/history, the same append-only convention as `audit_log`.
+
+`sops` follows the identical private, no-admin-override, all-four-verbs pattern (`sops_select/insert/update/delete`).
 
 ## Indexes (MVP-critical)
 
@@ -259,3 +282,4 @@ Every account-scoped table (`projects`, `deliverables`, `deliverable_versions`, 
 - `knowledge_scripts(account_id)`, GIN on `tags`, HNSW on `embedding`
 - `coding_standards(account_id)`, unique on `(account_id, script_type)`
 - `automation_requests(account_id, created_at desc)`, `automation_requests(user_id)`
+- `sops(account_id)`, `sops(account_id, sop_type)`, `sops(author_user_id)`, `sops(source_project_id)`
