@@ -7,6 +7,9 @@ export class CodeAuditError extends Error {}
 
 const SCRIPT_TYPE_LABELS: Record<string, string> = {
   powershell: "PowerShell",
+  python: "Python",
+  javascript: "JavaScript",
+  bash: "Bash",
   graph_api: "Graph API",
   kql: "KQL",
   json: "JSON",

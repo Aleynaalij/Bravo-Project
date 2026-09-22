@@ -10,6 +10,9 @@ import { PageHeader } from "@/components/page-header";
 
 const SCRIPT_TYPE_LABELS: Record<(typeof SCRIPT_TYPES)[number], string> = {
   powershell: "PowerShell",
+  python: "Python",
+  javascript: "JavaScript",
+  bash: "Bash",
   graph_api: "Graph API",
   kql: "KQL",
   json: "JSON",

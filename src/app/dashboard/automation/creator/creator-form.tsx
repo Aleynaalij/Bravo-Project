@@ -21,6 +21,9 @@ const codeClass = `${fieldClass} min-h-64 font-mono`;
 
 const SCRIPT_TYPE_LABELS: Record<ScriptType, string> = {
   powershell: "PowerShell",
+  python: "Python",
+  javascript: "JavaScript",
+  bash: "Bash",
   graph_api: "Graph API",
   kql: "KQL",
   json: "JSON",
