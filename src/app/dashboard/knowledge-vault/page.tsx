@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { requireAccountId } from "@/lib/auth/session";
 import { listVaultEntries } from "@/lib/vault/entries-service";
-import { searchVault } from "@/lib/vault/search";
+import { searchVault, filterByAuthorId } from "@/lib/vault/search";
+import { listTeamMembers } from "@/lib/team/service";
 import { SERVICE_LABELS } from "@/lib/domain/labels";
 import { Header } from "@/components/header";
 import { Card } from "@/components/ui/card";
@@ -25,17 +27,24 @@ function snippet(entry: VaultEntryRow): string | null {
 export default async function KnowledgeVaultPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; author?: string }>;
 }) {
-  const { q } = await searchParams;
+  const { q, author } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  const accountId = await requireAccountId(supabase);
   const query = (q ?? "").trim();
-  const entries = query ? (await searchVault(supabase, query)).entries : await listVaultEntries(supabase);
+  const authorFilter = (author ?? "").trim() || null;
+
+  const [rawEntries, teamMembers] = await Promise.all([
+    query ? searchVault(supabase, query).then((r) => r.entries) : listVaultEntries(supabase),
+    listTeamMembers(supabase, accountId),
+  ]);
+  const entries = filterByAuthorId(rawEntries, authorFilter, (entry) => entry.author_user_id);
 
   return (
     <>
@@ -60,14 +69,27 @@ export default async function KnowledgeVaultPage({
           </div>
         </div>
 
-        <form className="mb-6 flex gap-2" action="/dashboard/knowledge-vault">
+        <form className="mb-6 flex flex-wrap gap-2" action="/dashboard/knowledge-vault">
           <input
             type="search"
             name="q"
             defaultValue={query}
             placeholder="Search symptoms, root cause, resolution…"
-            className="flex-1 rounded-md border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none"
+            className="min-w-48 flex-1 rounded-md border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none"
           />
+          <select
+            name="author"
+            defaultValue={authorFilter ?? ""}
+            title="What would this teammate do?"
+            className="rounded-md border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none"
+          >
+            <option value="">Any teammate</option>
+            {teamMembers.map((member) => (
+              <option key={member.id} value={member.id}>
+                {member.email}
+              </option>
+            ))}
+          </select>
           <LinkButton href="/dashboard/knowledge-vault" variant="secondary" size="sm">
             Clear
           </LinkButton>
@@ -82,7 +104,7 @@ export default async function KnowledgeVaultPage({
         {entries.length === 0 ? (
           <Card>
             <p className="text-sm text-muted">
-              {query
+              {query || authorFilter
                 ? "No entries match that search."
                 : "Nothing captured yet — add your first lesson learned or incident."}
             </p>
