@@ -26,6 +26,7 @@ export async function Header() {
     { href: "/dashboard", label: "Projects" },
     { href: "/dashboard/metrics", label: "Dashboards" },
     { href: "/dashboard/vault", label: "FileVault" },
+    { href: "/dashboard/knowledge-vault", label: "Knowledge Vault" },
     { href: "/demo", label: "Demo" },
     { href: "/dashboard/billing", label: "Billing" },
     { href: "/dashboard/support", label: "Support" },
