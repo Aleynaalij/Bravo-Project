@@ -22,6 +22,7 @@ export default async function EditCodingStandardPage({ params }: { params: Promi
     <main className="mx-auto max-w-xl px-4 py-10">
       <PageHeader
         title="Edit coding standard"
+        description={`Defined by ${standard.author_email} · v${standard.version}`}
         actions={
           <form action={deleteCodingStandardAction}>
             <input type="hidden" name="id" value={standard.id} />
