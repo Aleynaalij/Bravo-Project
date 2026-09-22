@@ -21,6 +21,9 @@ const LESSON_MATCH_COUNT = 3;
 
 const SCRIPT_TYPE_LABELS: Record<string, string> = {
   powershell: "PowerShell",
+  python: "Python",
+  javascript: "JavaScript",
+  bash: "Bash",
   graph_api: "Graph API",
   kql: "KQL",
   json: "JSON",

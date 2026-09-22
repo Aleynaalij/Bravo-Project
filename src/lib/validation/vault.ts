@@ -9,6 +9,9 @@ export type VaultSeverity = (typeof VAULT_SEVERITIES)[number];
 
 export const SCRIPT_TYPES = [
   "powershell",
+  "python",
+  "javascript",
+  "bash",
   "graph_api",
   "kql",
   "json",
