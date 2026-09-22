@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { codeAuditResultSchema } from "./automation";
+import { codeAuditResultSchema, normalizeRequiredElements } from "./automation";
 
 const baseFindings = { security: [], performance: [], maintainability: [], reliability: [], bestPractices: [] };
 const baseScoreCard = { security: 80, performance: 80, maintainability: 80, documentation: 80, overall: 80 };
@@ -44,5 +44,34 @@ describe("codeAuditResultSchema", () => {
       scoreCard: { ...baseScoreCard, security: 20 },
     });
     expect(result.success).toBe(true);
+  });
+});
+
+describe("normalizeRequiredElements", () => {
+  it("splits on comma and trims whitespace", () => {
+    expect(normalizeRequiredElements("Try/Catch,  Logging ,Parameter validation")).toEqual([
+      "Try/Catch",
+      "Logging",
+      "Parameter validation",
+    ]);
+  });
+
+  it("preserves original casing, unlike normalizeTags", () => {
+    expect(normalizeRequiredElements("Comment Help, Transcript Logging")).toEqual([
+      "Comment Help",
+      "Transcript Logging",
+    ]);
+  });
+
+  it("dedupes case-insensitively but keeps the first casing seen", () => {
+    expect(normalizeRequiredElements("Logging, logging, LOGGING")).toEqual(["Logging"]);
+  });
+
+  it("drops empty entries", () => {
+    expect(normalizeRequiredElements("Logging,, , Try/Catch")).toEqual(["Logging", "Try/Catch"]);
+  });
+
+  it("returns an empty array for a blank string", () => {
+    expect(normalizeRequiredElements("")).toEqual([]);
   });
 });

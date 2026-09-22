@@ -17,7 +17,13 @@ export type AuditAction =
   | "vault.entry.delete"
   | "vault.script.create"
   | "vault.script.update"
-  | "vault.script.delete";
+  | "vault.script.delete"
+  | "automation.standard.create"
+  | "automation.standard.update"
+  | "automation.standard.delete"
+  | "automation.audit.run"
+  | "automation.creator.generate"
+  | "automation.script.promote";
 
 export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   "team.invite": "Invited teammate",
@@ -33,6 +39,12 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   "vault.script.create": "Created knowledge vault script",
   "vault.script.update": "Updated knowledge vault script",
   "vault.script.delete": "Deleted knowledge vault script",
+  "automation.standard.create": "Created coding standard",
+  "automation.standard.update": "Updated coding standard",
+  "automation.standard.delete": "Deleted coding standard",
+  "automation.audit.run": "Ran Code Auditor",
+  "automation.creator.generate": "Ran Code Creator",
+  "automation.script.promote": "Promoted a generated script to the Script Vault",
 };
 
 export interface WriteAuditLogInput {
