@@ -16,6 +16,23 @@ function nullableText(max: number) {
 
 // ---- Coding Standards Templates ----
 
+// Unlike validation/vault.ts's normalizeTags, this preserves case and
+// original wording ("Try/Catch", not "try/catch") — required elements are
+// displayed back to the user verbatim and fed into an AI prompt, not used
+// as a lowercase-matched filter key the way tags are.
+export function normalizeRequiredElements(raw: string): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const part of raw.split(",")) {
+    const element = part.trim();
+    if (element && !seen.has(element.toLowerCase())) {
+      seen.add(element.toLowerCase());
+      result.push(element);
+    }
+  }
+  return result;
+}
+
 export const codingStandardSchema = z.object({
   scriptType: z.enum(SCRIPT_TYPES),
   requiredElements: z.array(z.string().min(1).max(100)).max(30),
