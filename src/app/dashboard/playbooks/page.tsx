@@ -43,7 +43,14 @@ export default async function PlaybooksPage({
       <PageHeader
         title="Playbooks"
         description="Your team's own deployment and rollout playbooks — DLP deployment, records management, insider risk, and more."
-        actions={<LinkButton href="/dashboard/playbooks/new">New playbook</LinkButton>}
+        actions={
+          <>
+            <LinkButton href="/dashboard/playbooks/generate" variant="secondary">
+              Generate with AI
+            </LinkButton>
+            <LinkButton href="/dashboard/playbooks/new">New playbook</LinkButton>
+          </>
+        }
       />
 
       <form className="mb-6 flex flex-wrap gap-2" action="/dashboard/playbooks">
