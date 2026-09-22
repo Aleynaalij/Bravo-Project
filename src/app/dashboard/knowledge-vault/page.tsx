@@ -52,7 +52,12 @@ export default async function KnowledgeVaultPage({
               shared with another QuePilot customer.
             </p>
           </div>
-          <LinkButton href="/dashboard/knowledge-vault/new">New entry</LinkButton>
+          <div className="flex gap-2">
+            <LinkButton href="/dashboard/knowledge-vault/scripts" variant="secondary">
+              Scripts
+            </LinkButton>
+            <LinkButton href="/dashboard/knowledge-vault/new">New entry</LinkButton>
+          </div>
         </div>
 
         <form className="mb-6 flex gap-2" action="/dashboard/knowledge-vault">
