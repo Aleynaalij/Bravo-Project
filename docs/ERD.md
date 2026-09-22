@@ -11,9 +11,12 @@ erDiagram
     ACCOUNTS ||--o{ PROJECTS : owns
     ACCOUNTS ||--o| BRANDING : has
     ACCOUNTS ||--o| SUBSCRIPTIONS : has
+    ACCOUNTS ||--o{ KNOWLEDGE_VAULT_ENTRIES : "captures (private)"
+    ACCOUNTS ||--o{ KNOWLEDGE_SCRIPTS : "captures (private)"
 
     PROJECTS ||--o{ PROJECT_SERVICES : "in scope"
     PROJECTS ||--o{ DELIVERABLES : generates
+    PROJECTS |o--o{ KNOWLEDGE_VAULT_ENTRIES : "sourced from (optional)"
 
     DELIVERABLES ||--o{ DELIVERABLE_VERSIONS : "has versions"
     DELIVERABLE_VERSIONS }o--o{ KNOWLEDGE_BASE_ENTRIES : references
@@ -124,6 +127,33 @@ erDiagram
         timestamptz created_at
         timestamptz completed_at
     }
+
+    KNOWLEDGE_VAULT_ENTRIES {
+        uuid id PK
+        uuid account_id FK
+        text entry_type
+        text title
+        text service_type
+        uuid project_id FK
+        uuid author_user_id FK
+        text[] tags
+        vector embedding
+        int version
+        timestamptz created_at
+    }
+
+    KNOWLEDGE_SCRIPTS {
+        uuid id PK
+        uuid account_id FK
+        text name
+        text script_type
+        text risk_level
+        uuid author_user_id FK
+        text[] tags
+        vector embedding
+        int version
+        timestamptz created_at
+    }
 ```
 
 *(`DELIVERABLE_VERSIONS }o--o{ KNOWLEDGE_BASE_ENTRIES` is realized via the join table `DELIVERABLE_VERSION_KB_ENTRIES`.)*
@@ -166,9 +196,17 @@ Versioned prompt templates per deliverable type. Only one version `is_active` pe
 ### generation_jobs
 Tracks async generation requests (OpenAPI `GenerationJob`). On success, `result_deliverable_id` points at the `deliverables` row that was created/updated; on failure, `error_message` is surfaced to the client.
 
+### knowledge_vault_entries
+Account-private institutional memory (TDD §2.10, Expert Knowledge System MVP) — one consulting team's own lessons learned and incidents, unified into one table via the `entry_type` discriminator (`'lesson_learned' | 'incident'`) rather than two near-duplicate tables, the same convention `generation_jobs` uses for its `deliverable_type` column. `project_id` optionally links back to the source engagement (`on delete set null` — the entry outlives the project). `author_user_id` is nullable (`on delete set null`) with `author_email` denormalized alongside it, same rationale as `audit_log.actor_email`: the entry stays attributable even after the author's `users` row is gone. `embedding`/`version` follow the same shape as `knowledge_base_entries`. **Not** platform-admin readable — see Row-Level Security below.
+
+### knowledge_scripts
+Account-private reusable script library (TDD §2.10) — PowerShell, Graph API, KQL, JSON, Terraform, Bicep, or ARM template snippets a team has actually used and wants to reuse, with a `risk_level` self-rating. Same account-ownership, authorship, and embedding/versioning shape as `knowledge_vault_entries`; a separate table rather than another `entry_type` value because a script's fields (`content`, `risk_level`, `dependencies`, `rollback_steps`) don't meaningfully overlap with a narrative entry's.
+
 ## Row-Level Security (Supabase)
 
 Every account-scoped table (`projects`, `deliverables`, `deliverable_versions`, `generation_jobs`, `branding`, `subscriptions`) has an RLS policy restricting rows to `account_id = auth.uid()`'s owning account (via `users.account_id`). `knowledge_base_entries` and `prompt_templates` are platform-managed (admin-write, authenticated-read) rather than account-scoped.
+
+`knowledge_vault_entries` and `knowledge_scripts` are also account-scoped (`account_id = auth_account_id()`, all four verbs), but deliberately **without** the platform-admin read override that exists elsewhere in the schema (e.g. `is_platform_admin()` gating admin routes) — this is private per-account institutional memory, not platform-managed content, so QuePilot staff get no special read access to it. Their `match_knowledge_vault_entries`/`match_knowledge_scripts` search RPCs are `security invoker` rather than `security definer` for the same reason: they run as the calling user and inherit this RLS automatically.
 
 ## Indexes (MVP-critical)
 
@@ -177,3 +215,5 @@ Every account-scoped table (`projects`, `deliverables`, `deliverable_versions`, 
 - `deliverable_versions(deliverable_id, version_number desc)`
 - `knowledge_base_entries(service_type, industry)`
 - `generation_jobs(project_id, status)`
+- `knowledge_vault_entries(account_id)`, `knowledge_vault_entries(account_id, entry_type)`, GIN on `tags`, HNSW on `embedding`
+- `knowledge_scripts(account_id)`, GIN on `tags`, HNSW on `embedding`
