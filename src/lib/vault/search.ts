@@ -11,6 +11,14 @@ export interface VaultSearchResult {
   scripts: VaultScriptRow[];
 }
 
+// Pure filter used by the "what would [teammate] do?" control on both vault
+// list pages — a generic filter-by-author, not tied to any one person.
+// null (no filter selected) returns every row unchanged.
+export function filterByAuthorId<T>(rows: T[], authorUserId: string | null, getAuthorId: (row: T) => string | null): T[] {
+  if (!authorUserId) return rows;
+  return rows.filter((row) => getAuthorId(row) === authorUserId);
+}
+
 // Pure text-match scoring used by the fallback paths below (no AI provider
 // configured, or the embeddings call failed) — counts how many distinct
 // query terms appear in a row's searchable text, drops rows matching none,

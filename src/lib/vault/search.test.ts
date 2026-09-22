@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { rankByTextMatch } from "./search";
+import { rankByTextMatch, filterByAuthorId } from "./search";
 
 interface Row {
   id: string;
@@ -7,6 +7,13 @@ interface Row {
 }
 
 const row = (id: string, text: string): Row => ({ id, text });
+
+interface AuthoredRow {
+  id: string;
+  authorUserId: string | null;
+}
+
+const authoredRow = (id: string, authorUserId: string | null): AuthoredRow => ({ id, authorUserId });
 
 describe("rankByTextMatch", () => {
   it("returns rows unchanged for a blank query", () => {
@@ -38,5 +45,29 @@ describe("rankByTextMatch", () => {
   it("returns an empty array when nothing matches", () => {
     const rows = [row("a", "DLP policy"), row("b", "Teams retention")];
     expect(rankByTextMatch(rows, "sharepoint", (r) => r.text)).toEqual([]);
+  });
+});
+
+describe("filterByAuthorId", () => {
+  it("returns every row unchanged when no author is selected", () => {
+    const rows = [authoredRow("a", "user-1"), authoredRow("b", "user-2")];
+    expect(filterByAuthorId(rows, null, (r) => r.authorUserId)).toEqual(rows);
+  });
+
+  it("keeps only rows authored by the selected user", () => {
+    const rows = [authoredRow("a", "user-1"), authoredRow("b", "user-2"), authoredRow("c", "user-1")];
+    const result = filterByAuthorId(rows, "user-1", (r) => r.authorUserId);
+    expect(result.map((r) => r.id)).toEqual(["a", "c"]);
+  });
+
+  it("excludes rows with no author when filtering by a specific user", () => {
+    const rows = [authoredRow("a", "user-1"), authoredRow("b", null)];
+    const result = filterByAuthorId(rows, "user-1", (r) => r.authorUserId);
+    expect(result.map((r) => r.id)).toEqual(["a"]);
+  });
+
+  it("returns an empty array when nobody matches the selected author", () => {
+    const rows = [authoredRow("a", "user-1"), authoredRow("b", "user-2")];
+    expect(filterByAuthorId(rows, "user-3", (r) => r.authorUserId)).toEqual([]);
   });
 });
