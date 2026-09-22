@@ -45,6 +45,12 @@ export async function POST(request: Request, { params }: Params) {
   if (!project) {
     return NextResponse.json({ code: "not_found", message: "Project not found" }, { status: 404 });
   }
+  if (project.status === "closed") {
+    return NextResponse.json(
+      { code: "project_closed", message: "This project is closed and read-only — no new deliverables can be generated." },
+      { status: 409 },
+    );
+  }
 
   const body = await request.json().catch(() => null);
   const parsed = generateRequestSchema.safeParse(body);

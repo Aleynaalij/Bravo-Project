@@ -4,6 +4,7 @@ import { after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAccountId } from "@/lib/auth/session";
+import { getProject } from "@/lib/projects/service";
 import { enqueueGenerationJob, drainGenerationQueue } from "@/lib/generation/jobs";
 import { assertUnderGenerationRateLimit, GenerationRateLimitError } from "@/lib/generation/rate-limit";
 import {
@@ -43,6 +44,12 @@ export async function generateDeliverablesAction(
       return { error: err.message };
     }
     throw err;
+  }
+
+  const project = await getProject(supabase, projectId);
+  if (!project) return { error: "Project not found" };
+  if (project.status === "closed") {
+    return { error: "This project is closed and read-only — no new deliverables can be generated." };
   }
 
   // Enqueues and returns immediately — actual generation happens in the

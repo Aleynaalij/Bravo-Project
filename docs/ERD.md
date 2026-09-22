@@ -65,6 +65,8 @@ erDiagram
         text licensing_tier
         text[] geographic_locations
         text compliance_notes
+        text status
+        timestamptz closed_at
         timestamptz created_at
         timestamptz updated_at
     }
@@ -203,7 +205,7 @@ Individual login identities. No longer 1:1 with account — multi-seat shipped (
 1:1 with account. Mirrors Stripe subscription state; updated via Stripe webhook handler.
 
 ### projects
-The intake record for one customer engagement. Maps directly to PRD §6.1 and OpenAPI `Project` schema.
+The intake record for one customer engagement. Maps directly to PRD §6.1 and OpenAPI `Project` schema. `status`/`closed_at` (migration 0031, Expert Knowledge System Phase 2) implement the "no project should be closed without knowledge capture" gate — closing requires at least one linked `knowledge_vault_entries` row (`hasVaultEntryForProject`) and makes the project read-only (no new `generation_jobs`, no `project_services` edits) rather than just a status label.
 
 ### project_services
 Join table for the many-to-many between a project and the fixed `ServiceType` enum (DLP, Retention, Sensitivity Labels, etc.). Modeled as a table (not an array column) so future service-specific metadata (e.g., a DLP policy count) has somewhere to attach.

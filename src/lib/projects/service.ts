@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { ServiceType } from "@/lib/domain/enums";
+import type { ProjectStatus, ServiceType } from "@/lib/domain/enums";
 import type {
   ProjectCreateInput,
   ProjectUpdateInput,
@@ -18,6 +18,8 @@ export interface ProjectRow {
   licensing_tier: string;
   geographic_locations: string[];
   compliance_notes: string | null;
+  status: ProjectStatus;
+  closed_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -144,6 +146,26 @@ export async function deleteProject(
 ): Promise<void> {
   const { error } = await supabase.from("projects").delete().eq("id", projectId);
   if (error) throw error;
+}
+
+// Closing an engagement is a one-way transition in the UI (no "reopen"
+// action exists yet — not asked for, and reopening a closed project raises
+// its own questions about what "read-only" should have prevented in the
+// meantime that this build doesn't need to answer). Callers must check
+// hasVaultEntryForProject (vault/entries-service.ts) before calling this —
+// that gate lives with the vault query it depends on, not here.
+export async function closeProject(
+  supabase: SupabaseClient,
+  projectId: string,
+): Promise<ProjectRow> {
+  const { data, error } = await supabase
+    .from("projects")
+    .update({ status: "closed", closed_at: new Date().toISOString() })
+    .eq("id", projectId)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data;
 }
 
 export async function setProjectServices(

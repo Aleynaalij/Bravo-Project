@@ -84,6 +84,14 @@ export async function runGeneration(
 ): Promise<{ deliverableId: string; versionId: string }> {
   const project = await getProject(supabase, projectId);
   if (!project) throw new GenerationError("Project not found");
+  // Belt-and-suspenders: the two entry points (generate-actions.ts, the
+  // REST route) already reject a closed project before enqueueing, but a
+  // job queued in the brief window right before closure could still reach
+  // here via the cron-driven path — never generate against a closed
+  // engagement, no matter how the job got queued.
+  if (project.status === "closed") {
+    throw new GenerationError("This project is closed and read-only — no new deliverables can be generated.");
+  }
   if (project.services.length === 0) {
     throw new GenerationError("Select at least one service in scope before generating");
   }
