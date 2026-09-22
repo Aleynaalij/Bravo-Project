@@ -63,6 +63,23 @@ export async function listVaultEntries(supabase: SupabaseClient): Promise<VaultE
   return data ?? [];
 }
 
+// The Knowledge Capture gate for project closure (closeProjectAction, in
+// [projectId]/actions.ts) — a project can't close until at least one
+// lesson-learned/incident is linked to it. Lives here, not in
+// projects/service.ts, since it's a vault-table read, not a projects-table
+// concern.
+export async function hasVaultEntryForProject(
+  supabase: SupabaseClient,
+  projectId: string,
+): Promise<boolean> {
+  const { count, error } = await supabase
+    .from("knowledge_vault_entries")
+    .select("id", { count: "exact", head: true })
+    .eq("project_id", projectId);
+  if (error) throw error;
+  return (count ?? 0) > 0;
+}
+
 export async function getVaultEntry(supabase: SupabaseClient, id: string): Promise<VaultEntryRow | null> {
   const { data, error } = await supabase
     .from("knowledge_vault_entries")

@@ -17,9 +17,11 @@ const initialState: ServicesFormState = {};
 export function ServicesForm({
   projectId,
   currentServices,
+  isClosed,
 }: {
   projectId: string;
   currentServices: ServiceType[];
+  isClosed: boolean;
 }) {
   const [state, formAction, isPending] = useActionState(updateServicesAction, initialState);
 
@@ -51,6 +53,7 @@ export function ServicesForm({
                       name="services"
                       value={service}
                       defaultChecked={currentServices.includes(service)}
+                      disabled={isClosed}
                       className="accent-brand"
                     />
                     <Icon className="h-4 w-4 shrink-0 text-brand-dark" />
@@ -64,9 +67,10 @@ export function ServicesForm({
       })}
 
       {state.error && <p className="text-sm text-error-text">{state.error}</p>}
+      {isClosed && <p className="text-sm text-muted">This project is closed and read-only.</p>}
 
       <div className="flex items-center gap-3">
-        <Button type="submit" size="sm" disabled={isPending} className="w-fit">
+        <Button type="submit" size="sm" disabled={isClosed || isPending} className="w-fit">
           {isPending ? "Saving…" : "Save services"}
         </Button>
         {!isPending && state.savedAt && (

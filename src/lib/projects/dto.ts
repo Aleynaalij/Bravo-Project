@@ -14,6 +14,8 @@ export function toProjectDTO(row: ProjectRow, services: ServiceType[] = []) {
     geographicLocations: row.geographic_locations,
     complianceNotes: row.compliance_notes,
     servicesInScope: services,
+    status: row.status,
+    closedAt: row.closed_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

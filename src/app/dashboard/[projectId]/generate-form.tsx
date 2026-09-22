@@ -40,9 +40,11 @@ const CATEGORY_ICONS: Record<DeliverableCategory, ComponentType<SVGProps<SVGSVGE
 export function GenerateForm({
   projectId,
   services,
+  isClosed,
 }: {
   projectId: string;
   services: ServiceType[];
+  isClosed: boolean;
 }) {
   const [state, formAction, isSubmitting] = useActionState(generateDeliverablesAction, initialState);
   const router = useRouter();
@@ -250,7 +252,11 @@ export function GenerateForm({
         </div>
       )}
 
-      <Button type="submit" disabled={isBusy || selected.size === 0} className="w-fit">
+      {isClosed && (
+        <Alert variant="info">This project is closed and read-only — no new deliverables can be generated.</Alert>
+      )}
+
+      <Button type="submit" disabled={isClosed || isBusy || selected.size === 0} className="w-fit">
         {isSubmitting ? "Queuing…" : isPolling ? "Generating…" : "Generate deliverables"}
       </Button>
     </form>

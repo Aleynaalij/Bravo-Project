@@ -24,6 +24,8 @@ const project: ProjectRow = {
   licensing_tier: "E5",
   geographic_locations: ["US", "EU"],
   compliance_notes: "HIPAA applies.",
+  status: "active",
+  closed_at: null,
   created_at: "2026-01-01T00:00:00Z",
   updated_at: "2026-01-01T00:00:00Z",
 };

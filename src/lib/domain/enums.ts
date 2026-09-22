@@ -60,3 +60,10 @@ export const DELIVERABLE_VERSION_SOURCES = [
 ] as const;
 
 export type DeliverableVersionSource = (typeof DELIVERABLE_VERSION_SOURCES)[number];
+
+// A project has no lifecycle concept beyond this — "closed" locks
+// generation and services-in-scope editing (see generation/jobs.ts,
+// [projectId]/generate-actions.ts, [projectId]/services-form.tsx), gated
+// behind the Knowledge Capture requirement (hasVaultEntryForProject).
+export const PROJECT_STATUSES = ["active", "closed"] as const;
+export type ProjectStatus = (typeof PROJECT_STATUSES)[number];

@@ -1,4 +1,4 @@
-import type { DeliverableType, ServiceType } from "./enums";
+import type { DeliverableType, ProjectStatus, ServiceType } from "./enums";
 
 export const DELIVERABLE_LABELS: Record<DeliverableType, string> = {
   executive_summary: "Executive Summary",
@@ -181,3 +181,8 @@ export const LICENSING_TIER_OPTIONS = [
   "Office 365 E5",
   "Other",
 ] as const;
+
+export const PROJECT_STATUS_LABELS: Record<ProjectStatus, string> = {
+  active: "Active",
+  closed: "Closed",
+};
