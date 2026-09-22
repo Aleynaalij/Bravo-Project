@@ -1,5 +1,4 @@
 import { notFound, redirect } from "next/navigation";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getVaultEntry } from "@/lib/vault/entries-service";
 import { listProjects } from "@/lib/projects/service";
@@ -7,6 +6,7 @@ import { EntryForm } from "../entry-form";
 import { deleteVaultEntryAction } from "../actions";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/page-header";
 
 export default async function EditVaultEntryPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -21,19 +21,17 @@ export default async function EditVaultEntryPage({ params }: { params: Promise<{
 
   return (
     <main className="mx-auto max-w-xl px-4 py-10">
-      <Link href="/dashboard/knowledge-vault" className="text-sm text-brand hover:underline">
-        &larr; Back to Knowledge Vault
-      </Link>
-
-      <div className="mb-6 mt-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">Edit entry</h1>
-        <form action={deleteVaultEntryAction}>
-          <input type="hidden" name="id" value={entry.id} />
-          <Button type="submit" variant="danger" size="sm">
-            Delete
-          </Button>
-        </form>
-      </div>
+      <PageHeader
+        title="Edit entry"
+        actions={
+          <form action={deleteVaultEntryAction}>
+            <input type="hidden" name="id" value={entry.id} />
+            <Button type="submit" variant="danger" size="sm">
+              Delete
+            </Button>
+          </form>
+        }
+      />
 
       <Card>
         <EntryForm entry={entry} projects={projects} />

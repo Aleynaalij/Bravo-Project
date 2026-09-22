@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requirePlatformAdmin, ForbiddenError, UnauthorizedError } from "@/lib/auth/session";
@@ -7,6 +6,7 @@ import { resolveSupportRequestAction } from "./actions";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/page-header";
 
 export default async function AdminSupportPage() {
   const supabase = await createClient();
@@ -24,14 +24,10 @@ export default async function AdminSupportPage() {
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
-      <Link href="/dashboard" className="text-sm text-brand hover:underline">
-        &larr; Back to projects
-      </Link>
-      <h1 className="mb-1 mt-4 text-2xl font-semibold">Support requests</h1>
-      <p className="mb-8 text-sm text-muted">
-        Every in-app support request across every account — platform-wide, not scoped to one
-        customer.
-      </p>
+      <PageHeader
+        title="Support requests"
+        description="Every in-app support request across every account — platform-wide, not scoped to one customer."
+      />
 
       <h2 className="mb-3 text-sm font-semibold text-muted">
         Open ({openRequests.length})

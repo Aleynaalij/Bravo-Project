@@ -9,6 +9,7 @@ import { SERVICE_LABELS } from "@/lib/domain/labels";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LinkButton } from "@/components/ui/button";
+import { PageHeader } from "@/components/page-header";
 
 const RISK_TONE = { low: "success", medium: "warning", high: "error" } as const;
 
@@ -39,18 +40,11 @@ export default async function VaultScriptsPage({
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
-      <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <Link href="/dashboard/knowledge-vault" className="text-sm text-brand hover:underline">
-            &larr; Back to Knowledge Vault
-          </Link>
-          <h1 className="mb-1 mt-4 text-2xl font-semibold">Scripts</h1>
-          <p className="max-w-md text-sm text-muted">
-            Your team&apos;s own reusable script library — PowerShell, Graph API, KQL, IaC.
-          </p>
-        </div>
-        <LinkButton href="/dashboard/knowledge-vault/scripts/new">New script</LinkButton>
-      </div>
+      <PageHeader
+        title="Scripts"
+        description="Your team's own reusable script library — PowerShell, Graph API, KQL, IaC."
+        actions={<LinkButton href="/dashboard/knowledge-vault/scripts/new">New script</LinkButton>}
+      />
 
       <form className="mb-6 flex flex-wrap gap-2" action="/dashboard/knowledge-vault/scripts">
         <input

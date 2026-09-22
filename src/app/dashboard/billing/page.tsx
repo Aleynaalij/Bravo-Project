@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { requireAccountId } from "@/lib/auth/session";
 import { getSubscription } from "@/lib/billing/service";
@@ -9,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/page-header";
 
 const PLANS = [
   { id: "consultant" as const, name: "Consultant", price: "$49/mo" },
@@ -39,15 +39,10 @@ export default async function BillingPage({
 
   return (
     <main className="mx-auto max-w-xl px-4 py-10">
-      <Link href="/dashboard" className="text-sm text-brand hover:underline">
-        &larr; Back to projects
-      </Link>
-
-      <h1 className="mb-1 mt-4 text-2xl font-semibold">Billing</h1>
-      <p className="mb-6 text-sm text-muted">
-        This account&apos;s QuePilot subscription — pick a plan below, or once subscribed, open
-        the Stripe customer portal to update payment methods, seats, and invoices.
-      </p>
+      <PageHeader
+        title="Billing"
+        description="This account's QuePilot subscription — pick a plan below, or once subscribed, open the Stripe customer portal to update payment methods, seats, and invoices."
+      />
 
       {checkout === "success" && (
         <Alert variant="success" className="mb-4">

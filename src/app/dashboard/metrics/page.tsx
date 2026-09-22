@@ -12,6 +12,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BarChart } from "@/components/charts/bar-chart";
 import { StatusBar } from "@/components/charts/status-bar";
+import { PageHeader } from "@/components/page-header";
 
 // This account's own usage — the same aggregation the admin-only
 // cross-account page at src/app/admin/metrics uses, but handed a regular
@@ -57,14 +58,10 @@ export default async function AccountMetricsPage() {
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
-      <Link href="/dashboard" className="text-sm text-brand hover:underline">
-        &larr; Back to projects
-      </Link>
-      <h1 className="mb-1 mt-4 text-2xl font-semibold">Dashboards</h1>
-      <p className="mb-8 text-sm text-muted">
-        This account&apos;s own generation activity — every number below comes straight from your
-        team&apos;s projects and deliverables, nothing estimated or industry-averaged.
-      </p>
+      <PageHeader
+        title="Dashboards"
+        description="This account's own generation activity — every number below comes straight from your team's projects and deliverables, nothing estimated or industry-averaged."
+      />
 
       {totalProjects > 0 && (
         <Card className="mb-8 flex flex-col gap-3">
