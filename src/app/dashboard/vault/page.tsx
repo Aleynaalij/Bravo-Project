@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { listVaultEntries } from "@/lib/vault/service";
 import { VaultEntryCard } from "./vault-entry-card";
 import { Card } from "@/components/ui/card";
+import { PageHeader } from "@/components/page-header";
 
 export default async function VaultPage() {
   const supabase = await createClient();
@@ -16,11 +17,10 @@ export default async function VaultPage() {
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
-      <h1 className="mb-1 text-2xl font-semibold">FileVault</h1>
-      <p className="mb-6 text-sm text-muted">
-        Every generated deliverable, organized by project — view, download, or email it any time
-        without regenerating anything.
-      </p>
+      <PageHeader
+        title="FileVault"
+        description="Every generated deliverable, organized by project — view, download, or email it any time without regenerating anything."
+      />
 
       {groups.length === 0 ? (
         <Card className="text-sm text-muted">

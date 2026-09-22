@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert } from "@/components/ui/alert";
 import { ScoreBar } from "@/components/charts/score-bar";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { PageHeader } from "@/components/page-header";
 
 export default async function SettingsPage({
   searchParams,
@@ -52,12 +53,7 @@ export default async function SettingsPage({
 
   return (
     <main className="mx-auto max-w-xl px-4 py-10">
-      <Link href="/dashboard" className="text-sm text-brand hover:underline">
-        &larr; Back to projects
-      </Link>
-
-      <h1 className="mb-1 mt-4 text-2xl font-semibold">Settings</h1>
-      <p className="mb-6 text-sm text-muted">Manage your account, appearance, and firm branding.</p>
+      <PageHeader title="Settings" description="Manage your account, appearance, and firm branding." />
 
       {deleteError && (
         <Alert variant="error" className="mb-6">

@@ -9,6 +9,7 @@ import { SERVICE_LABELS } from "@/lib/domain/labels";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LinkButton } from "@/components/ui/button";
+import { PageHeader } from "@/components/page-header";
 import type { VaultEntryRow } from "@/lib/vault/entries-service";
 
 const ENTRY_TYPE_TONE = { lesson_learned: "success", incident: "warning" } as const;
@@ -47,24 +48,18 @@ export default async function KnowledgeVaultPage({
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
-      <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <Link href="/dashboard" className="text-sm text-brand hover:underline">
-            &larr; Back to projects
-          </Link>
-          <h1 className="mb-1 mt-4 text-2xl font-semibold">Knowledge Vault</h1>
-          <p className="max-w-md text-sm text-muted">
-            Your team&apos;s own lessons learned and incidents — private to this account, never
-            shared with another QuePilot customer.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <LinkButton href="/dashboard/knowledge-vault/scripts" variant="secondary">
-            Scripts
-          </LinkButton>
-          <LinkButton href="/dashboard/knowledge-vault/new">New entry</LinkButton>
-        </div>
-      </div>
+      <PageHeader
+        title="Knowledge Vault"
+        description="Your team's own lessons learned and incidents — private to this account, never shared with another QuePilot customer."
+        actions={
+          <>
+            <LinkButton href="/dashboard/knowledge-vault/scripts" variant="secondary">
+              Scripts
+            </LinkButton>
+            <LinkButton href="/dashboard/knowledge-vault/new">New entry</LinkButton>
+          </>
+        }
+      />
 
       <form className="mb-6 flex flex-wrap gap-2" action="/dashboard/knowledge-vault">
         <input

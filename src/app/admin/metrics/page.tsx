@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { PageHeader } from "@/components/page-header";
 import { getUsageMetrics, groupServicesByPracticeArea } from "@/lib/metrics/usage";
 import { getPlanDistribution } from "@/lib/metrics/billing";
 import { getEditSeverityBreakdown } from "@/lib/metrics/quality";
@@ -38,13 +38,10 @@ export default async function MetricsPage() {
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
-      <Link href="/dashboard" className="text-sm text-brand hover:underline">
-        &larr; Back to projects
-      </Link>
-      <h1 className="mb-1 mt-4 text-2xl font-semibold">Usage metrics</h1>
-      <p className="mb-8 text-sm text-muted">
-        Platform-wide, across every account — not a per-customer analytics view.
-      </p>
+      <PageHeader
+        title="Usage metrics"
+        description="Platform-wide, across every account — not a per-customer analytics view."
+      />
 
       <Card className="mb-8 flex flex-col gap-3">
         <h2 className="font-medium">Accounts &amp; billing</h2>

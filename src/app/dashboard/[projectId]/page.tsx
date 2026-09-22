@@ -1,5 +1,4 @@
 import { notFound, redirect } from "next/navigation";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getProject } from "@/lib/projects/service";
 import { listDeliverablesWithContent } from "@/lib/generation/deliverables";
@@ -8,6 +7,7 @@ import { GenerateForm } from "./generate-form";
 import { DeliverableView } from "./deliverable-view";
 import { DeleteProjectButton } from "./delete-project-button";
 import { Card } from "@/components/ui/card";
+import { PageHeader } from "@/components/page-header";
 
 export default async function ProjectDetailPage({
   params,
@@ -33,14 +33,14 @@ export default async function ProjectDetailPage({
 
   return (
     <main className="mx-auto max-w-xl px-4 py-10">
-      <Link href="/dashboard" className="text-sm text-brand hover:underline">
-        &larr; Back to projects
-      </Link>
-
-      <h1 className="mb-1 mt-4 text-2xl font-semibold">{project.customer_name}</h1>
-      <p className="mb-6 text-sm text-muted">
-        {project.industry} &middot; {project.user_count} users &middot; {project.licensing_tier}
-      </p>
+      <PageHeader
+        title={project.customer_name}
+        description={
+          <>
+            {project.industry} &middot; {project.user_count} users &middot; {project.licensing_tier}
+          </>
+        }
+      />
 
       {(project.geographic_locations.length > 0 || project.compliance_notes) && (
         <Card className="mb-6 flex flex-col gap-2">

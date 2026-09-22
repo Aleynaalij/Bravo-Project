@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { listMySupportRequests } from "@/lib/support/service";
 import { SupportForm } from "./support-form";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/page-header";
 
 // The in-app contact channel (task #35) — no helpdesk vendor account
 // exists for this project, so this is a real, owned request queue
@@ -22,14 +22,10 @@ export default async function SupportPage() {
 
   return (
     <main className="mx-auto max-w-xl px-4 py-10">
-      <Link href="/dashboard" className="text-sm text-brand hover:underline">
-        &larr; Back to projects
-      </Link>
-      <h1 className="mb-1 mt-4 text-2xl font-semibold">Support</h1>
-      <p className="mb-6 text-sm text-muted">
-        Questions, bug reports, or anything else — send us a message and we&apos;ll follow up at
-        your account email.
-      </p>
+      <PageHeader
+        title="Support"
+        description="Questions, bug reports, or anything else — send us a message and we'll follow up at your account email."
+      />
 
       <Card className="mb-8">
         <SupportForm />
