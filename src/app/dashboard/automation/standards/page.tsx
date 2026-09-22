@@ -56,6 +56,7 @@ export default async function StandardsPage() {
                     <span className="font-medium">{SCRIPT_TYPE_LABELS[standard.script_type]}</span>
                     <Badge tone="neutral">{standard.required_elements.length} required elements</Badge>
                   </div>
+                  <p className="mt-1 text-xs text-muted">Defined by {standard.author_email}</p>
                   <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted">
                     {standard.required_elements.map((el) => (
                       <span key={el}>#{el}</span>
