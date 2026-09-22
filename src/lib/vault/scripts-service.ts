@@ -1,0 +1,134 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { ServiceType } from "@/lib/domain/enums";
+import type { ScriptRiskLevel, ScriptType, VaultScriptInput } from "@/lib/validation/vault";
+import { generateEmbedding } from "@/lib/ai/provider";
+
+export interface VaultScriptRow {
+  id: string;
+  account_id: string;
+  name: string;
+  description: string;
+  script_type: ScriptType;
+  service_type: ServiceType | null;
+  content: string;
+  risk_level: ScriptRiskLevel;
+  dependencies: string | null;
+  validation_steps: string | null;
+  rollback_steps: string | null;
+  author_user_id: string | null;
+  author_email: string;
+  tags: string[];
+  version: number;
+  created_at: string;
+}
+
+// Excludes `embedding`, same rationale as entries-service.ts's ENTRY_COLUMNS.
+const SCRIPT_COLUMNS =
+  "id, account_id, name, description, script_type, service_type, content, " +
+  "risk_level, dependencies, validation_steps, rollback_steps, author_user_id, " +
+  "author_email, tags, version, created_at";
+
+// See entries-service.ts's listVaultEntries comment: the explicit
+// <string, VaultScriptRow> generic bypasses postgrest-js's type-level
+// select-string parser, which gives up on a column list this long.
+export async function listVaultScripts(supabase: SupabaseClient): Promise<VaultScriptRow[]> {
+  const { data, error } = await supabase
+    .from("knowledge_scripts")
+    .select<string, VaultScriptRow>(SCRIPT_COLUMNS)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function getVaultScript(supabase: SupabaseClient, id: string): Promise<VaultScriptRow | null> {
+  const { data, error } = await supabase
+    .from("knowledge_scripts")
+    .select<string, VaultScriptRow>(SCRIPT_COLUMNS)
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+// Best-effort, not blocking — same contract as entries-service.ts.
+async function tryGenerateEmbedding(input: VaultScriptInput): Promise<number[] | null> {
+  try {
+    return await generateEmbedding(`${input.name}\n\n${input.description}`);
+  } catch {
+    return null;
+  }
+}
+
+export async function createVaultScript(
+  supabase: SupabaseClient,
+  accountId: string,
+  authorUserId: string,
+  authorEmail: string,
+  input: VaultScriptInput,
+): Promise<VaultScriptRow> {
+  const embedding = await tryGenerateEmbedding(input);
+
+  const { data, error } = await supabase
+    .from("knowledge_scripts")
+    .insert({
+      account_id: accountId,
+      author_user_id: authorUserId,
+      author_email: authorEmail,
+      name: input.name,
+      description: input.description,
+      script_type: input.scriptType,
+      service_type: input.serviceType,
+      content: input.content,
+      risk_level: input.riskLevel,
+      dependencies: input.dependencies,
+      validation_steps: input.validationSteps,
+      rollback_steps: input.rollbackSteps,
+      tags: input.tags,
+      embedding,
+    })
+    .select<string, VaultScriptRow>(SCRIPT_COLUMNS)
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateVaultScript(
+  supabase: SupabaseClient,
+  id: string,
+  input: VaultScriptInput,
+): Promise<VaultScriptRow> {
+  const { data: existing } = await supabase
+    .from("knowledge_scripts")
+    .select("version")
+    .eq("id", id)
+    .single();
+
+  const embedding = await tryGenerateEmbedding(input);
+
+  const { data, error } = await supabase
+    .from("knowledge_scripts")
+    .update({
+      name: input.name,
+      description: input.description,
+      script_type: input.scriptType,
+      service_type: input.serviceType,
+      content: input.content,
+      risk_level: input.riskLevel,
+      dependencies: input.dependencies,
+      validation_steps: input.validationSteps,
+      rollback_steps: input.rollbackSteps,
+      tags: input.tags,
+      version: (existing?.version ?? 1) + 1,
+      ...(embedding ? { embedding } : {}),
+    })
+    .eq("id", id)
+    .select<string, VaultScriptRow>(SCRIPT_COLUMNS)
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteVaultScript(supabase: SupabaseClient, id: string): Promise<void> {
+  const { error } = await supabase.from("knowledge_scripts").delete().eq("id", id);
+  if (error) throw error;
+}

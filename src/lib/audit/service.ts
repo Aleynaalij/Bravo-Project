@@ -11,7 +11,13 @@ export type AuditAction =
   | "account.rename"
   | "kb.create"
   | "kb.update"
-  | "kb.delete";
+  | "kb.delete"
+  | "vault.entry.create"
+  | "vault.entry.update"
+  | "vault.entry.delete"
+  | "vault.script.create"
+  | "vault.script.update"
+  | "vault.script.delete";
 
 export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   "team.invite": "Invited teammate",
@@ -21,6 +27,12 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   "kb.create": "Created knowledge base entry",
   "kb.update": "Updated knowledge base entry",
   "kb.delete": "Deleted knowledge base entry",
+  "vault.entry.create": "Created knowledge vault entry",
+  "vault.entry.update": "Updated knowledge vault entry",
+  "vault.entry.delete": "Deleted knowledge vault entry",
+  "vault.script.create": "Created knowledge vault script",
+  "vault.script.update": "Updated knowledge vault script",
+  "vault.script.delete": "Deleted knowledge vault script",
 };
 
 export interface WriteAuditLogInput {
