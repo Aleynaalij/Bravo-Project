@@ -3,12 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { flattenNavEntries, getActiveHref, type NavEntry, type NavItem } from "./nav-links";
+import { flattenNavEntries, getActiveHref, isNavGroup, type NavEntry, type NavItem } from "@/lib/nav-config";
 import { Button } from "./ui/button";
-
-function isGroup(entry: NavEntry): entry is Extract<NavEntry, { items: NavItem[] }> {
-  return "items" in entry;
-}
 
 function MobileNavRow({ item, isActive }: { item: NavItem; isActive: boolean }) {
   return (
@@ -109,7 +105,7 @@ export function MobileNav({
 
             <nav className="flex flex-1 flex-col overflow-y-auto py-1">
               {entries.map((entry) =>
-                isGroup(entry) ? (
+                isNavGroup(entry) ? (
                   <div key={entry.label}>
                     <div className="px-4 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-muted">
                       {entry.label}
