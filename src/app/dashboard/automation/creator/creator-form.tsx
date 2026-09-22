@@ -97,6 +97,17 @@ function PromoteForm({ request, result }: { request: CodeCreatorRequestInput; re
         />
       </div>
 
+      <label className="flex items-start gap-2 text-sm">
+        <input type="checkbox" id="promote-approved" name="isApprovedPattern" className="mt-0.5" />
+        <span>
+          <span className="font-medium">Approved Pattern</span>
+          <p className="text-xs text-muted">
+            Was this useful? Would you reuse it? Mark it approved so other teammates find it first, and future
+            Code Creator runs can build from it.
+          </p>
+        </span>
+      </label>
+
       {state.error && <Alert variant="error">{state.error}</Alert>}
 
       <Button type="submit" disabled={isPending} className="w-fit">

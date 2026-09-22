@@ -114,6 +114,23 @@ export function ScriptForm({ script }: { script?: VaultScriptRow }) {
         <input id="tags" name="tags" defaultValue={script?.tags.join(", ")} className={fieldClass} />
       </Field>
 
+      <label className="flex items-start gap-2 text-sm">
+        <input
+          type="checkbox"
+          id="isApprovedPattern"
+          name="isApprovedPattern"
+          defaultChecked={script?.is_approved_pattern}
+          className="mt-0.5"
+        />
+        <span>
+          <span className="font-medium">Approved Pattern</span>
+          <p className="text-xs text-muted">
+            Was this useful? Would you reuse it? Mark it as vetted so other teammates find it first, and Code
+            Creator can build from it instead of generating from scratch.
+          </p>
+        </span>
+      </label>
+
       <Field id="content" label="Script content">
         <textarea id="content" name="content" required defaultValue={script?.content} className={codeClass} />
       </Field>

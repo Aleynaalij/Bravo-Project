@@ -21,13 +21,14 @@ export interface VaultScriptRow {
   version: number;
   created_at: string;
   source: VaultScriptSource;
+  is_approved_pattern: boolean;
 }
 
 // Excludes `embedding`, same rationale as entries-service.ts's ENTRY_COLUMNS.
 const SCRIPT_COLUMNS =
   "id, account_id, name, description, script_type, service_type, content, " +
   "risk_level, dependencies, validation_steps, rollback_steps, author_user_id, " +
-  "author_email, tags, version, created_at, source";
+  "author_email, tags, version, created_at, source, is_approved_pattern";
 
 // See entries-service.ts's listVaultEntries comment: the explicit
 // <string, VaultScriptRow> generic bypasses postgrest-js's type-level
@@ -90,6 +91,7 @@ export async function createVaultScript(
       tags: input.tags,
       embedding,
       source,
+      is_approved_pattern: input.isApprovedPattern,
     })
     .select<string, VaultScriptRow>(SCRIPT_COLUMNS)
     .single();
@@ -123,6 +125,7 @@ export async function updateVaultScript(
       validation_steps: input.validationSteps,
       rollback_steps: input.rollbackSteps,
       tags: input.tags,
+      is_approved_pattern: input.isApprovedPattern,
       version: (existing?.version ?? 1) + 1,
       ...(embedding ? { embedding } : {}),
     })
