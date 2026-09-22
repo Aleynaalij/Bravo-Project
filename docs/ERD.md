@@ -16,6 +16,7 @@ erDiagram
     ACCOUNTS ||--o{ CODING_STANDARDS : "defines (private)"
     ACCOUNTS ||--o{ AUTOMATION_REQUESTS : logs
     ACCOUNTS ||--o{ SOPS : "defines (private)"
+    ACCOUNTS ||--o{ PLAYBOOKS : "defines (private)"
 
     PROJECTS ||--o{ PROJECT_SERVICES : "in scope"
     PROJECTS ||--o{ DELIVERABLES : generates
@@ -204,6 +205,23 @@ erDiagram
         int version
         timestamptz created_at
     }
+
+    PLAYBOOKS {
+        uuid id PK
+        uuid account_id FK
+        text playbook_type
+        text title
+        text service_type
+        text status
+        jsonb content
+        text prompt_template_version
+        uuid author_user_id FK
+        text author_email
+        uuid source_project_id FK
+        timestamptz updated_at
+        int version
+        timestamptz created_at
+    }
 ```
 
 *(`DELIVERABLE_VERSIONS }o--o{ KNOWLEDGE_BASE_ENTRIES` is realized via the join table `DELIVERABLE_VERSION_KB_ENTRIES`.)*
@@ -259,7 +277,10 @@ Account-private "how WE write PowerShell" templates (TDD §2.11) — one row per
 Append-only log of every Code Auditor/Code Creator call (TDD §2.11) — `feature` discriminates `'code_audit' | 'code_generate'`, `input` holds the pasted code (audit) or a JSON-serialized requirements object (creator), `output` holds the validated AI response, `error_message` is set instead when the call or its validation failed. Doubles as the source for `assertUnderAutomationRateLimit`'s daily counter, the same dual role `generation_jobs` plays for deliverable generation's own rate limit.
 
 ### sops
-Account-private SOP library (Expert Knowledge System Phase 2, migration 0032) — a firm's own standard operating procedures (daily operations, DLP administration, label management, retention, etc.), not scoped to any one project. Same ownership/RLS shape as `knowledge_vault_entries`/`coding_standards`: `account_id = auth_account_id()`, all four verbs, no platform-admin override. `content` is `jsonb` shaped exactly like `deliverable_versions.content` (`{sections:[{heading,paragraphs}]}`), Zod-validated against a fixed 12-heading structure common to every `sop_type` (Purpose, Scope, Roles, Responsibilities, Prerequisites, Procedure, Validation, Exception Handling, Reporting, Escalation, References, Revision History) — this migration ships manual entry only; AI generation and an `embedding` column for semantic search land in later steps of the same phase. `source_project_id` optionally links back to the engagement that prompted writing it (`on delete set null`, same "outlives the project" rationale as `knowledge_vault_entries.project_id`) without scoping visibility — `account_id` does that. `updated_at` exists from day one (unlike `knowledge_vault_entries`/`knowledge_scripts`, retrofitted in a later step) since `updateSop` already needs a last-edited timestamp.
+Account-private SOP library (Expert Knowledge System Phase 2, migration 0032) — a firm's own standard operating procedures (daily operations, DLP administration, label management, retention, etc.), not scoped to any one project. Same ownership/RLS shape as `knowledge_vault_entries`/`coding_standards`: `account_id = auth_account_id()`, all four verbs, no platform-admin override. `content` is `jsonb` shaped exactly like `deliverable_versions.content` (`{sections:[{heading,paragraphs}]}`), Zod-validated against a fixed 12-heading structure common to every `sop_type` (Purpose, Scope, Roles, Responsibilities, Prerequisites, Procedure, Validation, Exception Handling, Reporting, Escalation, References, Revision History) — this migration ships manual entry only; AI generation (`src/lib/sop/generate.ts`, sharing `generateStructuredDoc()` with playbooks) and an `embedding` column for semantic search land in later steps of the same phase. `source_project_id` optionally links back to the engagement that prompted writing it (`on delete set null`, same "outlives the project" rationale as `knowledge_vault_entries.project_id`) without scoping visibility — `account_id` does that. `updated_at` exists from day one (unlike `knowledge_vault_entries`/`knowledge_scripts`, retrofitted in a later step) since `updateSop` already needs a last-edited timestamp.
+
+### playbooks
+Account-private playbook library (Expert Knowledge System Phase 2, migration 0033) — a firm's own deployment/rollout playbooks (DLP deployment, records management, insider risk, communication compliance, eDiscovery, information protection). Identical shape and rationale to `sops` in every respect (ownership/RLS, `content` jsonb, manual-entry-first sequencing, `source_project_id`, day-one `updated_at`) — the only difference is `playbook_type`'s six values and the fixed 12-heading structure a playbook follows (Discovery, Requirements, Planning, Design, Implementation, Testing, Pilot, Rollout, Monitoring, Operations, Success Criteria, Lessons Learned), which walks a deployment project through phases rather than documenting a repeatable operational procedure like an SOP's headings do.
 
 ## Row-Level Security (Supabase)
 
@@ -269,7 +290,7 @@ Every account-scoped table (`projects`, `deliverables`, `deliverable_versions`, 
 
 `coding_standards` follows the identical private, no-admin-override, all-four-verbs pattern. `automation_requests` is account-scoped but **select + insert only** — no update/delete policy — since it's an append-only call log/history, the same append-only convention as `audit_log`.
 
-`sops` follows the identical private, no-admin-override, all-four-verbs pattern (`sops_select/insert/update/delete`).
+`sops` and `playbooks` both follow the identical private, no-admin-override, all-four-verbs pattern (`sops_select/insert/update/delete`, `playbooks_select/insert/update/delete`).
 
 ## Indexes (MVP-critical)
 
@@ -283,3 +304,4 @@ Every account-scoped table (`projects`, `deliverables`, `deliverable_versions`, 
 - `coding_standards(account_id)`, unique on `(account_id, script_type)`
 - `automation_requests(account_id, created_at desc)`, `automation_requests(user_id)`
 - `sops(account_id)`, `sops(account_id, sop_type)`, `sops(author_user_id)`, `sops(source_project_id)`
+- `playbooks(account_id)`, `playbooks(account_id, playbook_type)`, `playbooks(author_user_id)`, `playbooks(source_project_id)`

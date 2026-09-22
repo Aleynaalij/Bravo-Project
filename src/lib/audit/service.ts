@@ -29,7 +29,12 @@ export type AuditAction =
   | "sop.generate"
   | "sop.update"
   | "sop.delete"
-  | "sop.publish";
+  | "sop.publish"
+  | "playbook.create"
+  | "playbook.generate"
+  | "playbook.update"
+  | "playbook.delete"
+  | "playbook.publish";
 
 export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   "team.invite": "Invited teammate",
@@ -57,6 +62,11 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   "sop.update": "Updated SOP",
   "sop.delete": "Deleted SOP",
   "sop.publish": "Published SOP",
+  "playbook.create": "Created playbook",
+  "playbook.generate": "Generated playbook with AI",
+  "playbook.update": "Updated playbook",
+  "playbook.delete": "Deleted playbook",
+  "playbook.publish": "Published playbook",
 };
 
 export interface WriteAuditLogInput {

@@ -1,0 +1,59 @@
+import { notFound, redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { getPlaybook } from "@/lib/playbook/service";
+import { PlaybookForm } from "../playbook-form";
+import { deletePlaybookAction, publishPlaybookAction } from "../actions";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/page-header";
+
+export default async function EditPlaybookPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const playbook = await getPlaybook(supabase, id);
+  if (!playbook) notFound();
+
+  return (
+    <main className="mx-auto max-w-xl px-4 py-10">
+      <PageHeader
+        title={
+          <span className="flex items-center gap-2">
+            Edit playbook
+            <Badge tone={playbook.status === "published" ? "success" : "neutral"}>
+              {playbook.status === "published" ? "Published" : "Draft"}
+            </Badge>
+          </span>
+        }
+        description={`Written by ${playbook.author_email} · v${playbook.version}`}
+        actions={
+          <>
+            {playbook.status === "draft" && (
+              <form action={publishPlaybookAction}>
+                <input type="hidden" name="id" value={playbook.id} />
+                <Button type="submit" variant="secondary" size="sm">
+                  Publish
+                </Button>
+              </form>
+            )}
+            <form action={deletePlaybookAction}>
+              <input type="hidden" name="id" value={playbook.id} />
+              <Button type="submit" variant="danger" size="sm">
+                Delete
+              </Button>
+            </form>
+          </>
+        }
+      />
+
+      <Card>
+        <PlaybookForm playbook={playbook} />
+      </Card>
+    </main>
+  );
+}
