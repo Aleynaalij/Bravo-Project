@@ -90,3 +90,18 @@ export const sopInputSchema = z.object({
   content: sopContentSchema,
 });
 export type SopInput = z.infer<typeof sopInputSchema>;
+
+// Input to src/lib/sop/generate.ts's generateSop — a freeform description
+// of what this SOP should cover (environment specifics, tools, anything
+// the account wants reflected), not the content itself. context reaches
+// the AI prompt wrapped in a rotating untrusted-data tag, same SEC-02
+// treatment as every other account-authored free-text field that reaches
+// a prompt in this app.
+export const sopGenerateRequestSchema = z.object({
+  sopType: z.enum(SOP_TYPES),
+  title: z.string().min(1).max(200),
+  serviceType: z.enum(SERVICE_TYPES).nullable(),
+  context: z.string().max(4000),
+  sourceProjectId: z.string().uuid().nullable(),
+});
+export type SopGenerateRequestInput = z.infer<typeof sopGenerateRequestSchema>;

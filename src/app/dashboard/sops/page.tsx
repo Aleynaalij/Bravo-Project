@@ -39,7 +39,14 @@ export default async function SopsPage({
       <PageHeader
         title="SOPs"
         description="Your team's own standard operating procedures — daily operations, DLP administration, label management, and more."
-        actions={<LinkButton href="/dashboard/sops/new">New SOP</LinkButton>}
+        actions={
+          <>
+            <LinkButton href="/dashboard/sops/generate" variant="secondary">
+              Generate with AI
+            </LinkButton>
+            <LinkButton href="/dashboard/sops/new">New SOP</LinkButton>
+          </>
+        }
       />
 
       <form className="mb-6 flex flex-wrap gap-2" action="/dashboard/sops">
