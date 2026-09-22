@@ -19,9 +19,9 @@ const RISK_TONE = { low: "success", medium: "warning", high: "error" } as const;
 export default async function VaultScriptsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; author?: string }>;
+  searchParams: Promise<{ q?: string; author?: string; approved?: string }>;
 }) {
-  const { q, author } = await searchParams;
+  const { q, author, approved } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -31,12 +31,14 @@ export default async function VaultScriptsPage({
   const accountId = await requireAccountId(supabase);
   const query = (q ?? "").trim();
   const authorFilter = (author ?? "").trim() || null;
+  const approvedOnly = approved === "1";
 
   const [rawScripts, teamMembers] = await Promise.all([
     query ? searchVault(supabase, query).then((r) => r.scripts) : listVaultScripts(supabase),
     listTeamMembers(supabase, accountId),
   ]);
-  const scripts = filterByAuthorId(rawScripts, authorFilter, (script) => script.author_user_id);
+  const byAuthor = filterByAuthorId(rawScripts, authorFilter, (script) => script.author_user_id);
+  const scripts = approvedOnly ? byAuthor.filter((script) => script.is_approved_pattern) : byAuthor;
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
@@ -67,6 +69,10 @@ export default async function VaultScriptsPage({
             </option>
           ))}
         </select>
+        <label className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm">
+          <input type="checkbox" name="approved" value="1" defaultChecked={approvedOnly} />
+          Approved Patterns only
+        </label>
         <LinkButton href="/dashboard/knowledge-vault/scripts" variant="secondary" size="sm">
           Clear
         </LinkButton>
@@ -81,7 +87,9 @@ export default async function VaultScriptsPage({
       {scripts.length === 0 ? (
         <Card>
           <p className="text-sm text-muted">
-            {query || authorFilter ? "No scripts match that search." : "Nothing saved yet — add your first script."}
+            {query || authorFilter || approvedOnly
+              ? "No scripts match that search."
+              : "Nothing saved yet — add your first script."}
           </p>
         </Card>
       ) : (
@@ -96,6 +104,7 @@ export default async function VaultScriptsPage({
                   </div>
                   <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted">
                     <Badge tone="neutral">{script.script_type}</Badge>
+                    {script.is_approved_pattern && <Badge tone="success">Approved Pattern</Badge>}
                     {script.service_type && <Badge tone="brand">{SERVICE_LABELS[script.service_type]}</Badge>}
                     {script.tags.map((tag) => (
                       <span key={tag} className="text-xs">

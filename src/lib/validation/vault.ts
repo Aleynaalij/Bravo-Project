@@ -93,6 +93,11 @@ export const vaultScriptSchema = z.object({
   validationSteps: nullableText(4000),
   rollbackSteps: nullableText(4000),
   tags: z.array(z.string().max(50)).max(20),
+  // A vetted, reusable template — the brief's "Approved Patterns" concept.
+  // A plain boolean, not coerced here: every caller computes it from its
+  // own checkbox (`formData.get(...) === "on"`) before calling safeParse,
+  // same convention normalizeTags already follows for the tags field.
+  isApprovedPattern: z.boolean(),
 });
 
 export type VaultScriptInput = z.infer<typeof vaultScriptSchema>;

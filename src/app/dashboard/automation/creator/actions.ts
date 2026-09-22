@@ -102,6 +102,7 @@ export async function promoteGeneratedScriptAction(
     validationSteps: "",
     rollbackSteps: String(formData.get("rollbackSteps") ?? ""),
     tags: [],
+    isApprovedPattern: formData.get("isApprovedPattern") === "on",
   });
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Give the script a name before saving it." };
@@ -122,7 +123,7 @@ export async function promoteGeneratedScriptAction(
     actorEmail: user.email,
     action: "automation.script.promote",
     target: script.id,
-    metadata: { scriptType: script.script_type },
+    metadata: { scriptType: script.script_type, isApprovedPattern: script.is_approved_pattern },
   });
   revalidatePath("/dashboard/knowledge-vault/scripts");
   redirect(`/dashboard/knowledge-vault/scripts/${script.id}`);

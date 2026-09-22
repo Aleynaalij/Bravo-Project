@@ -24,6 +24,7 @@ function parseFormData(formData: FormData) {
     validationSteps: String(formData.get("validationSteps") ?? ""),
     rollbackSteps: String(formData.get("rollbackSteps") ?? ""),
     tags: normalizeTags(String(formData.get("tags") ?? "")),
+    isApprovedPattern: formData.get("isApprovedPattern") === "on",
   });
 }
 
