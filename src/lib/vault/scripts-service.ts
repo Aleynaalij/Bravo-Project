@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ServiceType } from "@/lib/domain/enums";
-import type { ScriptRiskLevel, ScriptType, VaultScriptInput } from "@/lib/validation/vault";
+import type { ScriptRiskLevel, ScriptType, VaultScriptInput, VaultScriptSource } from "@/lib/validation/vault";
 import { generateEmbedding } from "@/lib/ai/provider";
 
 export interface VaultScriptRow {
@@ -20,13 +20,14 @@ export interface VaultScriptRow {
   tags: string[];
   version: number;
   created_at: string;
+  source: VaultScriptSource;
 }
 
 // Excludes `embedding`, same rationale as entries-service.ts's ENTRY_COLUMNS.
 const SCRIPT_COLUMNS =
   "id, account_id, name, description, script_type, service_type, content, " +
   "risk_level, dependencies, validation_steps, rollback_steps, author_user_id, " +
-  "author_email, tags, version, created_at";
+  "author_email, tags, version, created_at, source";
 
 // See entries-service.ts's listVaultEntries comment: the explicit
 // <string, VaultScriptRow> generic bypasses postgrest-js's type-level
@@ -65,6 +66,9 @@ export async function createVaultScript(
   authorUserId: string,
   authorEmail: string,
   input: VaultScriptInput,
+  // Defaults to "manual" — the only other caller today is Code Creator's
+  // "Promote to Script Vault" action, which passes "ai_generated" explicitly.
+  source: VaultScriptSource = "manual",
 ): Promise<VaultScriptRow> {
   const embedding = await tryGenerateEmbedding(input);
 
@@ -85,6 +89,7 @@ export async function createVaultScript(
       rollback_steps: input.rollbackSteps,
       tags: input.tags,
       embedding,
+      source,
     })
     .select<string, VaultScriptRow>(SCRIPT_COLUMNS)
     .single();

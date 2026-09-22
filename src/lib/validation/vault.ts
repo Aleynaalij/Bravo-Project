@@ -21,6 +21,14 @@ export type ScriptType = (typeof SCRIPT_TYPES)[number];
 export const SCRIPT_RISK_LEVELS = ["low", "medium", "high"] as const;
 export type ScriptRiskLevel = (typeof SCRIPT_RISK_LEVELS)[number];
 
+// Matches the CHECK constraint on knowledge_scripts.source (migration
+// 0029) — "manual" is the default for every script created through the
+// regular Script Vault form; Code Creator's "Promote to Script Vault"
+// action is the only caller that ever passes "ai_generated". "promoted"
+// is reserved for a V2 flow, not written anywhere yet.
+export const VAULT_SCRIPT_SOURCES = ["manual", "ai_generated", "promoted"] as const;
+export type VaultScriptSource = (typeof VAULT_SCRIPT_SOURCES)[number];
+
 // Shared by every optional narrative field below — empty-string form input
 // becomes null rather than an empty row in the database, same transform
 // convention src/lib/validation/knowledge-base.ts already uses for sourceUrl.
