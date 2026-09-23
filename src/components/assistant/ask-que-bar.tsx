@@ -6,8 +6,7 @@ import { Button } from "@/components/ui/button";
 
 type SopState = { status: "idle" } | { status: "generating" } | { status: "done"; sopId: string; sopTitle: string };
 
-const PLACEHOLDER =
-  "Ask me anything — need help navigating the platform, troubleshooting a Microsoft application, or generating an SOP?";
+const PLACEHOLDER = "Ask me anything";
 
 const SUGGESTED_TOPICS = [
   "How do I close out a project?",

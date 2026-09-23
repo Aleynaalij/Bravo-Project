@@ -605,3 +605,10 @@ Direct feedback after seeing the shipped bar live: it sat too close to the "New 
 - ✅ The answered-state card (question/reply/"Generate SOP from this") is unchanged — only the idle/empty state was in scope for this pass.
 - ✅ **UI verified via a throwaway preview route + Playwright**, screenshotted in both themes in both the idle state and the tapped-open suggestions state (clicking the info button via Playwright) — pill sizing, send-button placement, and chip wrapping all render correctly; preview route deleted and a clean rebuild confirmed no leftover references.
 - ✅ `npx tsc --noEmit` (via `npm run build`) / `eslint` / `npm run test` (231/231, unchanged — this is markup/state, no new pure-function logic) / `rm -rf .next && npm run build` all clean. No migration.
+
+## Ask Que UI polish 2: shorten the input placeholder
+
+Direct follow-up: the full explanatory sentence in the input's placeholder truncated awkwardly on a phone-width viewport with the on-screen keyboard open (screenshotted live). Shortened to just "Ask me anything" — the three use cases it named (platform navigation, Microsoft troubleshooting, SOP generation) are still fully covered by the tap-to-expand suggestion chips from the previous pass, so nothing is actually lost, just no longer crammed into a placeholder that can't fit it.
+
+- ✅ **`src/components/assistant/ask-que-bar.tsx`** — `PLACEHOLDER` constant shortened to `"Ask me anything"`.
+- ✅ `npx tsc --noEmit` (via `npm run build`) / `eslint` / `npm run test` (231/231, unchanged) / `rm -rf .next && npm run build` all clean. No migration. One-line copy change — skipped a fresh screenshot pass given the prior pass already verified this component's layout at this size.
