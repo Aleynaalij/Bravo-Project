@@ -19,6 +19,7 @@ export interface VaultScriptRow {
   author_email: string;
   tags: string[];
   version: number;
+  updated_at: string;
   created_at: string;
   source: VaultScriptSource;
   is_approved_pattern: boolean;
@@ -28,7 +29,7 @@ export interface VaultScriptRow {
 const SCRIPT_COLUMNS =
   "id, account_id, name, description, script_type, service_type, content, " +
   "risk_level, dependencies, validation_steps, rollback_steps, author_user_id, " +
-  "author_email, tags, version, created_at, source, is_approved_pattern";
+  "author_email, tags, version, updated_at, created_at, source, is_approved_pattern";
 
 // See entries-service.ts's listVaultEntries comment: the explicit
 // <string, VaultScriptRow> generic bypasses postgrest-js's type-level
@@ -127,6 +128,7 @@ export async function updateVaultScript(
       tags: input.tags,
       is_approved_pattern: input.isApprovedPattern,
       version: (existing?.version ?? 1) + 1,
+      updated_at: new Date().toISOString(),
       ...(embedding ? { embedding } : {}),
     })
     .eq("id", id)

@@ -29,6 +29,7 @@ export interface VaultEntryRow {
   source_url: string | null;
   tags: string[];
   version: number;
+  updated_at: string;
   created_at: string;
 }
 
@@ -40,7 +41,7 @@ const ENTRY_COLUMNS =
   "author_user_id, author_email, environment, symptoms, root_cause, " +
   "troubleshooting_steps, resolution, validation_steps, preventative_controls, " +
   "lessons_learned, impact, severity, escalation_path, time_to_resolution_minutes, " +
-  "confidence_score, source_url, tags, version, created_at";
+  "confidence_score, source_url, tags, version, updated_at, created_at";
 
 // RLS (knowledge_vault_entries_select) already scopes this to the caller's
 // own account — same "the client passed in decides the scope" convention
@@ -185,6 +186,7 @@ export async function updateVaultEntry(
       source_url: input.sourceUrl,
       tags: input.tags,
       version: (existing?.version ?? 1) + 1,
+      updated_at: new Date().toISOString(),
       // Only overwrite with a new embedding if generation actually
       // succeeded — a failed regeneration leaves whatever embedding
       // already existed alone, same contract as knowledge-base/service.ts.

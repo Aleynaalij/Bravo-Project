@@ -5,7 +5,13 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAccountId, UnauthorizedError } from "@/lib/auth/session";
 import { playbookInputSchema, buildPlaybookContent, PLAYBOOK_REQUIRED_HEADINGS } from "@/lib/validation/playbook";
-import { createPlaybook, deletePlaybook, publishPlaybook, updatePlaybook } from "@/lib/playbook/service";
+import {
+  createPlaybook,
+  deletePlaybook,
+  publishPlaybook,
+  setPlaybookVaultEntryLinks,
+  updatePlaybook,
+} from "@/lib/playbook/service";
 import { writeAuditLog } from "@/lib/audit/service";
 
 export interface PlaybookFormState {
@@ -33,7 +39,8 @@ function parseFormData(formData: FormData) {
   if (!parsed.success) {
     return { success: false as const, error: parsed.error.issues[0]?.message ?? "Check the form for errors" };
   }
-  return { success: true as const, data: parsed.data };
+  const relatedVaultEntryIds = formData.getAll("relatedVaultEntryIds").map(String);
+  return { success: true as const, data: parsed.data, relatedVaultEntryIds };
 }
 
 export async function createPlaybookAction(
@@ -59,6 +66,7 @@ export async function createPlaybookAction(
   }
 
   const playbook = await createPlaybook(supabase, accountId, user.id, user.email, parsed.data);
+  await setPlaybookVaultEntryLinks(supabase, playbook.id, parsed.relatedVaultEntryIds);
   await writeAuditLog(supabase, {
     accountId,
     actorUserId: user.id,
@@ -95,6 +103,7 @@ export async function updatePlaybookAction(
   }
 
   const playbook = await updatePlaybook(supabase, id, parsed.data);
+  await setPlaybookVaultEntryLinks(supabase, playbook.id, parsed.relatedVaultEntryIds);
   await writeAuditLog(supabase, {
     accountId,
     actorUserId: user.id,

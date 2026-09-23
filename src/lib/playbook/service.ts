@@ -114,3 +114,32 @@ export async function deletePlaybook(supabase: SupabaseClient, id: string): Prom
   const { error } = await supabase.from("playbooks").delete().eq("id", id);
   if (error) throw error;
 }
+
+// Mirrors sop/service.ts's getSopVaultEntryLinks/setSopVaultEntryLinks
+// exactly — the Playbook form's own "related vault entries" multi-select.
+export async function getPlaybookVaultEntryLinks(supabase: SupabaseClient, playbookId: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("playbook_vault_entry_links")
+    .select("knowledge_vault_entry_id")
+    .eq("playbook_id", playbookId);
+  if (error) throw error;
+  return (data ?? []).map((row) => row.knowledge_vault_entry_id as string);
+}
+
+export async function setPlaybookVaultEntryLinks(
+  supabase: SupabaseClient,
+  playbookId: string,
+  vaultEntryIds: string[],
+): Promise<void> {
+  const { error: deleteError } = await supabase
+    .from("playbook_vault_entry_links")
+    .delete()
+    .eq("playbook_id", playbookId);
+  if (deleteError) throw deleteError;
+  if (vaultEntryIds.length === 0) return;
+
+  const { error: insertError } = await supabase
+    .from("playbook_vault_entry_links")
+    .insert(vaultEntryIds.map((knowledge_vault_entry_id) => ({ playbook_id: playbookId, knowledge_vault_entry_id })));
+  if (insertError) throw insertError;
+}

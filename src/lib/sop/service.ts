@@ -137,3 +137,33 @@ export async function deleteSop(supabase: SupabaseClient, id: string): Promise<v
   const { error } = await supabase.from("sops").delete().eq("id", id);
   if (error) throw error;
 }
+
+// The SOP form's "related vault entries" multi-select — curated by the
+// author, distinct from eks_request_vault_entries (which records what
+// searchVault surfaced automatically for a troubleshoot request).
+export async function getSopVaultEntryLinks(supabase: SupabaseClient, sopId: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("sop_vault_entry_links")
+    .select("knowledge_vault_entry_id")
+    .eq("sop_id", sopId);
+  if (error) throw error;
+  return (data ?? []).map((row) => row.knowledge_vault_entry_id as string);
+}
+
+// Replaces the full link set on every save — same delete-all-then-insert
+// shape as ServicesForm's updateServicesAction, since the form always
+// submits the complete selected set, not a diff.
+export async function setSopVaultEntryLinks(
+  supabase: SupabaseClient,
+  sopId: string,
+  vaultEntryIds: string[],
+): Promise<void> {
+  const { error: deleteError } = await supabase.from("sop_vault_entry_links").delete().eq("sop_id", sopId);
+  if (deleteError) throw deleteError;
+  if (vaultEntryIds.length === 0) return;
+
+  const { error: insertError } = await supabase
+    .from("sop_vault_entry_links")
+    .insert(vaultEntryIds.map((knowledge_vault_entry_id) => ({ sop_id: sopId, knowledge_vault_entry_id })));
+  if (insertError) throw insertError;
+}

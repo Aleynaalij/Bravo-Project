@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getPlaybook } from "@/lib/playbook/service";
+import { getPlaybook, getPlaybookVaultEntryLinks } from "@/lib/playbook/service";
+import { listVaultEntries } from "@/lib/vault/entries-service";
 import { PlaybookForm } from "../playbook-form";
 import { deletePlaybookAction, publishPlaybookAction } from "../actions";
 import { Card } from "@/components/ui/card";
@@ -18,6 +19,11 @@ export default async function EditPlaybookPage({ params }: { params: Promise<{ i
 
   const playbook = await getPlaybook(supabase, id);
   if (!playbook) notFound();
+
+  const [vaultEntries, selectedVaultEntryIds] = await Promise.all([
+    listVaultEntries(supabase),
+    getPlaybookVaultEntryLinks(supabase, id),
+  ]);
 
   return (
     <main className="mx-auto max-w-xl px-4 py-10">
@@ -52,7 +58,7 @@ export default async function EditPlaybookPage({ params }: { params: Promise<{ i
       />
 
       <Card>
-        <PlaybookForm playbook={playbook} />
+        <PlaybookForm playbook={playbook} vaultEntries={vaultEntries} selectedVaultEntryIds={selectedVaultEntryIds} />
       </Card>
     </main>
   );
