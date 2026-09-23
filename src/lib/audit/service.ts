@@ -35,7 +35,8 @@ export type AuditAction =
   | "playbook.update"
   | "playbook.delete"
   | "playbook.publish"
-  | "eks.troubleshoot.run";
+  | "eks.troubleshoot.run"
+  | "eks.architecture_advisor.run";
 
 export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   "team.invite": "Invited teammate",
@@ -69,6 +70,7 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   "playbook.delete": "Deleted playbook",
   "playbook.publish": "Published playbook",
   "eks.troubleshoot.run": "Ran Troubleshooting Engine",
+  "eks.architecture_advisor.run": "Ran Architecture Advisor",
 };
 
 export interface WriteAuditLogInput {

@@ -11,6 +11,7 @@ import { DeleteProjectButton } from "./delete-project-button";
 import { CloseProjectButton } from "./close-project-button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { LinkButton } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
 
 export default async function ProjectDetailPage({
@@ -86,6 +87,17 @@ export default async function ProjectDetailPage({
           <DeliverableView key={deliverable.id} projectId={project.id} deliverable={deliverable} />
         ))}
       </div>
+
+      <Card className="mt-10 flex flex-col gap-3">
+        <h2 className="font-medium">Architecture Advisor</h2>
+        <p className="text-sm text-muted">
+          Propose a Microsoft 365 / Purview architecture for this engagement — prefilled from its industry, user
+          count, licensing tier, and compliance notes.
+        </p>
+        <LinkButton href={`/dashboard/architecture-advisor?projectId=${project.id}`} variant="secondary" className="w-fit">
+          Propose architecture
+        </LinkButton>
+      </Card>
 
       {!isClosed && (
         <Card className="mt-10 flex flex-col gap-3">
