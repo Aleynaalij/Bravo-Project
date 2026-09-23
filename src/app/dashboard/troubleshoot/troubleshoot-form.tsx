@@ -9,6 +9,7 @@ import type { ProjectRow } from "@/lib/projects/service";
 import type { VaultEntryRow } from "@/lib/vault/entries-service";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
+import { GenerationProgress } from "@/components/ui/generation-progress";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { ScoreBar } from "@/components/charts/score-bar";
@@ -217,6 +218,7 @@ export function TroubleshootForm({ projects }: { projects: ProjectRow[] }) {
         <Button type="submit" disabled={isPending} className="w-fit">
           {isPending ? "Diagnosing…" : "Run troubleshooting"}
         </Button>
+        {isPending && <GenerationProgress label="Diagnosing…" />}
       </form>
 
       {state.result && <TroubleshootResultView result={state.result} similarIssues={state.similarIssues ?? []} />}

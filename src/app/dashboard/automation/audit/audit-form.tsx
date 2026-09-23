@@ -6,6 +6,7 @@ import type { AuditFinding, AuditSeverity, CodeAuditResult } from "@/lib/validat
 import { runCodeAuditAction, type AuditFormState } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
+import { GenerationProgress } from "@/components/ui/generation-progress";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { ScoreBar } from "@/components/charts/score-bar";
 import type { ChartTone } from "@/components/charts/tone";
@@ -138,6 +139,7 @@ export function AuditForm() {
         <Button type="submit" disabled={isPending} className="w-fit">
           {isPending ? "Auditing…" : "Run audit"}
         </Button>
+        {isPending && <GenerationProgress label="Auditing…" />}
       </form>
 
       {state.result && <AuditResultView result={state.result} />}

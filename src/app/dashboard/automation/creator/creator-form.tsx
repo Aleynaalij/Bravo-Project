@@ -14,6 +14,7 @@ import { ENVIRONMENT_PROFILES, ENVIRONMENT_PROFILE_LABELS, type EnvironmentProfi
 import { runCodeCreatorAction, promoteGeneratedScriptAction, type PromoteFormState } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
+import { GenerationProgress } from "@/components/ui/generation-progress";
 
 const fieldClass = "rounded-md border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none";
 const textareaClass = `${fieldClass} min-h-24`;
@@ -287,6 +288,7 @@ export function CreatorForm() {
             Back
           </Button>
         </div>
+        {submitting && <GenerationProgress />}
       </form>
     );
   }
