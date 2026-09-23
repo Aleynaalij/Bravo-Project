@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { SERVICE_TYPES } from "@/lib/domain/enums";
 import { SERVICE_LABELS } from "@/lib/domain/labels";
-import { VAULT_ENTRY_TYPES, VAULT_SEVERITIES } from "@/lib/validation/vault";
+import { CUSTOMER_SIZE_LABELS, CUSTOMER_SIZES, VAULT_ENTRY_TYPES, VAULT_SEVERITIES } from "@/lib/validation/vault";
 import { createVaultEntryAction, updateVaultEntryAction, type EntryFormState } from "./actions";
 import type { VaultEntryRow } from "@/lib/vault/entries-service";
 import type { ProjectRow } from "@/lib/projects/service";
@@ -108,6 +108,22 @@ export function EntryForm({ entry, projects }: { entry?: VaultEntryRow; projects
 
         <Field id="industry" label="Industry (optional)">
           <input id="industry" name="industry" defaultValue={entry?.industry ?? ""} className={fieldClass} />
+        </Field>
+
+        <Field id="customerSize" label="Customer size (optional)">
+          <select
+            id="customerSize"
+            name="customerSize"
+            defaultValue={entry?.customer_size ?? ""}
+            className={fieldClass}
+          >
+            <option value="">Not set</option>
+            {CUSTOMER_SIZES.map((s) => (
+              <option key={s} value={s}>
+                {CUSTOMER_SIZE_LABELS[s]}
+              </option>
+            ))}
+          </select>
         </Field>
 
         <Field id="projectId" label="Source project (optional)" hint="Which engagement this came from">

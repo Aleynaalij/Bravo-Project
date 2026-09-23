@@ -7,6 +7,21 @@ export type VaultEntryType = (typeof VAULT_ENTRY_TYPES)[number];
 export const VAULT_SEVERITIES = ["low", "medium", "high", "critical"] as const;
 export type VaultSeverity = (typeof VAULT_SEVERITIES)[number];
 
+// Module 1 gap-closure (migration 0037) — a fixed bracket rather than
+// free text, same "closed categorical column" shape as severity/risk
+// level above, so filtering/grouping by this later doesn't have to
+// contend with inconsistent free-text values. Exported (not local to
+// entry-form.tsx) since both the client form and server-rendered list/
+// detail pages need the label lookup.
+export const CUSTOMER_SIZES = ["small", "mid_market", "enterprise"] as const;
+export type CustomerSize = (typeof CUSTOMER_SIZES)[number];
+
+export const CUSTOMER_SIZE_LABELS: Record<CustomerSize, string> = {
+  small: "Small (under 500 users)",
+  mid_market: "Mid-market (500-5,000 users)",
+  enterprise: "Enterprise (5,000+ users)",
+};
+
 export const SCRIPT_TYPES = [
   "powershell",
   "python",
@@ -78,6 +93,7 @@ export const vaultEntrySchema = z.object({
   confidenceScore: z.coerce.number().int().min(1).max(5).nullable(),
   sourceUrl: z.string().url().nullable().or(z.literal("")).transform((v) => (v ? v : null)),
   tags: z.array(z.string().max(50)).max(20),
+  customerSize: z.enum(CUSTOMER_SIZES).nullable(),
 });
 
 export type VaultEntryInput = z.infer<typeof vaultEntrySchema>;
