@@ -12,6 +12,7 @@ erDiagram
     ACCOUNTS ||--o| BRANDING : has
     ACCOUNTS ||--o| SUBSCRIPTIONS : has
     ACCOUNTS ||--o{ KNOWLEDGE_VAULT_ENTRIES : "captures (private)"
+    KNOWLEDGE_VAULT_ENTRIES ||--o{ VAULT_ENTRY_ATTACHMENTS : "has files"
     ACCOUNTS ||--o{ KNOWLEDGE_SCRIPTS : "captures (private)"
     ACCOUNTS ||--o{ CODING_STANDARDS : "defines (private)"
     ACCOUNTS ||--o{ AUTOMATION_REQUESTS : logs
@@ -152,6 +153,18 @@ erDiagram
         vector embedding
         int version
         timestamptz updated_at
+        timestamptz created_at
+    }
+
+    VAULT_ENTRY_ATTACHMENTS {
+        uuid id PK
+        uuid knowledge_vault_entry_id FK
+        text storage_path
+        text file_name
+        text content_type
+        bigint size_bytes
+        uuid uploaded_by_user_id FK
+        text uploaded_by_email
         timestamptz created_at
     }
 
@@ -330,6 +343,9 @@ Shared append-only request log (Expert Knowledge System Phase 2, migration 0034)
 ### eks_request_vault_entries
 Join table recording exactly which `knowledge_vault_entries` rows `searchVault` surfaced as "similar historical issues" for a given `eks_requests` row — mirrors `deliverable_version_kb_entries` exactly, including its RLS shape (ownership checked via the parent `eks_requests` row, since this table has no `account_id` of its own). This is what a later "most cross-referenced content" dashboard metric reads from.
 
+### vault_entry_attachments (+ `vault-attachments` storage bucket)
+Small-file attachments on a Lessons Learned Vault entry (migration 0039, Module 1 gap-closure 3/3) — screenshots, logs, or small documents that support an entry, not a second copy of generated deliverables (that's FileVault's job, and it deliberately doesn't add its own Storage either). This is the first real Supabase Storage usage anywhere in the app; no such infrastructure existed before this migration. `vault-attachments` is a **private** bucket — every read goes through a freshly-minted `createSignedUrl` (1 hour expiry) at render time, never a stored public URL. Objects are written at `{account_id}/{knowledge_vault_entry_id}/{uuid}-{filename}`, with `account_id` set server-side from the authenticated session (never taken from user input) so the path itself carries the RLS boundary. `storage.objects` gets 3 policies (select/insert/delete, `to authenticated`) checking `bucket_id = 'vault-attachments' and (storage.foldername(name))[1] = auth_account_id()::text`. The `vault_entry_attachments` table holds the metadata Storage itself doesn't (`file_name`, `content_type`, `size_bytes`, uploader) with its own 3-verb (no update — an attachment is replaced by delete+reupload, not edited) RLS via an `exists` subquery against `knowledge_vault_entries.account_id = auth_account_id()`, the same ownership-via-parent-row pattern as the `*_vault_entry_links` tables below. Capped in the application layer, not the schema: 5 attachments per entry, 10MB each, content-type whitelisted to images/text/CSV/PDF/zip/Office docs — deliberately excludes executables/scripts, since that's Script Vault's job, not this feature's.
+
 ### sop_vault_entry_links / playbook_vault_entry_links / script_vault_entry_links
 Join tables (migration 0036, EKS V2 step 12; `script_vault_entry_links` added in migration 0038, Module 1 gap-closure) recording the "related vault entries" an author explicitly picks on the SOP/Playbook/Script form — curated, unlike `eks_request_vault_entries`' automatically-surfaced rows. Same no-`account_id`, ownership-via-parent-row RLS shape, but select/insert/**delete** (not append-only): `setSopVaultEntryLinks`/`setPlaybookVaultEntryLinks`/`setScriptVaultEntryLinks` replace the full link set on every save (delete-all-then-insert), the same full-replace shape `updateServicesAction` already uses for a project's `project_services`. Feeds the Knowledge dashboard tab's cross-reference count (step 14) and a vault entry's own "Referenced by" section (`getVaultEntryReferences`, the reverse-direction read across all three tables).
 
@@ -347,6 +363,8 @@ Every account-scoped table (`projects`, `deliverables`, `deliverable_versions`, 
 
 `sop_vault_entry_links`/`playbook_vault_entry_links` (migration 0036) and `script_vault_entry_links` (migration 0038) use the identical ownership-via-parent-row pattern (checked against `sops`/`playbooks`/`knowledge_scripts` respectively), but add a **delete** policy alongside select/insert since these links are user-curated and get replaced wholesale on every form save, unlike the append-only join tables above.
 
+`vault_entry_attachments` (migration 0039) uses the same ownership-via-parent-row pattern (checked against `knowledge_vault_entries.account_id`), with select/insert/delete but no update. `storage.objects` on the `vault-attachments` bucket is scoped the same way, but via a path-prefix check (`(storage.foldername(name))[1] = auth_account_id()::text`) rather than a subquery, since Storage RLS has no join back to an application table — the account id has to live in the object path itself.
+
 ## Indexes (MVP-critical)
 
 - `projects(account_id)`
@@ -362,3 +380,4 @@ Every account-scoped table (`projects`, `deliverables`, `deliverable_versions`, 
 - `playbooks(account_id)`, `playbooks(account_id, playbook_type)`, `playbooks(author_user_id)`, `playbooks(source_project_id)`
 - `eks_requests(account_id, created_at desc)`, `eks_requests(user_id)`, `eks_requests(project_id)`, `eks_request_vault_entries(knowledge_vault_entry_id)`
 - `sop_vault_entry_links(knowledge_vault_entry_id)`, `playbook_vault_entry_links(knowledge_vault_entry_id)`, `script_vault_entry_links(knowledge_vault_entry_id)`
+- `vault_entry_attachments(knowledge_vault_entry_id)`, `vault_entry_attachments(uploaded_by_user_id)`
