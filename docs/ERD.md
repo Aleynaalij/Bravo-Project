@@ -23,6 +23,8 @@ erDiagram
     PROJECTS ||--o{ DELIVERABLES : generates
     PROJECTS |o--o{ KNOWLEDGE_VAULT_ENTRIES : "sourced from (optional)"
     EKS_REQUESTS }o--o{ KNOWLEDGE_VAULT_ENTRIES : "surfaced (optional)"
+    SOPS }o--o{ KNOWLEDGE_VAULT_ENTRIES : "related (optional)"
+    PLAYBOOKS }o--o{ KNOWLEDGE_VAULT_ENTRIES : "related (optional)"
 
     DELIVERABLES ||--o{ DELIVERABLE_VERSIONS : "has versions"
     DELIVERABLE_VERSIONS }o--o{ KNOWLEDGE_BASE_ENTRIES : references
@@ -147,6 +149,7 @@ erDiagram
         text[] tags
         vector embedding
         int version
+        timestamptz updated_at
         timestamptz created_at
     }
 
@@ -162,6 +165,7 @@ erDiagram
         int version
         boolean is_approved_pattern
         text source
+        timestamptz updated_at
         timestamptz created_at
     }
 
@@ -243,6 +247,16 @@ erDiagram
         uuid eks_request_id PK_FK
         uuid knowledge_vault_entry_id PK_FK
     }
+
+    SOP_VAULT_ENTRY_LINKS {
+        uuid sop_id PK_FK
+        uuid knowledge_vault_entry_id PK_FK
+    }
+
+    PLAYBOOK_VAULT_ENTRY_LINKS {
+        uuid playbook_id PK_FK
+        uuid knowledge_vault_entry_id PK_FK
+    }
 ```
 
 *(`DELIVERABLE_VERSIONS }o--o{ KNOWLEDGE_BASE_ENTRIES` is realized via the join table `DELIVERABLE_VERSION_KB_ENTRIES`.)*
@@ -286,10 +300,10 @@ Versioned prompt templates per deliverable type. Only one version `is_active` pe
 Tracks async generation requests (OpenAPI `GenerationJob`). On success, `result_deliverable_id` points at the `deliverables` row that was created/updated; on failure, `error_message` is surfaced to the client.
 
 ### knowledge_vault_entries
-Account-private institutional memory (TDD §2.10, Expert Knowledge System MVP) — one consulting team's own lessons learned and incidents, unified into one table via the `entry_type` discriminator (`'lesson_learned' | 'incident'`) rather than two near-duplicate tables, the same convention `generation_jobs` uses for its `deliverable_type` column. `project_id` optionally links back to the source engagement (`on delete set null` — the entry outlives the project). `author_user_id` is nullable (`on delete set null`) with `author_email` denormalized alongside it, same rationale as `audit_log.actor_email`: the entry stays attributable even after the author's `users` row is gone. `embedding`/`version` follow the same shape as `knowledge_base_entries`. **Not** platform-admin readable — see Row-Level Security below.
+Account-private institutional memory (TDD §2.10, Expert Knowledge System MVP) — one consulting team's own lessons learned and incidents, unified into one table via the `entry_type` discriminator (`'lesson_learned' | 'incident'`) rather than two near-duplicate tables, the same convention `generation_jobs` uses for its `deliverable_type` column. `project_id` optionally links back to the source engagement (`on delete set null` — the entry outlives the project). `author_user_id` is nullable (`on delete set null`) with `author_email` denormalized alongside it, same rationale as `audit_log.actor_email`: the entry stays attributable even after the author's `users` row is gone. `embedding`/`version` follow the same shape as `knowledge_base_entries`. `updated_at` (migration 0036, EKS V2 step 12 — retrofitted here since `sops`/`playbooks` had it from day one) is bumped on every `updateVaultEntry` call so "aging content" means the same last-edited timestamp across every content type. **Not** platform-admin readable — see Row-Level Security below.
 
 ### knowledge_scripts
-Account-private reusable script library (TDD §2.10) — PowerShell, Graph API, KQL, JSON, Terraform, Bicep, or ARM template snippets a team has actually used and wants to reuse, with a `risk_level` self-rating. Same account-ownership, authorship, and embedding/versioning shape as `knowledge_vault_entries`; a separate table rather than another `entry_type` value because a script's fields (`content`, `risk_level`, `dependencies`, `rollback_steps`) don't meaningfully overlap with a narrative entry's. `is_approved_pattern`/`source` (migration 0029, additive) support the Automation Center (TDD §2.11): `is_approved_pattern` is the "Approved Patterns" vetted-template flag; `source` (`'manual' | 'ai_generated' | 'promoted'`, default `'manual'`) distinguishes a hand-entered script from one Code Creator generated and the author promoted into the vault.
+Account-private reusable script library (TDD §2.10) — PowerShell, Graph API, KQL, JSON, Terraform, Bicep, or ARM template snippets a team has actually used and wants to reuse, with a `risk_level` self-rating. Same account-ownership, authorship, and embedding/versioning shape as `knowledge_vault_entries`; a separate table rather than another `entry_type` value because a script's fields (`content`, `risk_level`, `dependencies`, `rollback_steps`) don't meaningfully overlap with a narrative entry's. `is_approved_pattern`/`source` (migration 0029, additive) support the Automation Center (TDD §2.11): `is_approved_pattern` is the "Approved Patterns" vetted-template flag; `source` (`'manual' | 'ai_generated' | 'promoted'`, default `'manual'`) distinguishes a hand-entered script from one Code Creator generated and the author promoted into the vault. `updated_at` (migration 0036) mirrors `knowledge_vault_entries`', bumped by `updateVaultScript`.
 
 ### coding_standards
 Account-private "how WE write PowerShell" templates (TDD §2.11) — one row per `(account_id, script_type)`, `required_elements text[]` as the checklist Code Auditor grades against and Code Creator generates to satisfy, plus freeform `notes`. Same account-ownership/RLS shape as `knowledge_vault_entries`, no embedding (these aren't semantically searched, only looked up by exact script type via `getCodingStandardByScriptType`). `version` bumps on every edit, same convention as `knowledge_scripts`.
@@ -309,6 +323,9 @@ Shared append-only request log (Expert Knowledge System Phase 2, migration 0034)
 ### eks_request_vault_entries
 Join table recording exactly which `knowledge_vault_entries` rows `searchVault` surfaced as "similar historical issues" for a given `eks_requests` row — mirrors `deliverable_version_kb_entries` exactly, including its RLS shape (ownership checked via the parent `eks_requests` row, since this table has no `account_id` of its own). This is what a later "most cross-referenced content" dashboard metric reads from.
 
+### sop_vault_entry_links / playbook_vault_entry_links
+Join tables (migration 0036, EKS V2 step 12) recording the "related vault entries" an author explicitly picks on the SOP/Playbook form — curated, unlike `eks_request_vault_entries`' automatically-surfaced rows. Same no-`account_id`, ownership-via-parent-row RLS shape, but select/insert/**delete** (not append-only): `setSopVaultEntryLinks`/`setPlaybookVaultEntryLinks` replace the full link set on every save (delete-all-then-insert), the same full-replace shape `updateServicesAction` already uses for a project's `project_services`. Feeds the Knowledge dashboard tab's cross-reference count (step 14).
+
 ## Row-Level Security (Supabase)
 
 Every account-scoped table (`projects`, `deliverables`, `deliverable_versions`, `generation_jobs`, `branding`, `subscriptions`) has an RLS policy restricting rows to `account_id = auth.uid()`'s owning account (via `users.account_id`). `knowledge_base_entries` and `prompt_templates` are platform-managed (admin-write, authenticated-read) rather than account-scoped.
@@ -320,6 +337,8 @@ Every account-scoped table (`projects`, `deliverables`, `deliverable_versions`, 
 `sops` and `playbooks` both follow the identical private, no-admin-override, all-four-verbs pattern (`sops_select/insert/update/delete`, `playbooks_select/insert/update/delete`).
 
 `eks_requests` is account-scoped, **select + insert only**, same append-only convention as `automation_requests`/`audit_log`. `eks_request_vault_entries` has no `account_id` column of its own — its select/insert policies check ownership via an `exists` subquery against the parent `eks_requests` row, the same pattern `deliverable_version_kb_entries_all_via_version` (migration 0002) uses to check ownership through `deliverable_versions` → `deliverables` → `projects`.
+
+`sop_vault_entry_links`/`playbook_vault_entry_links` (migration 0036) use the identical ownership-via-parent-row pattern (checked against `sops`/`playbooks` respectively), but add a **delete** policy alongside select/insert since these links are user-curated and get replaced wholesale on every form save, unlike the append-only join tables above.
 
 ## Indexes (MVP-critical)
 
@@ -335,3 +354,4 @@ Every account-scoped table (`projects`, `deliverables`, `deliverable_versions`, 
 - `sops(account_id)`, `sops(account_id, sop_type)`, `sops(author_user_id)`, `sops(source_project_id)`, HNSW on `sops(embedding)`
 - `playbooks(account_id)`, `playbooks(account_id, playbook_type)`, `playbooks(author_user_id)`, `playbooks(source_project_id)`
 - `eks_requests(account_id, created_at desc)`, `eks_requests(user_id)`, `eks_requests(project_id)`, `eks_request_vault_entries(knowledge_vault_entry_id)`
+- `sop_vault_entry_links(knowledge_vault_entry_id)`, `playbook_vault_entry_links(knowledge_vault_entry_id)`

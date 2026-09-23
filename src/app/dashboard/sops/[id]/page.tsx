@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getSop } from "@/lib/sop/service";
+import { getSop, getSopVaultEntryLinks } from "@/lib/sop/service";
+import { listVaultEntries } from "@/lib/vault/entries-service";
 import { SopForm } from "../sop-form";
 import { deleteSopAction, publishSopAction } from "../actions";
 import { Card } from "@/components/ui/card";
@@ -18,6 +19,11 @@ export default async function EditSopPage({ params }: { params: Promise<{ id: st
 
   const sop = await getSop(supabase, id);
   if (!sop) notFound();
+
+  const [vaultEntries, selectedVaultEntryIds] = await Promise.all([
+    listVaultEntries(supabase),
+    getSopVaultEntryLinks(supabase, id),
+  ]);
 
   return (
     <main className="mx-auto max-w-xl px-4 py-10">
@@ -52,7 +58,7 @@ export default async function EditSopPage({ params }: { params: Promise<{ id: st
       />
 
       <Card>
-        <SopForm sop={sop} />
+        <SopForm sop={sop} vaultEntries={vaultEntries} selectedVaultEntryIds={selectedVaultEntryIds} />
       </Card>
     </main>
   );

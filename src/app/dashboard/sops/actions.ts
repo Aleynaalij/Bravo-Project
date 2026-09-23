@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAccountId, UnauthorizedError } from "@/lib/auth/session";
 import { sopInputSchema, buildSopContent, SOP_REQUIRED_HEADINGS } from "@/lib/validation/sop";
-import { createSop, deleteSop, publishSop, updateSop } from "@/lib/sop/service";
+import { createSop, deleteSop, publishSop, setSopVaultEntryLinks, updateSop } from "@/lib/sop/service";
 import { writeAuditLog } from "@/lib/audit/service";
 
 export interface SopFormState {
@@ -33,7 +33,8 @@ function parseFormData(formData: FormData) {
   if (!parsed.success) {
     return { success: false as const, error: parsed.error.issues[0]?.message ?? "Check the form for errors" };
   }
-  return { success: true as const, data: parsed.data };
+  const relatedVaultEntryIds = formData.getAll("relatedVaultEntryIds").map(String);
+  return { success: true as const, data: parsed.data, relatedVaultEntryIds };
 }
 
 export async function createSopAction(_prevState: SopFormState, formData: FormData): Promise<SopFormState> {
@@ -56,6 +57,7 @@ export async function createSopAction(_prevState: SopFormState, formData: FormDa
   }
 
   const sop = await createSop(supabase, accountId, user.id, user.email, parsed.data);
+  await setSopVaultEntryLinks(supabase, sop.id, parsed.relatedVaultEntryIds);
   await writeAuditLog(supabase, {
     accountId,
     actorUserId: user.id,
@@ -89,6 +91,7 @@ export async function updateSopAction(_prevState: SopFormState, formData: FormDa
   }
 
   const sop = await updateSop(supabase, id, parsed.data);
+  await setSopVaultEntryLinks(supabase, sop.id, parsed.relatedVaultEntryIds);
   await writeAuditLog(supabase, {
     accountId,
     actorUserId: user.id,
