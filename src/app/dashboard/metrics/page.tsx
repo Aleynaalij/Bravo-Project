@@ -1,13 +1,15 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { requireAccountId } from "@/lib/auth/session";
 import { getUsageMetrics, groupServicesByPracticeArea } from "@/lib/metrics/usage";
-import { getEngagementHealthSummary } from "@/lib/metrics/engagement";
+import { getEngagementHealthSummary, ENGAGEMENT_HEALTH_LABELS, type EngagementHealth } from "@/lib/metrics/engagement";
 import { getEditSeverityBreakdown } from "@/lib/metrics/quality";
-import { summarizeDeliveryRisk } from "@/lib/metrics/delivery-risk";
+import { summarizeDeliveryRisk, DELIVERY_RISK_LABELS, type DeliveryRisk } from "@/lib/metrics/delivery-risk";
 import { getVaultMetrics } from "@/lib/metrics/vault";
 import { getKnowledgeMetrics, KNOWLEDGE_PERIOD_DAYS } from "@/lib/metrics/knowledge";
 import { getAllConsultantContributionCounts } from "@/lib/team/contributions";
+import { getSecurityScore } from "@/lib/security/score";
 import {
   AGING_CONTENT_MONTHS,
   AGING_CONTENT_TYPE_LABELS,
@@ -22,15 +24,36 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BarChart } from "@/components/charts/bar-chart";
 import { StatusBar } from "@/components/charts/status-bar";
+import { ScoreBar } from "@/components/charts/score-bar";
 import { PageHeader } from "@/components/page-header";
 import { Tabs } from "@/components/ui/tabs";
 
 const TABS = [
   { key: "overview", label: "Overview" },
+  { key: "executive", label: "Executive" },
   { key: "knowledge", label: "Knowledge" },
   { key: "consultants", label: "Consultants" },
   { key: "risk", label: "Risk" },
 ];
+
+const ENGAGEMENT_HEALTH_TONE: Record<EngagementHealth, "success" | "warning" | "error"> = {
+  healthy: "success",
+  review_needed: "warning",
+  stalled: "error",
+};
+
+const DELIVERY_RISK_TONE: Record<DeliveryRisk, "success" | "warning" | "error"> = {
+  low: "success",
+  elevated: "warning",
+  high: "error",
+};
+
+// Severity ranking for the Executive tab's "needs attention" list — worse
+// engagement health or delivery risk sorts first, so the most urgent
+// engagements are the first thing a leader sees rather than an arbitrary
+// (e.g. creation-date) order.
+const ENGAGEMENT_HEALTH_SEVERITY: Record<EngagementHealth, number> = { stalled: 2, review_needed: 1, healthy: 0 };
+const DELIVERY_RISK_SEVERITY: Record<DeliveryRisk, number> = { high: 2, elevated: 1, low: 0 };
 
 // Where each aging-content item's own detail page lives — one route per
 // content type, same as the list pages that already link to these.
@@ -64,6 +87,113 @@ export default async function AccountMetricsPage({
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  if (tab === "executive") {
+    const accountId = await requireAccountId(supabase);
+    const [engagementHealth, projects, securityScore] = await Promise.all([
+      getEngagementHealthSummary(supabase),
+      listProjectsWithServices(supabase),
+      getSecurityScore(supabase, accountId),
+    ]);
+    const deliveryRisk = summarizeDeliveryRisk(
+      projects.map((project) => ({
+        id: project.id,
+        userCount: project.user_count,
+        geographicLocations: project.geographic_locations,
+        services: project.services,
+      })),
+    );
+    const scoreTone = securityScore.score >= 80 ? "success" : securityScore.score >= 50 ? "warning" : "error";
+
+    // Combines two already-computed, per-project signals (engagement
+    // health, delivery risk) into one prioritized worklist — every
+    // active project that isn't fully healthy-and-low-risk, worst first.
+    // Closed projects are left out; a closed engagement doesn't need
+    // executive attention.
+    const attentionList = projects
+      .filter((project) => project.status !== "closed")
+      .map((project) => ({
+        project,
+        health: engagementHealth.byProject[project.id] ?? "healthy",
+        risk: deliveryRisk.byProject[project.id] ?? "low",
+      }))
+      .filter(({ health, risk }) => health !== "healthy" || risk !== "low")
+      .sort(
+        (a, b) =>
+          ENGAGEMENT_HEALTH_SEVERITY[b.health] - ENGAGEMENT_HEALTH_SEVERITY[a.health] ||
+          DELIVERY_RISK_SEVERITY[b.risk] - DELIVERY_RISK_SEVERITY[a.risk],
+      );
+
+    return (
+      <main className="mx-auto max-w-3xl px-4 py-10">
+        <PageHeader title={PAGE_TITLE} description={PAGE_DESCRIPTION} />
+        <Tabs items={TABS} active={tab} basePath="/dashboard/metrics" />
+
+        <Card className="mb-8 flex flex-col gap-3">
+          <h2 className="font-medium">Portfolio health</h2>
+          <StatusBar
+            segments={[
+              { label: "Healthy", count: engagementHealth.counts.healthy, tone: "success" },
+              { label: "Needs review", count: engagementHealth.counts.review_needed, tone: "warning" },
+              { label: "Stalled", count: engagementHealth.counts.stalled, tone: "error" },
+            ]}
+          />
+        </Card>
+
+        <Card className="mb-8 flex flex-col gap-3">
+          <h2 className="font-medium">Delivery risk across the book of business</h2>
+          <StatusBar
+            segments={[
+              { label: "Low", count: deliveryRisk.counts.low, tone: "success" },
+              { label: "Elevated", count: deliveryRisk.counts.elevated, tone: "warning" },
+              { label: "High", count: deliveryRisk.counts.high, tone: "error" },
+            ]}
+          />
+        </Card>
+
+        <Card className="mb-8 flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="font-medium">Security posture</h2>
+            <Link href="/dashboard/settings" className="text-sm text-brand hover:underline">
+              Full detail &rarr;
+            </Link>
+          </div>
+          <div className="flex items-center gap-3">
+            <Badge tone={scoreTone}>{securityScore.score}/100</Badge>
+          </div>
+          <ScoreBar value={securityScore.score} tone={scoreTone} />
+        </Card>
+
+        <Card className="flex flex-col gap-3">
+          <h2 className="font-medium">Needs attention</h2>
+          <p className="text-sm text-muted">
+            Every active project that isn&apos;t both healthy and low-risk, worst first —
+            engagement health and delivery risk combined into one worklist.
+          </p>
+          {attentionList.length === 0 ? (
+            <p className="text-sm text-muted">Nothing needs executive attention right now.</p>
+          ) : (
+            <ul className="flex flex-col gap-2 text-sm">
+              {attentionList.map(({ project, health, risk }) => (
+                <li
+                  key={project.id}
+                  className="flex items-center justify-between gap-3 border-b border-border pb-2 last:border-0 last:pb-0"
+                >
+                  <Link href={`/dashboard/${project.id}`} className="truncate text-brand hover:underline">
+                    {project.customer_name}
+                  </Link>
+                  <span className="flex shrink-0 gap-2">
+                    <Badge tone={ENGAGEMENT_HEALTH_TONE[health]}>{ENGAGEMENT_HEALTH_LABELS[health]}</Badge>
+                    <Badge tone={DELIVERY_RISK_TONE[risk]}>{DELIVERY_RISK_LABELS[risk]}</Badge>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      </main>
+    );
+  }
 
   if (tab === "knowledge") {
     const knowledgeMetrics = await getKnowledgeMetrics(supabase);
