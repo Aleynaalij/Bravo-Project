@@ -91,6 +91,11 @@ export default async function KnowledgeVaultPage({
         >
           Search
         </button>
+        {authorFilter && (
+          <LinkButton href={`/dashboard/consultants/${authorFilter}`} variant="secondary" size="sm">
+            View profile
+          </LinkButton>
+        )}
       </form>
 
       {entries.length === 0 ? (

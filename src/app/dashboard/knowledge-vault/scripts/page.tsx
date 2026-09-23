@@ -82,6 +82,11 @@ export default async function VaultScriptsPage({
         >
           Search
         </button>
+        {authorFilter && (
+          <LinkButton href={`/dashboard/consultants/${authorFilter}`} variant="secondary" size="sm">
+            View profile
+          </LinkButton>
+        )}
       </form>
 
       {scripts.length === 0 ? (
