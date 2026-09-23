@@ -50,10 +50,9 @@ export type VaultScriptSource = (typeof VAULT_SCRIPT_SOURCES)[number];
 // Shared by every optional narrative field below — empty-string form input
 // becomes null rather than an empty row in the database, same transform
 // convention src/lib/validation/knowledge-base.ts already uses for sourceUrl.
-function nullableText(max: number) {
-  return z
-    .string()
-    .max(max)
+function nullableText(max?: number) {
+  const base = typeof max === "number" ? z.string().max(max) : z.string();
+  return base
     .nullable()
     .or(z.literal(""))
     .transform((v) => (v ? v : null));
@@ -100,14 +99,19 @@ export type VaultEntryInput = z.infer<typeof vaultEntrySchema>;
 
 export const vaultScriptSchema = z.object({
   name: z.string().min(1).max(200),
-  description: z.string().min(1).max(2000),
+  // No cap on description/content/dependencies/rollbackSteps — Code
+  // Creator's "Promote to Script Vault" action feeds this schema
+  // directly from generated output that itself has no length cap
+  // (src/lib/validation/automation.ts), so a numeric max here just
+  // reintroduces the same save failure one hop downstream.
+  description: z.string().min(1),
   scriptType: z.enum(SCRIPT_TYPES),
   serviceType: z.enum(SERVICE_TYPES).nullable(),
-  content: z.string().min(1).max(20000),
+  content: z.string().min(1),
   riskLevel: z.enum(SCRIPT_RISK_LEVELS),
-  dependencies: nullableText(2000),
-  validationSteps: nullableText(4000),
-  rollbackSteps: nullableText(4000),
+  dependencies: nullableText(),
+  validationSteps: nullableText(),
+  rollbackSteps: nullableText(),
   tags: z.array(z.string().max(50)).max(20),
   // A vetted, reusable template — the brief's "Approved Patterns" concept.
   // A plain boolean, not coerced here: every caller computes it from its
