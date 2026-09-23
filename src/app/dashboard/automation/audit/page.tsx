@@ -4,6 +4,12 @@ import { AuditForm } from "./audit-form";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
 
+// Same reasoning as Code Creator's page.tsx: runCodeAudit calls
+// generateCompletion synchronously, no maxDuration was set anywhere in
+// the app, and a longer review response can exceed Vercel's 10s default
+// and get killed before the request can even record an error.
+export const maxDuration = 60;
+
 export default async function CodeAuditorPage() {
   const supabase = await createClient();
   const {

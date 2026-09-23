@@ -5,6 +5,12 @@ import { TroubleshootForm } from "./troubleshoot-form";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
 
+// Same reasoning as Code Creator's page.tsx: runTroubleshoot calls
+// generateCompletion synchronously, no maxDuration was set anywhere in
+// the app, and a longer diagnosis response can exceed Vercel's 10s
+// default and get killed before the request can even record an error.
+export const maxDuration = 60;
+
 export default async function TroubleshootPage() {
   const supabase = await createClient();
   const {
