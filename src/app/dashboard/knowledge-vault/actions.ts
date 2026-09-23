@@ -39,6 +39,7 @@ function parseFormData(formData: FormData) {
     confidenceScore: num("confidenceScore"),
     sourceUrl: String(formData.get("sourceUrl") ?? ""),
     tags: normalizeTags(String(formData.get("tags") ?? "")),
+    customerSize: String(formData.get("customerSize") ?? "") || null,
   });
 }
 

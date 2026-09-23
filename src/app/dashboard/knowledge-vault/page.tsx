@@ -5,6 +5,7 @@ import { requireAccountId } from "@/lib/auth/session";
 import { listVaultEntries } from "@/lib/vault/entries-service";
 import { searchVault, filterByAuthorId } from "@/lib/vault/search";
 import { listTeamMembers } from "@/lib/team/service";
+import { CUSTOMER_SIZE_LABELS } from "@/lib/validation/vault";
 import { SERVICE_LABELS } from "@/lib/domain/labels";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -120,6 +121,7 @@ export default async function KnowledgeVaultPage({
                   </div>
                   <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted">
                     {entry.service_type && <Badge tone="brand">{SERVICE_LABELS[entry.service_type]}</Badge>}
+                    {entry.customer_size && <Badge tone="neutral">{CUSTOMER_SIZE_LABELS[entry.customer_size]}</Badge>}
                     {entry.tags.map((tag) => (
                       <span key={tag} className="text-xs">
                         #{tag}

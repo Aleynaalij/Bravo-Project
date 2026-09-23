@@ -28,6 +28,7 @@ export interface VaultEntryRow {
   confidence_score: number | null;
   source_url: string | null;
   tags: string[];
+  customer_size: VaultEntryInput["customerSize"];
   version: number;
   updated_at: string;
   created_at: string;
@@ -41,7 +42,7 @@ const ENTRY_COLUMNS =
   "author_user_id, author_email, environment, symptoms, root_cause, " +
   "troubleshooting_steps, resolution, validation_steps, preventative_controls, " +
   "lessons_learned, impact, severity, escalation_path, time_to_resolution_minutes, " +
-  "confidence_score, source_url, tags, version, updated_at, created_at";
+  "confidence_score, source_url, tags, customer_size, version, updated_at, created_at";
 
 // RLS (knowledge_vault_entries_select) already scopes this to the caller's
 // own account — same "the client passed in decides the scope" convention
@@ -141,6 +142,7 @@ export async function createVaultEntry(
       confidence_score: input.confidenceScore,
       source_url: input.sourceUrl,
       tags: input.tags,
+      customer_size: input.customerSize,
       embedding,
     })
     .select<string, VaultEntryRow>(ENTRY_COLUMNS)
@@ -185,6 +187,7 @@ export async function updateVaultEntry(
       confidence_score: input.confidenceScore,
       source_url: input.sourceUrl,
       tags: input.tags,
+      customer_size: input.customerSize,
       version: (existing?.version ?? 1) + 1,
       updated_at: new Date().toISOString(),
       // Only overwrite with a new embedding if generation actually
