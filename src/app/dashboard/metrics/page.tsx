@@ -7,6 +7,7 @@ import { getEditSeverityBreakdown } from "@/lib/metrics/quality";
 import { summarizeDeliveryRisk } from "@/lib/metrics/delivery-risk";
 import { getVaultMetrics } from "@/lib/metrics/vault";
 import { getKnowledgeMetrics, KNOWLEDGE_PERIOD_DAYS } from "@/lib/metrics/knowledge";
+import { getAllConsultantContributionCounts } from "@/lib/team/contributions";
 import { listProjectsWithServices } from "@/lib/projects/service";
 import { DELIVERABLE_LABELS, SERVICE_LABELS } from "@/lib/domain/labels";
 import { Card } from "@/components/ui/card";
@@ -19,6 +20,7 @@ import { Tabs } from "@/components/ui/tabs";
 const TABS = [
   { key: "overview", label: "Overview" },
   { key: "knowledge", label: "Knowledge" },
+  { key: "consultants", label: "Consultants" },
 ];
 
 const PAGE_TITLE = "Dashboards";
@@ -78,6 +80,31 @@ export default async function AccountMetricsPage({
                 label: entry.title,
                 value: entry.referenceCount,
               }))}
+            />
+          )}
+        </Card>
+      </main>
+    );
+  }
+
+  if (tab === "consultants") {
+    const contributionCounts = await getAllConsultantContributionCounts(supabase);
+    return (
+      <main className="mx-auto max-w-3xl px-4 py-10">
+        <PageHeader title={PAGE_TITLE} description={PAGE_DESCRIPTION} />
+        <Tabs items={TABS} active={tab} basePath="/dashboard/metrics" />
+
+        <Card className="flex flex-col gap-3">
+          <h2 className="font-medium">Contributions by teammate</h2>
+          <p className="text-sm text-muted">
+            Lessons learned, incidents, scripts, SOPs, and playbooks authored, all four content
+            types combined into one total per person.
+          </p>
+          {contributionCounts.length === 0 ? (
+            <p className="text-sm text-muted">Nobody has authored any content yet.</p>
+          ) : (
+            <BarChart
+              rows={contributionCounts.map((row) => ({ label: row.authorEmail, value: row.count }))}
             />
           )}
         </Card>

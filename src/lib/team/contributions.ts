@@ -44,3 +44,46 @@ export async function getConsultantContributions(
     eksRequestCount: eksCountResult.count ?? 0,
   };
 }
+
+export interface ConsultantContributionCount {
+  authorEmail: string;
+  count: number;
+}
+
+interface AuthorEmailRow {
+  author_email: string;
+}
+
+// Pure aggregation — same real-counts, no-scoring shape as
+// vault.ts's summarizeVaultMetrics. Groups by author_email (denormalized
+// onto every one of these four tables specifically so an entry stays
+// attributable after the author's own users row is gone, same rationale
+// entries-service.ts documents) rather than author_user_id, so a departed
+// teammate's past contributions still show up under their own name
+// instead of disappearing into a "null" bucket.
+export function summarizeContributionCounts(rows: AuthorEmailRow[]): ConsultantContributionCount[] {
+  const counts = new Map<string, number>();
+  for (const row of rows) {
+    counts.set(row.author_email, (counts.get(row.author_email) ?? 0) + 1);
+  }
+  return Array.from(counts.entries())
+    .map(([authorEmail, count]) => ({ authorEmail, count }))
+    .sort((a, b) => b.count - a.count);
+}
+
+// Platform-metrics counterpart to getConsultantContributions above — that
+// one answers "what has this one teammate done," this answers "who's
+// contributing the most" for the Consultant dashboard tab's BarChart, by
+// summing the same four content tables across every author at once
+// instead of filtering to one.
+export async function getAllConsultantContributionCounts(
+  supabase: SupabaseClient,
+): Promise<ConsultantContributionCount[]> {
+  const [entries, scripts, sops, playbooks] = await Promise.all([
+    listVaultEntries(supabase),
+    listVaultScripts(supabase),
+    listSops(supabase),
+    listPlaybooks(supabase),
+  ]);
+  return summarizeContributionCounts([...entries, ...scripts, ...sops, ...playbooks]);
+}
