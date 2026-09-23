@@ -5,7 +5,12 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAccountId, UnauthorizedError } from "@/lib/auth/session";
 import { vaultScriptSchema, normalizeTags } from "@/lib/validation/vault";
-import { createVaultScript, deleteVaultScript, updateVaultScript } from "@/lib/vault/scripts-service";
+import {
+  createVaultScript,
+  deleteVaultScript,
+  setScriptVaultEntryLinks,
+  updateVaultScript,
+} from "@/lib/vault/scripts-service";
 import { writeAuditLog } from "@/lib/audit/service";
 
 export interface ScriptFormState {
@@ -13,7 +18,7 @@ export interface ScriptFormState {
 }
 
 function parseFormData(formData: FormData) {
-  return vaultScriptSchema.safeParse({
+  const parsed = vaultScriptSchema.safeParse({
     name: String(formData.get("name") ?? ""),
     description: String(formData.get("description") ?? ""),
     scriptType: String(formData.get("scriptType") ?? ""),
@@ -26,6 +31,9 @@ function parseFormData(formData: FormData) {
     tags: normalizeTags(String(formData.get("tags") ?? "")),
     isApprovedPattern: formData.get("isApprovedPattern") === "on",
   });
+  if (!parsed.success) return { success: false as const, error: parsed.error };
+  const relatedVaultEntryIds = formData.getAll("relatedVaultEntryIds").map(String);
+  return { success: true as const, data: parsed.data, relatedVaultEntryIds };
 }
 
 export async function createVaultScriptAction(
@@ -53,6 +61,7 @@ export async function createVaultScriptAction(
   }
 
   const script = await createVaultScript(supabase, accountId, user.id, user.email, parsed.data);
+  await setScriptVaultEntryLinks(supabase, script.id, parsed.relatedVaultEntryIds);
   await writeAuditLog(supabase, {
     accountId,
     actorUserId: user.id,
@@ -91,6 +100,7 @@ export async function updateVaultScriptAction(
   }
 
   const script = await updateVaultScript(supabase, id, parsed.data);
+  await setScriptVaultEntryLinks(supabase, script.id, parsed.relatedVaultEntryIds);
   await writeAuditLog(supabase, {
     accountId,
     actorUserId: user.id,

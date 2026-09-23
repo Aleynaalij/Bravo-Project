@@ -25,6 +25,7 @@ erDiagram
     EKS_REQUESTS }o--o{ KNOWLEDGE_VAULT_ENTRIES : "surfaced (optional)"
     SOPS }o--o{ KNOWLEDGE_VAULT_ENTRIES : "related (optional)"
     PLAYBOOKS }o--o{ KNOWLEDGE_VAULT_ENTRIES : "related (optional)"
+    KNOWLEDGE_SCRIPTS }o--o{ KNOWLEDGE_VAULT_ENTRIES : "related (optional)"
 
     DELIVERABLES ||--o{ DELIVERABLE_VERSIONS : "has versions"
     DELIVERABLE_VERSIONS }o--o{ KNOWLEDGE_BASE_ENTRIES : references
@@ -258,6 +259,11 @@ erDiagram
         uuid playbook_id PK_FK
         uuid knowledge_vault_entry_id PK_FK
     }
+
+    SCRIPT_VAULT_ENTRY_LINKS {
+        uuid script_id PK_FK
+        uuid knowledge_vault_entry_id PK_FK
+    }
 ```
 
 *(`DELIVERABLE_VERSIONS }o--o{ KNOWLEDGE_BASE_ENTRIES` is realized via the join table `DELIVERABLE_VERSION_KB_ENTRIES`.)*
@@ -324,8 +330,8 @@ Shared append-only request log (Expert Knowledge System Phase 2, migration 0034)
 ### eks_request_vault_entries
 Join table recording exactly which `knowledge_vault_entries` rows `searchVault` surfaced as "similar historical issues" for a given `eks_requests` row — mirrors `deliverable_version_kb_entries` exactly, including its RLS shape (ownership checked via the parent `eks_requests` row, since this table has no `account_id` of its own). This is what a later "most cross-referenced content" dashboard metric reads from.
 
-### sop_vault_entry_links / playbook_vault_entry_links
-Join tables (migration 0036, EKS V2 step 12) recording the "related vault entries" an author explicitly picks on the SOP/Playbook form — curated, unlike `eks_request_vault_entries`' automatically-surfaced rows. Same no-`account_id`, ownership-via-parent-row RLS shape, but select/insert/**delete** (not append-only): `setSopVaultEntryLinks`/`setPlaybookVaultEntryLinks` replace the full link set on every save (delete-all-then-insert), the same full-replace shape `updateServicesAction` already uses for a project's `project_services`. Feeds the Knowledge dashboard tab's cross-reference count (step 14).
+### sop_vault_entry_links / playbook_vault_entry_links / script_vault_entry_links
+Join tables (migration 0036, EKS V2 step 12; `script_vault_entry_links` added in migration 0038, Module 1 gap-closure) recording the "related vault entries" an author explicitly picks on the SOP/Playbook/Script form — curated, unlike `eks_request_vault_entries`' automatically-surfaced rows. Same no-`account_id`, ownership-via-parent-row RLS shape, but select/insert/**delete** (not append-only): `setSopVaultEntryLinks`/`setPlaybookVaultEntryLinks`/`setScriptVaultEntryLinks` replace the full link set on every save (delete-all-then-insert), the same full-replace shape `updateServicesAction` already uses for a project's `project_services`. Feeds the Knowledge dashboard tab's cross-reference count (step 14) and a vault entry's own "Referenced by" section (`getVaultEntryReferences`, the reverse-direction read across all three tables).
 
 ## Row-Level Security (Supabase)
 
@@ -339,7 +345,7 @@ Every account-scoped table (`projects`, `deliverables`, `deliverable_versions`, 
 
 `eks_requests` is account-scoped, **select + insert only**, same append-only convention as `automation_requests`/`audit_log`. `eks_request_vault_entries` has no `account_id` column of its own — its select/insert policies check ownership via an `exists` subquery against the parent `eks_requests` row, the same pattern `deliverable_version_kb_entries_all_via_version` (migration 0002) uses to check ownership through `deliverable_versions` → `deliverables` → `projects`.
 
-`sop_vault_entry_links`/`playbook_vault_entry_links` (migration 0036) use the identical ownership-via-parent-row pattern (checked against `sops`/`playbooks` respectively), but add a **delete** policy alongside select/insert since these links are user-curated and get replaced wholesale on every form save, unlike the append-only join tables above.
+`sop_vault_entry_links`/`playbook_vault_entry_links` (migration 0036) and `script_vault_entry_links` (migration 0038) use the identical ownership-via-parent-row pattern (checked against `sops`/`playbooks`/`knowledge_scripts` respectively), but add a **delete** policy alongside select/insert since these links are user-curated and get replaced wholesale on every form save, unlike the append-only join tables above.
 
 ## Indexes (MVP-critical)
 
@@ -355,4 +361,4 @@ Every account-scoped table (`projects`, `deliverables`, `deliverable_versions`, 
 - `sops(account_id)`, `sops(account_id, sop_type)`, `sops(author_user_id)`, `sops(source_project_id)`, HNSW on `sops(embedding)`
 - `playbooks(account_id)`, `playbooks(account_id, playbook_type)`, `playbooks(author_user_id)`, `playbooks(source_project_id)`
 - `eks_requests(account_id, created_at desc)`, `eks_requests(user_id)`, `eks_requests(project_id)`, `eks_request_vault_entries(knowledge_vault_entry_id)`
-- `sop_vault_entry_links(knowledge_vault_entry_id)`, `playbook_vault_entry_links(knowledge_vault_entry_id)`
+- `sop_vault_entry_links(knowledge_vault_entry_id)`, `playbook_vault_entry_links(knowledge_vault_entry_id)`, `script_vault_entry_links(knowledge_vault_entry_id)`

@@ -206,3 +206,51 @@ export async function deleteVaultEntry(supabase: SupabaseClient, id: string): Pr
   const { error } = await supabase.from("knowledge_vault_entries").delete().eq("id", id);
   if (error) throw error;
 }
+
+export interface VaultEntryReferences {
+  sops: { id: string; title: string }[];
+  playbooks: { id: string; title: string }[];
+  scripts: { id: string; name: string }[];
+}
+
+// The reverse direction of sop_vault_entry_links/playbook_vault_entry_links/
+// script_vault_entry_links — those three tables are all authored from the
+// SOP/Playbook/Script's own form ("related vault entries"), so a vault
+// entry's own page needs its own read to show what actually points back
+// at it (Module 1 gap-closure part 2/3). Same embedded-resource
+// normalization usage.ts's kbCounts and knowledge.ts's
+// summarizeCrossReferences already need for a PostgREST many-to-one embed.
+export async function getVaultEntryReferences(
+  supabase: SupabaseClient,
+  vaultEntryId: string,
+): Promise<VaultEntryReferences> {
+  const [sopsResult, playbooksResult, scriptsResult] = await Promise.all([
+    supabase.from("sop_vault_entry_links").select("sops(id, title)").eq("knowledge_vault_entry_id", vaultEntryId),
+    supabase
+      .from("playbook_vault_entry_links")
+      .select("playbooks(id, title)")
+      .eq("knowledge_vault_entry_id", vaultEntryId),
+    supabase
+      .from("script_vault_entry_links")
+      .select("knowledge_scripts(id, name)")
+      .eq("knowledge_vault_entry_id", vaultEntryId),
+  ]);
+  if (sopsResult.error) throw sopsResult.error;
+  if (playbooksResult.error) throw playbooksResult.error;
+  if (scriptsResult.error) throw scriptsResult.error;
+
+  function normalize<T>(rows: { [key: string]: T | T[] | null }[], key: string): T[] {
+    return rows
+      .map((row) => {
+        const related = row[key] as T | T[] | null;
+        return Array.isArray(related) ? related[0] : related;
+      })
+      .filter((v): v is T => v != null);
+  }
+
+  return {
+    sops: normalize<{ id: string; title: string }>(sopsResult.data ?? [], "sops"),
+    playbooks: normalize<{ id: string; title: string }>(playbooksResult.data ?? [], "playbooks"),
+    scripts: normalize<{ id: string; name: string }>(scriptsResult.data ?? [], "knowledge_scripts"),
+  };
+}
