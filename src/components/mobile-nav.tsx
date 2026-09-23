@@ -107,7 +107,7 @@ export function MobileNav({
               {entries.map((entry) =>
                 isNavGroup(entry) ? (
                   <div key={entry.label}>
-                    <div className="px-4 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-muted">
+                    <div className="px-4 pb-1 pt-3 text-xs font-bold uppercase tracking-wide text-muted">
                       {entry.label}
                     </div>
                     {entry.items.map((item) => (
