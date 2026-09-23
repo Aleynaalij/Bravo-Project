@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState, type FormEvent } from "react";
+import { useActionState, useState, type FormEvent, type ReactNode } from "react";
 import { SCRIPT_TYPES, type ScriptType } from "@/lib/validation/vault";
 import {
   OPERATING_SYSTEMS,
@@ -23,7 +23,21 @@ import { extractStreamingScriptPreview, parseStreamedScript } from "@/lib/automa
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Chalkboard } from "@/components/ui/chalkboard";
+import { Chalkboard, ChalkboardOverlay } from "@/components/ui/chalkboard";
+
+// How long the overlay's own enter/exit keyframes run (must match the
+// durations passed to animate-[...] in chalkboard.tsx) — the "closing"
+// phase is kept mounted for exactly this long so the exit animation can
+// finish before the caller unmounts it. COMPLETE_HOLD_MS is the extra
+// pause on a successful generation so "Complete" is actually readable
+// before the board fades and the result screen takes over, instead of
+// the two happening in the same instant.
+const OVERLAY_FADE_MS = 300;
+const COMPLETE_HOLD_MS = 550;
+
+function wait(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms));
+}
 
 const fieldClass = "rounded-md border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none";
 const textareaClass = `${fieldClass} min-h-24`;
@@ -218,6 +232,20 @@ export function CreatorForm({ history }: { history: AutomationRequestRow[] }) {
   const [state, setState] = useState<CreatorState>({ step: "describe" });
   const [streaming, setStreaming] = useState(false);
   const [streamedText, setStreamedText] = useState("");
+  const [complete, setComplete] = useState(false);
+  // "hidden" | "visible" | "closing" — the overlay stays mounted through
+  // "closing" so its exit keyframe (chalkboard.tsx) can finish playing
+  // before it's removed, instead of just vanishing.
+  const [overlayPhase, setOverlayPhase] = useState<"hidden" | "visible" | "closing">("hidden");
+
+  function closeOverlayThen(after: () => void) {
+    setOverlayPhase("closing");
+    setTimeout(() => {
+      setOverlayPhase("hidden");
+      setComplete(false);
+      after();
+    }, OVERLAY_FADE_MS);
+  }
 
   // Shared by the normal requirements-step submit and a history item's
   // "Rerun" — a rerun is just this same call against a stored input,
@@ -227,8 +255,13 @@ export function CreatorForm({ history }: { history: AutomationRequestRow[] }) {
   // is what turns the raw streamed text into content/notes/rollback,
   // both incrementally (extractStreamingScriptPreview, for what's shown
   // while it's still arriving) and once the stream ends
-  // (parseStreamedScript, for the final result).
+  // (parseStreamedScript, for the final result). The overlay pops in as
+  // soon as generation starts and holds on a "Complete" state for a beat
+  // once it's done, so finishing reads as a transition rather than the
+  // board just disappearing.
   async function submitRequest(input: CodeCreatorRequestInput) {
+    setOverlayPhase("visible");
+    setComplete(false);
     setStreaming(true);
     setStreamedText("");
     let raw = "";
@@ -243,7 +276,7 @@ export function CreatorForm({ history }: { history: AutomationRequestRow[] }) {
       if (!response.ok || !response.body) {
         const message = await response.text();
         setStreaming(false);
-        setState({ step: "error", request: input, message: message || "Something went wrong." });
+        closeOverlayThen(() => setState({ step: "error", request: input, message: message || "Something went wrong." }));
         return;
       }
 
@@ -257,21 +290,28 @@ export function CreatorForm({ history }: { history: AutomationRequestRow[] }) {
       }
     } catch {
       setStreaming(false);
-      setState({ step: "error", request: input, message: "Lost connection while generating — try again." });
+      closeOverlayThen(() =>
+        setState({ step: "error", request: input, message: "Lost connection while generating — try again." }),
+      );
       return;
     }
 
     setStreaming(false);
     const parsed = parseStreamedScript(raw);
     if (!parsed) {
-      setState({
-        step: "error",
-        request: input,
-        message: "The generated response wasn't in the expected format — try again.",
-      });
+      closeOverlayThen(() =>
+        setState({
+          step: "error",
+          request: input,
+          message: "The generated response wasn't in the expected format — try again.",
+        }),
+      );
       return;
     }
-    setState({ step: "result", request: input, result: parsed });
+
+    setComplete(true);
+    await wait(COMPLETE_HOLD_MS);
+    closeOverlayThen(() => setState({ step: "result", request: input, result: parsed }));
   }
 
   function handleDescribeSubmit(e: FormEvent<HTMLFormElement>) {
@@ -300,8 +340,10 @@ export function CreatorForm({ history }: { history: AutomationRequestRow[] }) {
     });
   }
 
+  let content: ReactNode;
+
   if (state.step === "describe") {
-    return (
+    content = (
       <div className="flex flex-col gap-6">
         <form onSubmit={handleDescribeSubmit} className="flex flex-col gap-6">
           <div className="flex flex-col gap-1">
@@ -352,14 +394,11 @@ export function CreatorForm({ history }: { history: AutomationRequestRow[] }) {
             setState({ step: "requirements", description: input.description, scriptType: input.scriptType, prefill: input })
           }
         />
-        {streaming && <Chalkboard text={extractStreamingScriptPreview(streamedText)} streaming={streaming} />}
       </div>
     );
-  }
-
-  if (state.step === "requirements") {
+  } else if (state.step === "requirements") {
     const prefill = state.prefill;
-    return (
+    content = (
       // Keyed by description so editing a different history item (a
       // different description) remounts the form with fresh
       // defaultValues — React won't otherwise re-apply defaultValue on
@@ -463,13 +502,10 @@ export function CreatorForm({ history }: { history: AutomationRequestRow[] }) {
             Back
           </Button>
         </div>
-        {streaming && <Chalkboard text={extractStreamingScriptPreview(streamedText)} streaming={streaming} />}
       </form>
     );
-  }
-
-  if (state.step === "error") {
-    return (
+  } else if (state.step === "error") {
+    content = (
       <div className="flex flex-col gap-4">
         <Alert variant="error">{state.message}</Alert>
         <Button
@@ -483,30 +519,41 @@ export function CreatorForm({ history }: { history: AutomationRequestRow[] }) {
         </Button>
       </div>
     );
+  } else {
+    content = (
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-1">
+          <h3 className="font-medium">Generated script</h3>
+          <textarea readOnly value={state.result.content} className={codeClass} />
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <h3 className="font-medium">Implementation notes</h3>
+          <p className="text-sm text-muted">{state.result.notes}</p>
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <h3 className="font-medium">Rollback guidance</h3>
+          <p className="text-sm text-muted">{state.result.rollback}</p>
+        </div>
+
+        <PromoteForm request={state.request} result={state.result} />
+
+        <Button variant="ghost" className="w-fit" onClick={() => setState({ step: "describe" })}>
+          Start over
+        </Button>
+      </div>
+    );
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <h3 className="font-medium">Generated script</h3>
-        <textarea readOnly value={state.result.content} className={codeClass} />
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <h3 className="font-medium">Implementation notes</h3>
-        <p className="text-sm text-muted">{state.result.notes}</p>
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <h3 className="font-medium">Rollback guidance</h3>
-        <p className="text-sm text-muted">{state.result.rollback}</p>
-      </div>
-
-      <PromoteForm request={state.request} result={state.result} />
-
-      <Button variant="ghost" className="w-fit" onClick={() => setState({ step: "describe" })}>
-        Start over
-      </Button>
-    </div>
+    <>
+      {content}
+      {overlayPhase !== "hidden" && (
+        <ChalkboardOverlay show={overlayPhase === "visible"}>
+          <Chalkboard text={extractStreamingScriptPreview(streamedText)} streaming={streaming} complete={complete} />
+        </ChalkboardOverlay>
+      )}
+    </>
   );
 }

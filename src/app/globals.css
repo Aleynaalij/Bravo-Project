@@ -172,3 +172,25 @@ body {
   0%, 100% { opacity: 1; }
   50% { opacity: 0; }
 }
+/* The chalkboard's own modal pop-in/out — a keyframe rather than a
+   transition since the card needs to animate on its very first paint
+   (mount), which a CSS transition can't do; closing swaps to the -out
+   keyframe (a new animation-name, so it replays) before the card
+   unmounts. Backdrop gets its own opacity-only pair since scaling a
+   full-bleed overlay would visibly gap at the viewport edges. */
+@keyframes chalkbot-overlay-in {
+  from { opacity: 0; transform: scale(0.95) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes chalkbot-overlay-out {
+  from { opacity: 1; transform: scale(1) translateY(0); }
+  to { opacity: 0; transform: scale(0.97) translateY(6px); }
+}
+@keyframes chalkbot-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes chalkbot-backdrop-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
