@@ -3,6 +3,7 @@ import { searchVault } from "@/lib/vault/search";
 import { searchSops } from "@/lib/sop/search";
 import { searchPlaybooks } from "@/lib/playbook/search";
 import { searchProjects } from "@/lib/projects/search";
+import { searchMicrosoftDocs, type MicrosoftDocResult } from "@/lib/search/microsoft-docs";
 import type { VaultEntryRow } from "@/lib/vault/entries-service";
 import type { VaultScriptRow } from "@/lib/vault/scripts-service";
 import type { SopRow } from "@/lib/sop/service";
@@ -15,25 +16,33 @@ export interface KnowledgeSearchResult {
   lessonsAndIncidents: VaultEntryRow[];
   scripts: VaultScriptRow[];
   sops: SopRow[];
+  // null means the live Microsoft Docs call itself failed/timed out (the
+  // section should say "unavailable"), distinct from [] meaning the call
+  // succeeded but found nothing (the section should say "no matches") —
+  // same null-vs-empty-array distinction trySemanticSearchEntries/Scripts
+  // already use in src/lib/vault/search.ts.
+  microsoftDocs: MicrosoftDocResult[] | null;
 }
 
-// Unified ranked search across every account-authored content type —
+// Unified ranked search across every content type this app can search —
 // Historical Projects -> Playbooks -> Lessons Learned/Incidents -> Scripts
-// -> SOPs (the original Module 10 brief's own ranking; Confirmed Decision 8
-// of the EKS V2 plan deferred Historical Projects, since it hadn't been
-// built yet — now that it has, it resumes its original first slot ahead of
-// Playbooks). Five separate ranked lists, never blended into one
-// relevance-sorted feed — same "real knowledge outranks..." rationale
-// searchVault's own doc comment already documents. Microsoft Docs remains
-// out of this list: it would need a real live-fetch integration this app
-// doesn't have, and fabricating one with nothing behind it is exactly what
-// this app's docs (TDD.md) already warn against for every other feature.
+// -> SOPs -> Microsoft Docs (the original Module 10 brief's own ranking).
+// The first five are this account's own real, internally-authored
+// content and rank ahead of the sixth on purpose — the same "real
+// knowledge outranks..." rationale searchVault's own doc comment
+// documents, extended here to "this firm's own knowledge outranks a
+// public external reference." Microsoft Docs is real and live (Microsoft's
+// own MCP server, see microsoft-docs.ts), not fabricated, but it is the
+// one section this session could never actually round-trip against the
+// live endpoint (learn.microsoft.com is blocked from this sandbox) — see
+// docs/validation-checklist.md for the verification gap this leaves.
 export async function searchKnowledge(supabase: SupabaseClient, query: string): Promise<KnowledgeSearchResult> {
-  const [historicalProjects, vaultResult, sops, playbooks] = await Promise.all([
+  const [historicalProjects, vaultResult, sops, playbooks, microsoftDocs] = await Promise.all([
     searchProjects(supabase, query),
     searchVault(supabase, query),
     searchSops(supabase, query),
     searchPlaybooks(supabase, query),
+    searchMicrosoftDocs(query),
   ]);
 
   return {
@@ -42,5 +51,6 @@ export async function searchKnowledge(supabase: SupabaseClient, query: string): 
     lessonsAndIncidents: vaultResult.entries,
     scripts: vaultResult.scripts,
     sops,
+    microsoftDocs,
   };
 }
