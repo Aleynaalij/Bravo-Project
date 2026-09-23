@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CreatorForm } from "./creator-form";
+import { listCodeCreatorHistory } from "@/lib/automation/history";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
 
@@ -10,7 +11,7 @@ import { PageHeader } from "@/components/page-header";
 // the function mid-await before runCodeCreator's own catch block can even
 // write error_message. maxDuration raises the ceiling so a slow (not
 // hung) completion has room to finish instead of dying silently.
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 export default async function CodeCreatorPage() {
   const supabase = await createClient();
@@ -19,6 +20,8 @@ export default async function CodeCreatorPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  const history = await listCodeCreatorHistory(supabase);
+
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
       <PageHeader
@@ -26,7 +29,7 @@ export default async function CodeCreatorPage() {
         description="Describe what you need, answer a few environment-aware requirements, and get a generated script — grounded in your own coding standards and the lessons your team has already captured."
       />
       <Card>
-        <CreatorForm />
+        <CreatorForm history={history} />
       </Card>
     </main>
   );
