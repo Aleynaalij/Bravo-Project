@@ -550,6 +550,9 @@ components:
           app_modernization_plan,
           sharepoint_governance_plan,
           data_analytics_strategy,
+          discovery_questionnaire,
+          risk_register,
+          client_presentation,
         ]
       description: >
         MVP shipped the first three; Sprint 2 (Phase 2, docs/PRD.md §9)
