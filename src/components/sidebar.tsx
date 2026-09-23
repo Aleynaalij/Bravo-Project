@@ -47,7 +47,7 @@ export function Sidebar({
         {entries.map((entry) =>
           isNavGroup(entry) ? (
             <div key={entry.label} className="flex flex-col gap-0.5">
-              <div className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-muted">{entry.label}</div>
+              <div className="px-3 pb-1 text-xs font-bold uppercase tracking-wide text-muted">{entry.label}</div>
               {entry.items.map((item) => (
                 <NavRow key={item.href} item={item} isActive={item.href === activeHref} />
               ))}
