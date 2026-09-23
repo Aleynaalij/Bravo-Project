@@ -50,6 +50,9 @@ export const DELIVERABLE_TYPES = [
   "sharepoint_governance_plan",
   "data_analytics_strategy",
   "implementation_script",
+  "discovery_questionnaire",
+  "risk_register",
+  "client_presentation",
 ] as const;
 
 export type DeliverableType = (typeof DELIVERABLE_TYPES)[number];

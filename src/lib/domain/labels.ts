@@ -20,6 +20,9 @@ export const DELIVERABLE_LABELS: Record<DeliverableType, string> = {
   sharepoint_governance_plan: "SharePoint Governance Plan",
   data_analytics_strategy: "Data & Analytics Strategy",
   implementation_script: "Implementation Script",
+  discovery_questionnaire: "Discovery Questionnaire",
+  risk_register: "Risk Register",
+  client_presentation: "Client Presentation",
 };
 
 // Deliverable types that only make sense when a specific service is in
@@ -81,6 +84,9 @@ export const DELIVERABLE_CATEGORY: Record<DeliverableType, DeliverableCategory> 
   sharepoint_governance_plan: "design",
   data_analytics_strategy: "design",
   implementation_script: "automation",
+  discovery_questionnaire: "core",
+  risk_register: "process",
+  client_presentation: "core",
 };
 
 // Deliverable types whose paragraphs are actual runnable script content
