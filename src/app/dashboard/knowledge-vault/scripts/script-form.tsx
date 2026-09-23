@@ -57,7 +57,15 @@ function Field({
   );
 }
 
-export function ScriptForm({ script }: { script?: VaultScriptRow }) {
+export function ScriptForm({
+  script,
+  vaultEntries,
+  selectedVaultEntryIds = [],
+}: {
+  script?: VaultScriptRow;
+  vaultEntries: { id: string; title: string }[];
+  selectedVaultEntryIds?: string[];
+}) {
   const action = script ? updateVaultScriptAction : createVaultScriptAction;
   const [state, formAction, isPending] = useActionState(action, initialState);
 
@@ -156,6 +164,34 @@ export function ScriptForm({ script }: { script?: VaultScriptRow }) {
           className={textareaClass}
         />
       </Field>
+
+      <div className="flex flex-col gap-2 border-t border-border pt-4">
+        <p className="text-sm font-medium">Related vault entries (optional)</p>
+        <p className="text-xs text-muted">
+          Cross-reference the Lessons Learned/Incidents this script grew out of.
+        </p>
+        {vaultEntries.length === 0 ? (
+          <p className="text-sm text-muted">No vault entries yet.</p>
+        ) : (
+          <div className="grid max-h-64 grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2">
+            {vaultEntries.map((entry) => (
+              <label
+                key={entry.id}
+                className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm transition-colors has-[:checked]:border-brand has-[:checked]:bg-brand-light hover:bg-surface-hover"
+              >
+                <input
+                  type="checkbox"
+                  name="relatedVaultEntryIds"
+                  value={entry.id}
+                  defaultChecked={selectedVaultEntryIds.includes(entry.id)}
+                  className="accent-brand"
+                />
+                {entry.title}
+              </label>
+            ))}
+          </div>
+        )}
+      </div>
 
       {state.error && <Alert variant="error">{state.error}</Alert>}
 

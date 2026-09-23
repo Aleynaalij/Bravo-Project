@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { getVaultEntry } from "@/lib/vault/entries-service";
+import { getVaultEntry, getVaultEntryReferences } from "@/lib/vault/entries-service";
 import { listProjects } from "@/lib/projects/service";
 import { EntryForm } from "../entry-form";
 import { deleteVaultEntryAction } from "../actions";
@@ -16,8 +17,14 @@ export default async function EditVaultEntryPage({ params }: { params: Promise<{
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [entry, projects] = await Promise.all([getVaultEntry(supabase, id), listProjects(supabase)]);
+  const [entry, projects, references] = await Promise.all([
+    getVaultEntry(supabase, id),
+    listProjects(supabase),
+    getVaultEntryReferences(supabase, id),
+  ]);
   if (!entry) notFound();
+
+  const hasReferences = references.sops.length > 0 || references.playbooks.length > 0 || references.scripts.length > 0;
 
   return (
     <main className="mx-auto max-w-xl px-4 py-10">
@@ -32,6 +39,60 @@ export default async function EditVaultEntryPage({ params }: { params: Promise<{
           </form>
         }
       />
+
+      {hasReferences && (
+        <Card className="mb-6 flex flex-col gap-3">
+          <h2 className="font-medium">Referenced by</h2>
+          <p className="text-sm text-muted">
+            SOPs, playbooks, and scripts that explicitly linked this entry as related.
+          </p>
+          {references.sops.length > 0 && (
+            <div>
+              <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">SOPs</h3>
+              <ul className="flex flex-col gap-1 text-sm">
+                {references.sops.map((sop) => (
+                  <li key={sop.id}>
+                    <Link href={`/dashboard/sops/${sop.id}`} className="text-brand hover:underline">
+                      {sop.title}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {references.playbooks.length > 0 && (
+            <div>
+              <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">Playbooks</h3>
+              <ul className="flex flex-col gap-1 text-sm">
+                {references.playbooks.map((playbook) => (
+                  <li key={playbook.id}>
+                    <Link href={`/dashboard/playbooks/${playbook.id}`} className="text-brand hover:underline">
+                      {playbook.title}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {references.scripts.length > 0 && (
+            <div>
+              <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">Scripts</h3>
+              <ul className="flex flex-col gap-1 text-sm">
+                {references.scripts.map((script) => (
+                  <li key={script.id}>
+                    <Link
+                      href={`/dashboard/knowledge-vault/scripts/${script.id}`}
+                      className="text-brand hover:underline"
+                    >
+                      {script.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </Card>
+      )}
 
       <Card>
         <EntryForm entry={entry} projects={projects} />

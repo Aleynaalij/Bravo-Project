@@ -142,3 +142,33 @@ export async function deleteVaultScript(supabase: SupabaseClient, id: string): P
   const { error } = await supabase.from("knowledge_scripts").delete().eq("id", id);
   if (error) throw error;
 }
+
+// The Script form's "related vault entries" multi-select — mirrors
+// sop/service.ts's getSopVaultEntryLinks/setSopVaultEntryLinks exactly
+// (migration 0038's script_vault_entry_links table).
+export async function getScriptVaultEntryLinks(supabase: SupabaseClient, scriptId: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("script_vault_entry_links")
+    .select("knowledge_vault_entry_id")
+    .eq("script_id", scriptId);
+  if (error) throw error;
+  return (data ?? []).map((row) => row.knowledge_vault_entry_id as string);
+}
+
+export async function setScriptVaultEntryLinks(
+  supabase: SupabaseClient,
+  scriptId: string,
+  vaultEntryIds: string[],
+): Promise<void> {
+  const { error: deleteError } = await supabase
+    .from("script_vault_entry_links")
+    .delete()
+    .eq("script_id", scriptId);
+  if (deleteError) throw deleteError;
+  if (vaultEntryIds.length === 0) return;
+
+  const { error: insertError } = await supabase
+    .from("script_vault_entry_links")
+    .insert(vaultEntryIds.map((knowledge_vault_entry_id) => ({ script_id: scriptId, knowledge_vault_entry_id })));
+  if (insertError) throw insertError;
+}

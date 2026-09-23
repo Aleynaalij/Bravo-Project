@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getVaultScript } from "@/lib/vault/scripts-service";
+import { getScriptVaultEntryLinks, getVaultScript } from "@/lib/vault/scripts-service";
+import { listVaultEntries } from "@/lib/vault/entries-service";
 import { ScriptForm } from "../script-form";
 import { deleteVaultScriptAction } from "../actions";
 import { Card } from "@/components/ui/card";
@@ -17,6 +18,11 @@ export default async function EditVaultScriptPage({ params }: { params: Promise<
 
   const script = await getVaultScript(supabase, id);
   if (!script) notFound();
+
+  const [vaultEntries, selectedVaultEntryIds] = await Promise.all([
+    listVaultEntries(supabase),
+    getScriptVaultEntryLinks(supabase, id),
+  ]);
 
   return (
     <main className="mx-auto max-w-xl px-4 py-10">
@@ -35,7 +41,7 @@ export default async function EditVaultScriptPage({ params }: { params: Promise<
       />
 
       <Card>
-        <ScriptForm script={script} />
+        <ScriptForm script={script} vaultEntries={vaultEntries} selectedVaultEntryIds={selectedVaultEntryIds} />
       </Card>
     </main>
   );
