@@ -31,6 +31,7 @@ export function buildNavEntries(isPlatformAdmin: boolean): NavEntry[] {
     { href: "/dashboard", label: "Projects" },
     { href: "/dashboard/metrics", label: "Dashboards" },
     { href: "/dashboard/automation", label: "Automation Center" },
+    { href: "/dashboard/troubleshoot", label: "Troubleshooting Engine" },
     {
       label: "Knowledge",
       items: [
