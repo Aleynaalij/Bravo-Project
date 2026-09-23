@@ -11,7 +11,7 @@ import { PageHeader } from "@/components/page-header";
 // the function mid-await before runCodeCreator's own catch block can even
 // write error_message. maxDuration raises the ceiling so a slow (not
 // hung) completion has room to finish instead of dying silently.
-export const maxDuration = 120;
+export const maxDuration = 180;
 
 export default async function CodeCreatorPage() {
   const supabase = await createClient();

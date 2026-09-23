@@ -5,10 +5,13 @@ import { ENVIRONMENT_PROFILES } from "@/lib/domain/environment-profiles";
 // Duplicated locally rather than importing from validation/vault.ts —
 // matches this codebase's existing convention (knowledge-base.ts already
 // inlines the same pattern by hand rather than sharing vault.ts's copy).
-function nullableText(max: number) {
-  return z
-    .string()
-    .max(max)
+// max is optional — Code Creator's own fields (languageVersion,
+// outputLocation, additionalContext) pass none, since a real request
+// legitimately outgrows an arbitrary character cap and there's no
+// correctness reason to enforce one on free text bound for a prompt.
+function nullableText(max?: number) {
+  const schema = max === undefined ? z.string() : z.string().max(max);
+  return schema
     .nullable()
     .or(z.literal(""))
     .transform((v) => (v ? v : null));
@@ -68,14 +71,14 @@ export const AUTH_METHODS = ["certificate", "client_secret", "interactive", "man
 export type AuthMethod = (typeof AUTH_METHODS)[number];
 
 export const codeCreatorRequestSchema = z.object({
-  description: z.string().min(1).max(2000),
+  description: z.string().min(1),
   scriptType: z.enum(SCRIPT_TYPES),
   environmentProfile: z.enum(ENVIRONMENT_PROFILES),
   operatingSystem: z.enum(OPERATING_SYSTEMS).nullable(),
   authMethod: z.enum(AUTH_METHODS).nullable(),
-  languageVersion: nullableText(50),
-  outputLocation: nullableText(200),
-  additionalContext: nullableText(2000),
+  languageVersion: nullableText(),
+  outputLocation: nullableText(),
+  additionalContext: nullableText(),
 });
 export type CodeCreatorRequestInput = z.infer<typeof codeCreatorRequestSchema>;
 
@@ -129,8 +132,8 @@ export type CodeAuditResult = z.infer<typeof codeAuditResultSchema>;
 // ---- Code Creator AI response ----
 
 export const generatedScriptSchema = z.object({
-  content: z.string().min(1).max(20000),
-  notes: z.string().max(2000),
-  rollback: z.string().max(2000),
+  content: z.string().min(1),
+  notes: z.string(),
+  rollback: z.string(),
 });
 export type GeneratedScript = z.infer<typeof generatedScriptSchema>;
