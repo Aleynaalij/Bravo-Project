@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAccountId, UnauthorizedError } from "@/lib/auth/session";
 import { getProject } from "@/lib/projects/service";
 import { getDeliverableWithContent } from "@/lib/generation/deliverables";
+import { canExportForClient } from "@/lib/generation/review";
 import { getBranding } from "@/lib/branding";
 import { buildDocx } from "@/lib/export/docx";
 import { buildPdf } from "@/lib/export/pdf";
@@ -53,6 +54,22 @@ export async function GET(request: Request, { params }: Params) {
     return NextResponse.json(
       { code: "not_found", message: "Deliverable not found or not yet generated" },
       { status: 404 },
+    );
+  }
+
+  // The approval-workflow gate (migration 0044 / src/lib/generation/review.ts)
+  // — only applies to a genuine client-facing download (the default
+  // "attachment" disposition). "inline" is FileVault's own PDF preview
+  // (vault-entry-card.tsx) and this same UI's pre-approval review view —
+  // a reviewer has to be able to see a draft to approve it, so that path
+  // stays open regardless of review_status.
+  if (disposition === "attachment" && !canExportForClient(deliverable.reviewStatus)) {
+    return NextResponse.json(
+      {
+        code: "not_approved",
+        message: "This deliverable needs to be approved before it can be exported.",
+      },
+      { status: 403 },
     );
   }
 

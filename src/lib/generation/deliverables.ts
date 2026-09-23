@@ -1,6 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DeliverableContent } from "@/lib/validation/deliverable";
 import type { DeliverableType } from "@/lib/domain/enums";
+import type { DeliverableReviewStatus } from "./review";
+
+const REVIEW_COLUMNS =
+  "review_status, submitted_by_email, submitted_at, reviewed_by_email, reviewed_at, review_note";
 
 export interface DeliverableWithContent {
   id: string;
@@ -8,6 +12,12 @@ export interface DeliverableWithContent {
   status: "pending" | "generating" | "ready" | "failed";
   content: DeliverableContent | null;
   versionNumber: number | null;
+  reviewStatus: DeliverableReviewStatus;
+  submittedByEmail: string | null;
+  submittedAt: string | null;
+  reviewedByEmail: string | null;
+  reviewedAt: string | null;
+  reviewNote: string | null;
 }
 
 // Fetches each deliverable for a project along with its current version's
@@ -18,7 +28,7 @@ export async function listDeliverablesWithContent(
 ): Promise<DeliverableWithContent[]> {
   const { data: deliverables, error } = await supabase
     .from("deliverables")
-    .select("id, type, status, current_version_id")
+    .select(`id, type, status, current_version_id, ${REVIEW_COLUMNS}`)
     .eq("project_id", projectId);
   if (error) throw error;
   if (!deliverables || deliverables.length === 0) return [];
@@ -45,6 +55,12 @@ export async function listDeliverablesWithContent(
       status: d.status,
       content: version?.content ?? null,
       versionNumber: version?.version_number ?? null,
+      reviewStatus: d.review_status,
+      submittedByEmail: d.submitted_by_email,
+      submittedAt: d.submitted_at,
+      reviewedByEmail: d.reviewed_by_email,
+      reviewedAt: d.reviewed_at,
+      reviewNote: d.review_note,
     };
   });
 }
@@ -55,14 +71,23 @@ export async function getDeliverableWithContent(
 ): Promise<DeliverableWithContent | null> {
   const { data: deliverable, error } = await supabase
     .from("deliverables")
-    .select("id, type, status, current_version_id")
+    .select(`id, type, status, current_version_id, ${REVIEW_COLUMNS}`)
     .eq("id", deliverableId)
     .maybeSingle();
   if (error) throw error;
   if (!deliverable) return null;
 
+  const review = {
+    reviewStatus: deliverable.review_status as DeliverableReviewStatus,
+    submittedByEmail: deliverable.submitted_by_email as string | null,
+    submittedAt: deliverable.submitted_at as string | null,
+    reviewedByEmail: deliverable.reviewed_by_email as string | null,
+    reviewedAt: deliverable.reviewed_at as string | null,
+    reviewNote: deliverable.review_note as string | null,
+  };
+
   if (!deliverable.current_version_id) {
-    return { id: deliverable.id, type: deliverable.type, status: deliverable.status, content: null, versionNumber: null };
+    return { id: deliverable.id, type: deliverable.type, status: deliverable.status, content: null, versionNumber: null, ...review };
   }
 
   const { data: version, error: versionError } = await supabase
@@ -78,5 +103,6 @@ export async function getDeliverableWithContent(
     status: deliverable.status,
     content: version?.content ?? null,
     versionNumber: version?.version_number ?? null,
+    ...review,
   };
 }
