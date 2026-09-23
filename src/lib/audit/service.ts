@@ -23,6 +23,7 @@ export type AuditAction =
   | "automation.standard.delete"
   | "automation.audit.run"
   | "automation.creator.generate"
+  | "automation.creator.delete_request"
   | "automation.script.promote"
   | "project.close"
   | "sop.create"
@@ -59,6 +60,7 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   "automation.standard.delete": "Deleted coding standard",
   "automation.audit.run": "Ran Code Auditor",
   "automation.creator.generate": "Ran Code Creator",
+  "automation.creator.delete_request": "Deleted a Code Creator request",
   "automation.script.promote": "Promoted a generated script to the Script Vault",
   "project.close": "Closed project",
   "sop.create": "Created SOP",

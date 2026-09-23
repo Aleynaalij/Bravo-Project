@@ -9,7 +9,7 @@ import { PageHeader } from "@/components/page-header";
 // generateCompletion synchronously for a full 12-section playbook, no
 // maxDuration was set anywhere in the app, and this can exceed Vercel's
 // 10s default and get killed before the request can even record an error.
-export const maxDuration = 120;
+export const maxDuration = 180;
 
 export default async function GeneratePlaybookPage() {
   const supabase = await createClient();

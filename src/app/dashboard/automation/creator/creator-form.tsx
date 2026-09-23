@@ -11,7 +11,12 @@ import {
   type AuthMethod,
 } from "@/lib/validation/automation";
 import { ENVIRONMENT_PROFILES, ENVIRONMENT_PROFILE_LABELS, type EnvironmentProfile } from "@/lib/domain/environment-profiles";
-import { runCodeCreatorAction, promoteGeneratedScriptAction, type PromoteFormState } from "./actions";
+import {
+  runCodeCreatorAction,
+  promoteGeneratedScriptAction,
+  deleteCodeCreatorRequestAction,
+  type PromoteFormState,
+} from "./actions";
 import {
   getAutomationRequestStatus,
   historyItemTitle,
@@ -117,16 +122,31 @@ function RequestHistory({
                   <span>{new Date(row.created_at).toLocaleString()}</span>
                 </div>
               </div>
-              {input && (
-                <div className="flex shrink-0 gap-2">
-                  <Button type="button" variant="secondary" size="sm" disabled={disabled} onClick={() => onRerun(input)}>
-                    Rerun
+              <div className="flex shrink-0 gap-2">
+                {input && (
+                  <>
+                    <Button type="button" variant="secondary" size="sm" disabled={disabled} onClick={() => onRerun(input)}>
+                      Rerun
+                    </Button>
+                    <Button type="button" variant="ghost" size="sm" disabled={disabled} onClick={() => onEdit(input)}>
+                      Edit
+                    </Button>
+                  </>
+                )}
+                <form
+                  action={deleteCodeCreatorRequestAction}
+                  onSubmit={(e) => {
+                    if (!confirm("Delete this request? This can't be undone.")) {
+                      e.preventDefault();
+                    }
+                  }}
+                >
+                  <input type="hidden" name="requestId" value={row.id} />
+                  <Button type="submit" variant="danger" size="sm" disabled={disabled}>
+                    Delete
                   </Button>
-                  <Button type="button" variant="ghost" size="sm" disabled={disabled} onClick={() => onEdit(input)}>
-                    Edit
-                  </Button>
-                </div>
-              )}
+                </form>
+              </div>
             </li>
           );
         })}

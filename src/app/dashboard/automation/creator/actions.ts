@@ -72,6 +72,33 @@ export async function runCodeCreatorAction(input: CodeCreatorRequestInput): Prom
   }
 }
 
+// Plain FormData action (DeleteProjectButton's own shape) — deletes one
+// history row. RLS (automation_requests_delete, migration 0043) already
+// scopes this to the caller's own account; the explicit account_id filter
+// here is defense in depth, matching this codebase's convention elsewhere.
+export async function deleteCodeCreatorRequestAction(formData: FormData): Promise<void> {
+  const requestId = String(formData.get("requestId") ?? "");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.email) return;
+
+  const accountId = await requireAccountId(supabase);
+
+  await supabase.from("automation_requests").delete().eq("id", requestId).eq("account_id", accountId);
+  await writeAuditLog(supabase, {
+    accountId,
+    actorUserId: user.id,
+    actorEmail: user.email,
+    action: "automation.creator.delete_request",
+    target: requestId,
+  });
+
+  revalidatePath("/dashboard/automation/creator");
+}
+
 export interface PromoteFormState {
   error?: string;
 }
