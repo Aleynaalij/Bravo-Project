@@ -40,6 +40,7 @@ export function buildNavEntries(isPlatformAdmin: boolean): NavEntry[] {
         { href: "/dashboard/knowledge-vault", label: "Knowledge Vault" },
         { href: "/dashboard/sops", label: "SOPs" },
         { href: "/dashboard/playbooks", label: "Playbooks" },
+        { href: "/dashboard/search", label: "Search" },
       ],
     },
     {

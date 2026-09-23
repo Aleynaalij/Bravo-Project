@@ -19,7 +19,8 @@ export interface PlaybookRow {
   created_at: string;
 }
 
-const PLAYBOOK_COLUMNS =
+// Exported for src/lib/playbook/search.ts's text-filtered search query.
+export const PLAYBOOK_COLUMNS =
   "id, account_id, playbook_type, title, service_type, status, content, prompt_template_version, " +
   "author_user_id, author_email, source_project_id, updated_at, version, created_at";
 

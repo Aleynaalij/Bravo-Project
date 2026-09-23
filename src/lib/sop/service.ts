@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ServiceType } from "@/lib/domain/enums";
 import type { SopContent, SopInput, SopStatus, SopType } from "@/lib/validation/sop";
+import { generateEmbedding } from "@/lib/ai/provider";
 
 export interface SopRow {
   id: string;
@@ -19,9 +20,26 @@ export interface SopRow {
   created_at: string;
 }
 
-const SOP_COLUMNS =
+// Excludes `embedding` explicitly, same rationale as entries-service.ts's
+// ENTRY_COLUMNS — nothing that reads a SopRow needs the raw 1536-float
+// vector. Exported for src/lib/sop/search.ts's own text-filtered fallback
+// query.
+export const SOP_COLUMNS =
   "id, account_id, sop_type, title, service_type, status, content, prompt_template_version, " +
   "author_user_id, author_email, source_project_id, updated_at, version, created_at";
+
+// Best-effort, not blocking — same contract as entries-service.ts's
+// tryGenerateEmbedding: a SOP still saves with no embedding if no AI
+// provider is configured or the call fails, it just isn't semantically
+// searchable yet (search.ts falls back to text search).
+async function tryGenerateEmbedding(input: SopInput): Promise<number[] | null> {
+  const text = [input.title, ...input.content.sections.flatMap((s) => s.paragraphs)].join("\n\n");
+  try {
+    return await generateEmbedding(text);
+  } catch {
+    return null;
+  }
+}
 
 // Explicit <string, SopRow> generic on every .select(SOP_COLUMNS) call below
 // — same reason as entries-service.ts's ENTRY_COLUMNS: past a certain
@@ -54,6 +72,8 @@ export async function createSop(
   input: SopInput,
   sourceProjectId: string | null = null,
 ): Promise<SopRow> {
+  const embedding = await tryGenerateEmbedding(input);
+
   const { data, error } = await supabase
     .from("sops")
     .insert({
@@ -66,6 +86,7 @@ export async function createSop(
       status: input.status,
       content: input.content,
       source_project_id: sourceProjectId,
+      embedding,
     })
     .select<string, SopRow>(SOP_COLUMNS)
     .single();
@@ -75,6 +96,8 @@ export async function createSop(
 
 export async function updateSop(supabase: SupabaseClient, id: string, input: SopInput): Promise<SopRow> {
   const { data: existing } = await supabase.from("sops").select("version").eq("id", id).single();
+
+  const embedding = await tryGenerateEmbedding(input);
 
   const { data, error } = await supabase
     .from("sops")
@@ -86,6 +109,11 @@ export async function updateSop(supabase: SupabaseClient, id: string, input: Sop
       content: input.content,
       version: (existing?.version ?? 1) + 1,
       updated_at: new Date().toISOString(),
+      // Only overwrite with a new embedding if generation actually
+      // succeeded — a failed regeneration leaves whatever embedding
+      // already existed alone, same contract as entries-service.ts's
+      // updateVaultEntry.
+      ...(embedding ? { embedding } : {}),
     })
     .eq("id", id)
     .select<string, SopRow>(SOP_COLUMNS)
