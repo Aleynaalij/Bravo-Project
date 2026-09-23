@@ -6,6 +6,7 @@ import { getEngagementHealthSummary } from "@/lib/metrics/engagement";
 import { getEditSeverityBreakdown } from "@/lib/metrics/quality";
 import { summarizeDeliveryRisk } from "@/lib/metrics/delivery-risk";
 import { getVaultMetrics } from "@/lib/metrics/vault";
+import { getKnowledgeMetrics, KNOWLEDGE_PERIOD_DAYS } from "@/lib/metrics/knowledge";
 import { listProjectsWithServices } from "@/lib/projects/service";
 import { DELIVERABLE_LABELS, SERVICE_LABELS } from "@/lib/domain/labels";
 import { Card } from "@/components/ui/card";
@@ -15,7 +16,14 @@ import { StatusBar } from "@/components/charts/status-bar";
 import { PageHeader } from "@/components/page-header";
 import { Tabs } from "@/components/ui/tabs";
 
-const TABS = [{ key: "overview", label: "Overview" }];
+const TABS = [
+  { key: "overview", label: "Overview" },
+  { key: "knowledge", label: "Knowledge" },
+];
+
+const PAGE_TITLE = "Dashboards";
+const PAGE_DESCRIPTION =
+  "This account's own generation activity — every number below comes straight from your team's projects and deliverables, nothing estimated or industry-averaged.";
 
 // This account's own usage — the same aggregation the admin-only
 // cross-account page at src/app/admin/metrics uses, but handed a regular
@@ -36,6 +44,46 @@ export default async function AccountMetricsPage({
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  if (tab === "knowledge") {
+    const knowledgeMetrics = await getKnowledgeMetrics(supabase);
+    return (
+      <main className="mx-auto max-w-3xl px-4 py-10">
+        <PageHeader title={PAGE_TITLE} description={PAGE_DESCRIPTION} />
+        <Tabs items={TABS} active={tab} basePath="/dashboard/metrics" />
+
+        <div className="mb-8 grid grid-cols-2 gap-3">
+          <StatTile
+            label={`New SOPs (last ${KNOWLEDGE_PERIOD_DAYS} days)`}
+            value={knowledgeMetrics.newSopsThisPeriod}
+          />
+          <StatTile
+            label={`New playbooks (last ${KNOWLEDGE_PERIOD_DAYS} days)`}
+            value={knowledgeMetrics.newPlaybooksThisPeriod}
+          />
+        </div>
+
+        <Card className="flex flex-col gap-3">
+          <h2 className="font-medium">Most cross-referenced vault entries</h2>
+          <p className="text-sm text-muted">
+            Lessons learned and incidents that Troubleshooting Engine surfaced as similar history, or
+            that a SOP or playbook author explicitly linked as related — the entries your team keeps
+            pointing back to.
+          </p>
+          {knowledgeMetrics.mostCrossReferencedEntries.length === 0 ? (
+            <p className="text-sm text-muted">No cross-references yet.</p>
+          ) : (
+            <BarChart
+              rows={knowledgeMetrics.mostCrossReferencedEntries.map((entry) => ({
+                label: entry.title,
+                value: entry.referenceCount,
+              }))}
+            />
+          )}
+        </Card>
+      </main>
+    );
+  }
 
   const [metrics, engagementHealth, editSeverity, projects, vaultMetrics] = await Promise.all([
     getUsageMetrics(supabase),
@@ -67,10 +115,7 @@ export default async function AccountMetricsPage({
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
-      <PageHeader
-        title="Dashboards"
-        description="This account's own generation activity — every number below comes straight from your team's projects and deliverables, nothing estimated or industry-averaged."
-      />
+      <PageHeader title={PAGE_TITLE} description={PAGE_DESCRIPTION} />
 
       <Tabs items={TABS} active={tab} basePath="/dashboard/metrics" />
 
