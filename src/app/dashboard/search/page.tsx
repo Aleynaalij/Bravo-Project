@@ -13,9 +13,12 @@ const ENTRY_TYPE_TONE = { lesson_learned: "success", incident: "warning" } as co
 const ENTRY_TYPE_LABEL = { lesson_learned: "Lesson learned", incident: "Incident" } as const;
 
 // Historical Projects -> Playbooks -> Lessons Learned/Incidents -> Scripts
-// -> SOPs (the original Module 10 brief's ranking) — five separate ranked
-// sections, never blended into one feed, each using the same per-type
-// list-item markup already established on its own list page.
+// -> SOPs -> Microsoft Docs (the original Module 10 brief's ranking) — six
+// separate ranked sections, never blended into one feed. The first five
+// share the same per-type list-item markup already established on their
+// own list pages; Microsoft Docs is the one external, non-account-owned
+// source, so it ranks last and gets its own card shape (external link,
+// snippet, no internal route).
 export default async function SearchPage({
   searchParams,
 }: {
@@ -31,13 +34,13 @@ export default async function SearchPage({
   const query = (q ?? "").trim();
   const results = query
     ? await searchKnowledge(supabase, query)
-    : { historicalProjects: [], playbooks: [], lessonsAndIncidents: [], scripts: [], sops: [] };
+    : { historicalProjects: [], playbooks: [], lessonsAndIncidents: [], scripts: [], sops: [], microsoftDocs: [] };
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
       <PageHeader
         title="Search"
-        description="Search across your team's Historical Projects, Playbooks, Knowledge Vault, Scripts, and SOPs — real institutional knowledge, ranked separately by type."
+        description="Search across your team's Historical Projects, Playbooks, Knowledge Vault, Scripts, SOPs, and Microsoft Docs — real institutional knowledge, ranked separately by type."
       />
 
       <form className="mb-8 flex flex-wrap gap-2" action="/dashboard/search">
@@ -187,6 +190,33 @@ export default async function SearchPage({
                         {sop.service_type && <Badge tone="neutral">{SERVICE_LABELS[sop.service_type]}</Badge>}
                       </Card>
                     </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section>
+            <h2 className="mb-3 text-lg font-semibold">Microsoft Docs</h2>
+            {results.microsoftDocs === null ? (
+              <p className="text-sm text-muted">
+                Microsoft Docs search is unavailable right now — try again in a moment.
+              </p>
+            ) : results.microsoftDocs.length === 0 ? (
+              <p className="text-sm text-muted">No matching Microsoft Docs articles.</p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {results.microsoftDocs.map((doc) => (
+                  <li key={doc.url}>
+                    <a href={doc.url} target="_blank" rel="noopener noreferrer">
+                      <Card className="transition-colors hover:border-brand hover:bg-surface-hover">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="font-medium">{doc.title}</span>
+                          <Badge tone="neutral">learn.microsoft.com</Badge>
+                        </div>
+                        {doc.snippet && <p className="text-sm text-muted">{doc.snippet}</p>}
+                      </Card>
+                    </a>
                   </li>
                 ))}
               </ul>
