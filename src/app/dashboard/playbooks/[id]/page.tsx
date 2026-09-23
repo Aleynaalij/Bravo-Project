@@ -2,6 +2,8 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getPlaybook, getPlaybookVaultEntryLinks } from "@/lib/playbook/service";
 import { listVaultEntries } from "@/lib/vault/entries-service";
+import { requireAccountId } from "@/lib/auth/session";
+import { recordContentView, getContentViewCount } from "@/lib/usage/content-views";
 import { PlaybookForm } from "../playbook-form";
 import { deletePlaybookAction, publishPlaybookAction } from "../actions";
 import { Card } from "@/components/ui/card";
@@ -25,6 +27,16 @@ export default async function EditPlaybookPage({ params }: { params: Promise<{ i
     getPlaybookVaultEntryLinks(supabase, id),
   ]);
 
+  const accountId = await requireAccountId(supabase);
+  await recordContentView(supabase, {
+    accountId,
+    contentType: "playbook",
+    contentId: playbook.id,
+    viewerUserId: user.id,
+    viewerEmail: user.email ?? "",
+  });
+  const viewCount = await getContentViewCount(supabase, "playbook", playbook.id);
+
   return (
     <main className="mx-auto max-w-xl px-4 py-10">
       <PageHeader
@@ -36,7 +48,7 @@ export default async function EditPlaybookPage({ params }: { params: Promise<{ i
             </Badge>
           </span>
         }
-        description={`Written by ${playbook.author_email} · v${playbook.version}`}
+        description={`Written by ${playbook.author_email} · v${playbook.version} · Viewed ${viewCount} ${viewCount === 1 ? "time" : "times"}`}
         actions={
           <>
             {playbook.status === "draft" && (
