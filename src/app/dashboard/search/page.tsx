@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { searchKnowledge } from "@/lib/search/knowledge";
 import { SOP_TYPE_LABELS } from "@/lib/validation/sop";
 import { PLAYBOOK_TYPE_LABELS } from "@/lib/validation/playbook";
-import { SERVICE_LABELS } from "@/lib/domain/labels";
+import { SERVICE_LABELS, PROJECT_STATUS_LABELS } from "@/lib/domain/labels";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
@@ -12,10 +12,10 @@ import { PageHeader } from "@/components/page-header";
 const ENTRY_TYPE_TONE = { lesson_learned: "success", incident: "warning" } as const;
 const ENTRY_TYPE_LABEL = { lesson_learned: "Lesson learned", incident: "Incident" } as const;
 
-// Playbooks -> Lessons Learned/Incidents -> Scripts -> SOPs (Confirmed
-// Decision 8 of the EKS V2 plan) — four separate ranked sections, never
-// blended into one feed, each using the same per-type list-item markup
-// already established on its own list page.
+// Historical Projects -> Playbooks -> Lessons Learned/Incidents -> Scripts
+// -> SOPs (the original Module 10 brief's ranking) — five separate ranked
+// sections, never blended into one feed, each using the same per-type
+// list-item markup already established on its own list page.
 export default async function SearchPage({
   searchParams,
 }: {
@@ -31,13 +31,13 @@ export default async function SearchPage({
   const query = (q ?? "").trim();
   const results = query
     ? await searchKnowledge(supabase, query)
-    : { playbooks: [], lessonsAndIncidents: [], scripts: [], sops: [] };
+    : { historicalProjects: [], playbooks: [], lessonsAndIncidents: [], scripts: [], sops: [] };
 
   return (
     <main className="mx-auto max-w-3xl px-4 py-10">
       <PageHeader
         title="Search"
-        description="Search across your team's Playbooks, Knowledge Vault, Scripts, and SOPs — real institutional knowledge, ranked separately by type."
+        description="Search across your team's Historical Projects, Playbooks, Knowledge Vault, Scripts, and SOPs — real institutional knowledge, ranked separately by type."
       />
 
       <form className="mb-8 flex flex-wrap gap-2" action="/dashboard/search">
@@ -65,6 +65,38 @@ export default async function SearchPage({
 
       {query && (
         <div className="flex flex-col gap-10">
+          <section>
+            <h2 className="mb-3 text-lg font-semibold">Historical Projects</h2>
+            {results.historicalProjects.length === 0 ? (
+              <p className="text-sm text-muted">No matching projects.</p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {results.historicalProjects.map((project) => (
+                  <li key={project.id}>
+                    <Link href={`/dashboard/${project.id}`}>
+                      <Card className="transition-colors hover:border-brand hover:bg-surface-hover">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="font-medium">{project.customer_name}</span>
+                          <Badge tone={project.status === "closed" ? "neutral" : "success"}>
+                            {PROJECT_STATUS_LABELS[project.status]}
+                          </Badge>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          <Badge tone="brand">{project.industry}</Badge>
+                          {project.services.map((service) => (
+                            <Badge key={service} tone="neutral">
+                              {SERVICE_LABELS[service]}
+                            </Badge>
+                          ))}
+                        </div>
+                      </Card>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
           <section>
             <h2 className="mb-3 text-lg font-semibold">Playbooks</h2>
             {results.playbooks.length === 0 ? (
