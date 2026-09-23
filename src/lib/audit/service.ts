@@ -39,7 +39,10 @@ export type AuditAction =
   | "eks.troubleshoot.run"
   | "eks.architecture_advisor.run"
   | "vault.entry.attachment_upload"
-  | "vault.entry.attachment_delete";
+  | "vault.entry.attachment_delete"
+  | "deliverable.review.submit"
+  | "deliverable.review.approve"
+  | "deliverable.review.request_changes";
 
 export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   "team.invite": "Invited teammate",
@@ -77,6 +80,9 @@ export const AUDIT_ACTION_LABELS: Record<AuditAction, string> = {
   "eks.architecture_advisor.run": "Ran Architecture Advisor",
   "vault.entry.attachment_upload": "Uploaded a vault entry attachment",
   "vault.entry.attachment_delete": "Deleted a vault entry attachment",
+  "deliverable.review.submit": "Submitted a deliverable for review",
+  "deliverable.review.approve": "Approved a deliverable",
+  "deliverable.review.request_changes": "Requested changes on a deliverable",
 };
 
 export interface WriteAuditLogInput {

@@ -65,9 +65,23 @@ export async function saveEditedVersionAction(
     .single();
   if (versionError) return { error: versionError.message };
 
+  // An edit invalidates whatever review state the previous content was
+  // in — a stale approval must not carry over onto content nobody's
+  // reviewed yet, so every field of the approval workflow (migration
+  // 0044) resets here, not just review_status.
   const { error: updateError } = await supabase
     .from("deliverables")
-    .update({ current_version_id: version.id })
+    .update({
+      current_version_id: version.id,
+      review_status: "not_submitted",
+      submitted_by: null,
+      submitted_by_email: null,
+      submitted_at: null,
+      reviewed_by: null,
+      reviewed_by_email: null,
+      reviewed_at: null,
+      review_note: null,
+    })
     .eq("id", deliverableId);
   if (updateError) return { error: updateError.message };
 

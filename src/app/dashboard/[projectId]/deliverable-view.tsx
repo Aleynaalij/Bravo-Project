@@ -3,10 +3,23 @@
 import { useActionState, useState } from "react";
 import { DELIVERABLE_LABELS, DELIVERABLE_CATEGORY, isCodeDeliverable } from "@/lib/domain/labels";
 import type { DeliverableWithContent } from "@/lib/generation/deliverables";
+import {
+  DELIVERABLE_REVIEW_STATUS_LABELS,
+  canExportForClient,
+  canSubmitForReview,
+  canDecideReview,
+  type DeliverableReviewStatus,
+} from "@/lib/generation/review";
 import { saveEditedVersionAction, type EditFormState } from "./edit-actions";
+import {
+  submitForReviewAction,
+  approveDeliverableAction,
+  requestChangesAction,
+  type ReviewActionState,
+} from "./review-actions";
 import { ArchitectureDiagramView } from "@/components/architecture-diagram";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Alert } from "@/components/ui/alert";
 import { Button, buttonClasses } from "@/components/ui/button";
 import {
@@ -30,7 +43,125 @@ const CATEGORY_ICONS: Record<DeliverableCategory, ComponentType<SVGProps<SVGSVGE
   automation: AutomationDeliverableIcon,
 };
 
+const REVIEW_STATUS_TONE: Record<DeliverableReviewStatus, BadgeTone> = {
+  not_submitted: "neutral",
+  in_review: "brand",
+  approved: "success",
+  changes_requested: "warning",
+};
+
 const initialState: EditFormState = {};
+const reviewInitialState: ReviewActionState = {};
+
+// The approval workflow's controls — badge + whichever action(s) the
+// current review_status allows. Lives as its own component (rather than
+// inline in DeliverableView) since it needs three independent
+// useActionState hooks of its own; keeping them here instead of the
+// parent avoids DeliverableView re-rendering on every keystroke of the
+// (rarely used) request-changes note.
+function ReviewControls({ projectId, deliverable }: { projectId: string; deliverable: DeliverableWithContent }) {
+  const [isRequestingChanges, setIsRequestingChanges] = useState(false);
+  const [submitState, submitAction, isSubmitting] = useActionState(submitForReviewAction, reviewInitialState);
+  const [approveState, approveAction, isApproving] = useActionState(approveDeliverableAction, reviewInitialState);
+  const [changesState, changesAction, isRequestingChangesPending] = useActionState(
+    requestChangesAction,
+    reviewInitialState,
+  );
+
+  const attribution: string[] = [];
+  if (deliverable.submittedByEmail && deliverable.submittedAt) {
+    attribution.push(`Submitted by ${deliverable.submittedByEmail} on ${new Date(deliverable.submittedAt).toLocaleDateString()}`);
+  }
+  if (deliverable.reviewedByEmail && deliverable.reviewedAt) {
+    const verb = deliverable.reviewStatus === "approved" ? "Approved" : "Reviewed";
+    attribution.push(`${verb} by ${deliverable.reviewedByEmail} on ${new Date(deliverable.reviewedAt).toLocaleDateString()}`);
+  }
+
+  return (
+    <div className="mb-3 flex flex-col gap-2 rounded-md border border-border p-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium">Review status</span>
+          <Badge tone={REVIEW_STATUS_TONE[deliverable.reviewStatus]}>
+            {DELIVERABLE_REVIEW_STATUS_LABELS[deliverable.reviewStatus]}
+          </Badge>
+        </div>
+
+        {canSubmitForReview(deliverable.status, deliverable.reviewStatus) && (
+          <form action={submitAction}>
+            <input type="hidden" name="projectId" value={projectId} />
+            <input type="hidden" name="deliverableId" value={deliverable.id} />
+            <Button type="submit" size="sm" disabled={isSubmitting}>
+              {isSubmitting ? "Submitting…" : "Submit for review"}
+            </Button>
+          </form>
+        )}
+
+        {canDecideReview(deliverable.reviewStatus) && !isRequestingChanges && (
+          <div className="flex gap-2">
+            <form action={approveAction}>
+              <input type="hidden" name="projectId" value={projectId} />
+              <input type="hidden" name="deliverableId" value={deliverable.id} />
+              <Button type="submit" size="sm" disabled={isApproving}>
+                {isApproving ? "Approving…" : "Approve"}
+              </Button>
+            </form>
+            <Button type="button" variant="secondary" size="sm" onClick={() => setIsRequestingChanges(true)}>
+              Request changes
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {attribution.length > 0 && (
+        <div className="flex flex-col gap-0.5 text-xs text-muted">
+          {attribution.map((line) => (
+            <span key={line}>{line}</span>
+          ))}
+        </div>
+      )}
+
+      {deliverable.reviewStatus === "changes_requested" && deliverable.reviewNote && (
+        <p className="rounded-md bg-warning-bg px-2 py-1.5 text-sm text-warning-text">{deliverable.reviewNote}</p>
+      )}
+
+      {!canExportForClient(deliverable.reviewStatus) && (
+        <p className="text-xs text-muted">Approve this deliverable to unlock DOCX/PDF/PPTX export.</p>
+      )}
+
+      {canDecideReview(deliverable.reviewStatus) && isRequestingChanges && (
+        <form action={changesAction} className="flex flex-col gap-2 border-t border-border pt-2">
+          <input type="hidden" name="projectId" value={projectId} />
+          <input type="hidden" name="deliverableId" value={deliverable.id} />
+          <textarea
+            name="reviewNote"
+            placeholder="What needs to change? (optional, but the submitter will see it)"
+            rows={3}
+            className="rounded-md border border-border px-2 py-1 text-sm focus:border-brand focus:outline-none"
+          />
+          {changesState.error && <Alert variant="error">{changesState.error}</Alert>}
+          <div className="flex items-center gap-3">
+            <Button type="submit" size="sm" disabled={isRequestingChangesPending}>
+              {isRequestingChangesPending ? "Sending…" : "Send"}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsRequestingChanges(false)}
+              disabled={isRequestingChangesPending}
+            >
+              Cancel
+            </Button>
+          </div>
+        </form>
+      )}
+
+      {submitState.error && <Alert variant="error">{submitState.error}</Alert>}
+      {approveState.error && <Alert variant="error">{approveState.error}</Alert>}
+    </div>
+  );
+}
 
 export function DeliverableView({
   projectId,
@@ -95,27 +226,46 @@ export function DeliverableView({
           {DELIVERABLE_LABELS[deliverable.type]}
         </h3>
         <div className="flex items-center gap-2">
-          <a
-            className={buttonClasses("secondary", "sm")}
-            href={`/api/projects/${projectId}/deliverables/${deliverable.id}/export?format=docx`}
-          >
-            <DocxIcon className="h-3.5 w-3.5" />
-            DOCX
-          </a>
-          <a
-            className={buttonClasses("secondary", "sm")}
-            href={`/api/projects/${projectId}/deliverables/${deliverable.id}/export?format=pdf`}
-          >
-            <PdfIcon className="h-3.5 w-3.5" />
-            PDF
-          </a>
-          <a
-            className={buttonClasses("secondary", "sm")}
-            href={`/api/projects/${projectId}/deliverables/${deliverable.id}/export?format=pptx`}
-          >
-            <PptxIcon className="h-3.5 w-3.5" />
-            PPTX
-          </a>
+          {canExportForClient(deliverable.reviewStatus) ? (
+            <>
+              <a
+                className={buttonClasses("secondary", "sm")}
+                href={`/api/projects/${projectId}/deliverables/${deliverable.id}/export?format=docx`}
+              >
+                <DocxIcon className="h-3.5 w-3.5" />
+                DOCX
+              </a>
+              <a
+                className={buttonClasses("secondary", "sm")}
+                href={`/api/projects/${projectId}/deliverables/${deliverable.id}/export?format=pdf`}
+              >
+                <PdfIcon className="h-3.5 w-3.5" />
+                PDF
+              </a>
+              <a
+                className={buttonClasses("secondary", "sm")}
+                href={`/api/projects/${projectId}/deliverables/${deliverable.id}/export?format=pptx`}
+              >
+                <PptxIcon className="h-3.5 w-3.5" />
+                PPTX
+              </a>
+            </>
+          ) : (
+            <>
+              <span className={`${buttonClasses("secondary", "sm")} pointer-events-none opacity-50`} aria-disabled="true">
+                <DocxIcon className="h-3.5 w-3.5" />
+                DOCX
+              </span>
+              <span className={`${buttonClasses("secondary", "sm")} pointer-events-none opacity-50`} aria-disabled="true">
+                <PdfIcon className="h-3.5 w-3.5" />
+                PDF
+              </span>
+              <span className={`${buttonClasses("secondary", "sm")} pointer-events-none opacity-50`} aria-disabled="true">
+                <PptxIcon className="h-3.5 w-3.5" />
+                PPTX
+              </span>
+            </>
+          )}
           {!isEditing && (
             <Button type="button" variant="ghost" size="sm" onClick={() => setIsEditing(true)}>
               Edit
@@ -123,6 +273,8 @@ export function DeliverableView({
           )}
         </div>
       </div>
+
+      <ReviewControls projectId={projectId} deliverable={deliverable} />
 
       <Alert variant="warning" className="mb-3">
         AI-generated draft — review before sending to a client. Not certified compliance advice.
