@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeInstitutionalRisk, type InstitutionalRiskInput } from "./institutional-risk";
+import { computeAgingContent, computeInstitutionalRisk, type InstitutionalRiskInput } from "./institutional-risk";
 
 function rows(serviceType: InstitutionalRiskInput["serviceType"], authors: string[]): InstitutionalRiskInput[] {
   return authors.map((authorEmail) => ({ serviceType, authorEmail }));
@@ -66,5 +66,48 @@ describe("computeInstitutionalRisk", () => {
     const summary = computeInstitutionalRisk([]);
     expect(summary.byServiceArea).toEqual([]);
     expect(summary.unscored).toEqual([]);
+  });
+});
+
+describe("computeAgingContent", () => {
+  const now = new Date("2026-01-01T00:00:00Z");
+
+  it("returns nothing when nothing is over the threshold", () => {
+    const result = computeAgingContent(
+      [{ id: "1", title: "Fresh", contentType: "sop", updated_at: "2025-12-15T00:00:00Z" }],
+      now,
+    );
+    expect(result).toEqual([]);
+  });
+
+  it("includes content last edited 6+ months ago", () => {
+    const result = computeAgingContent(
+      [{ id: "1", title: "Stale SOP", contentType: "sop", updated_at: "2025-06-01T00:00:00Z" }],
+      now,
+    );
+    expect(result).toEqual([
+      { id: "1", title: "Stale SOP", contentType: "sop", updatedAt: "2025-06-01T00:00:00Z" },
+    ]);
+  });
+
+  it("sorts oldest-edited first", () => {
+    const result = computeAgingContent(
+      [
+        { id: "1", title: "Older", contentType: "sop", updated_at: "2025-01-01T00:00:00Z" },
+        { id: "2", title: "Newer", contentType: "playbook", updated_at: "2025-05-01T00:00:00Z" },
+      ],
+      now,
+    );
+    expect(result.map((r) => r.id)).toEqual(["1", "2"]);
+  });
+
+  it("caps the result at the top 10 oldest", () => {
+    const rows = Array.from({ length: 15 }, (_, i) => ({
+      id: `id-${i}`,
+      title: `Item ${i}`,
+      contentType: "sop" as const,
+      updated_at: "2025-01-01T00:00:00Z",
+    }));
+    expect(computeAgingContent(rows, now)).toHaveLength(10);
   });
 });

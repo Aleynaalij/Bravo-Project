@@ -8,6 +8,14 @@ import { summarizeDeliveryRisk } from "@/lib/metrics/delivery-risk";
 import { getVaultMetrics } from "@/lib/metrics/vault";
 import { getKnowledgeMetrics, KNOWLEDGE_PERIOD_DAYS } from "@/lib/metrics/knowledge";
 import { getAllConsultantContributionCounts } from "@/lib/team/contributions";
+import {
+  AGING_CONTENT_MONTHS,
+  AGING_CONTENT_TYPE_LABELS,
+  getAgingContent,
+  getInstitutionalRiskSummary,
+  INSTITUTIONAL_RISK_LABELS,
+  type AgingContentType,
+} from "@/lib/metrics/institutional-risk";
 import { listProjectsWithServices } from "@/lib/projects/service";
 import { DELIVERABLE_LABELS, SERVICE_LABELS } from "@/lib/domain/labels";
 import { Card } from "@/components/ui/card";
@@ -21,7 +29,17 @@ const TABS = [
   { key: "overview", label: "Overview" },
   { key: "knowledge", label: "Knowledge" },
   { key: "consultants", label: "Consultants" },
+  { key: "risk", label: "Risk" },
 ];
+
+// Where each aging-content item's own detail page lives — one route per
+// content type, same as the list pages that already link to these.
+const AGING_CONTENT_HREF: Record<AgingContentType, (id: string) => string> = {
+  lesson_learned_or_incident: (id) => `/dashboard/knowledge-vault/${id}`,
+  script: (id) => `/dashboard/knowledge-vault/scripts/${id}`,
+  sop: (id) => `/dashboard/sops/${id}`,
+  playbook: (id) => `/dashboard/playbooks/${id}`,
+};
 
 const PAGE_TITLE = "Dashboards";
 const PAGE_DESCRIPTION =
@@ -106,6 +124,101 @@ export default async function AccountMetricsPage({
             <BarChart
               rows={contributionCounts.map((row) => ({ label: row.authorEmail, value: row.count }))}
             />
+          )}
+        </Card>
+      </main>
+    );
+  }
+
+  if (tab === "risk") {
+    const [riskSummary, agingContent] = await Promise.all([
+      getInstitutionalRiskSummary(supabase),
+      getAgingContent(supabase),
+    ]);
+    const riskCounts = { low: 0, elevated: 0, high: 0 };
+    for (const area of riskSummary.byServiceArea) riskCounts[area.risk] += 1;
+    const concerningAreas = riskSummary.byServiceArea.filter((area) => area.risk !== "low");
+
+    return (
+      <main className="mx-auto max-w-3xl px-4 py-10">
+        <PageHeader title={PAGE_TITLE} description={PAGE_DESCRIPTION} />
+        <Tabs items={TABS} active={tab} basePath="/dashboard/metrics" />
+
+        <Card className="mb-8 flex flex-col gap-3">
+          <h2 className="font-medium">Institutional knowledge risk</h2>
+          <p className="text-sm text-muted">
+            How concentrated each service area&apos;s captured knowledge is in a single
+            author&apos;s hands — a documented judgment call (50%+ single-author share is
+            elevated, 75%+ is high), not a certified risk score. A service area needs at least 3
+            captured items before it&apos;s scored.
+          </p>
+          {riskSummary.byServiceArea.length === 0 ? (
+            <p className="text-sm text-muted">
+              Not enough captured content yet to score any service area.
+            </p>
+          ) : (
+            <>
+              <StatusBar
+                segments={[
+                  { label: "Low", count: riskCounts.low, tone: "success" },
+                  { label: "Elevated", count: riskCounts.elevated, tone: "warning" },
+                  { label: "High", count: riskCounts.high, tone: "error" },
+                ]}
+              />
+              {concerningAreas.length > 0 && (
+                <ul className="flex flex-col gap-2 border-t border-border pt-3 text-sm">
+                  {concerningAreas.map((area) => (
+                    <li
+                      key={area.serviceType}
+                      className="flex items-center justify-between gap-3 border-b border-border pb-2 last:border-0 last:pb-0"
+                    >
+                      <span>
+                        <span className="font-medium">{SERVICE_LABELS[area.serviceType]}</span>
+                        <span className="text-muted">
+                          {" "}
+                          — {area.topAuthorEmail} holds {Math.round(area.topAuthorShare * 100)}% of{" "}
+                          {area.itemCount} items
+                        </span>
+                      </span>
+                      <Badge tone={area.risk === "high" ? "error" : "warning"}>
+                        {INSTITUTIONAL_RISK_LABELS[area.risk]}
+                      </Badge>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          )}
+        </Card>
+
+        <Card className="flex flex-col gap-3">
+          <h2 className="font-medium">Aging content</h2>
+          <p className="text-sm text-muted">
+            Not edited in {AGING_CONTENT_MONTHS} months — worth a review to confirm it still
+            reflects reality.
+          </p>
+          {agingContent.length === 0 ? (
+            <p className="text-sm text-muted">Nothing is overdue for review.</p>
+          ) : (
+            <ul className="flex flex-col gap-2 text-sm">
+              {agingContent.map((item) => (
+                <li
+                  key={`${item.contentType}-${item.id}`}
+                  className="flex items-center justify-between gap-3 border-b border-border pb-2 last:border-0 last:pb-0"
+                >
+                  <Link
+                    href={AGING_CONTENT_HREF[item.contentType](item.id)}
+                    className="truncate text-brand hover:underline"
+                  >
+                    {item.title}
+                  </Link>
+                  <span className="flex shrink-0 items-center gap-2">
+                    <Badge tone="neutral">{AGING_CONTENT_TYPE_LABELS[item.contentType]}</Badge>
+                    <span className="text-muted">{new Date(item.updatedAt).toLocaleDateString()}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
           )}
         </Card>
       </main>
