@@ -4,6 +4,7 @@ import { listVaultScripts, type VaultScriptRow } from "@/lib/vault/scripts-servi
 import { listSops, type SopRow } from "@/lib/sop/service";
 import { listPlaybooks, type PlaybookRow } from "@/lib/playbook/service";
 import { filterByAuthorId } from "@/lib/vault/search";
+import { searchKnowledge } from "@/lib/search/knowledge";
 
 export interface ConsultantContributions {
   vaultEntries: VaultEntryRow[];
@@ -86,4 +87,36 @@ export async function getAllConsultantContributionCounts(
     listPlaybooks(supabase),
   ]);
   return summarizeContributionCounts([...entries, ...scripts, ...sops, ...playbooks]);
+}
+
+export interface ConsultantKnowledgeResult {
+  playbooks: PlaybookRow[];
+  lessonsAndIncidents: VaultEntryRow[];
+  scripts: VaultScriptRow[];
+  sops: SopRow[];
+}
+
+// The "personal-memory surfacing" half of Michael Mode — "what would
+// [teammate] say about X?", not just "what has [teammate] captured."
+// Reuses searchKnowledge() unchanged rather than a parallel scoped-search
+// implementation: ranks account-wide first (so semantic search still sees
+// the whole corpus, same as every other search entry point in this app),
+// then filters each list down to this one author with the same generic
+// filterByAuthorId already used by getConsultantContributions above.
+// Historical Projects is left out on purpose — a project isn't something
+// one person "says," it's a shared engagement record.
+export async function searchConsultantKnowledge(
+  supabase: SupabaseClient,
+  authorUserId: string,
+  query: string,
+): Promise<ConsultantKnowledgeResult> {
+  if (!query.trim()) return { playbooks: [], lessonsAndIncidents: [], scripts: [], sops: [] };
+
+  const results = await searchKnowledge(supabase, query);
+  return {
+    playbooks: filterByAuthorId(results.playbooks, authorUserId, (row) => row.author_user_id),
+    lessonsAndIncidents: filterByAuthorId(results.lessonsAndIncidents, authorUserId, (row) => row.author_user_id),
+    scripts: filterByAuthorId(results.scripts, authorUserId, (row) => row.author_user_id),
+    sops: filterByAuthorId(results.sops, authorUserId, (row) => row.author_user_id),
+  };
 }
