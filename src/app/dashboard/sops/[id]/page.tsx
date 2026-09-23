@@ -2,6 +2,8 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getSop, getSopVaultEntryLinks } from "@/lib/sop/service";
 import { listVaultEntries } from "@/lib/vault/entries-service";
+import { requireAccountId } from "@/lib/auth/session";
+import { recordContentView, getContentViewCount } from "@/lib/usage/content-views";
 import { SopForm } from "../sop-form";
 import { deleteSopAction, publishSopAction } from "../actions";
 import { Card } from "@/components/ui/card";
@@ -25,6 +27,16 @@ export default async function EditSopPage({ params }: { params: Promise<{ id: st
     getSopVaultEntryLinks(supabase, id),
   ]);
 
+  const accountId = await requireAccountId(supabase);
+  await recordContentView(supabase, {
+    accountId,
+    contentType: "sop",
+    contentId: sop.id,
+    viewerUserId: user.id,
+    viewerEmail: user.email ?? "",
+  });
+  const viewCount = await getContentViewCount(supabase, "sop", sop.id);
+
   return (
     <main className="mx-auto max-w-xl px-4 py-10">
       <PageHeader
@@ -36,7 +48,7 @@ export default async function EditSopPage({ params }: { params: Promise<{ id: st
             </Badge>
           </span>
         }
-        description={`Written by ${sop.author_email} · v${sop.version}`}
+        description={`Written by ${sop.author_email} · v${sop.version} · Viewed ${viewCount} ${viewCount === 1 ? "time" : "times"}`}
         actions={
           <>
             {sop.status === "draft" && (

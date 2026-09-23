@@ -8,6 +8,7 @@ import { getEditSeverityBreakdown } from "@/lib/metrics/quality";
 import { summarizeDeliveryRisk, DELIVERY_RISK_LABELS, type DeliveryRisk } from "@/lib/metrics/delivery-risk";
 import { getVaultMetrics } from "@/lib/metrics/vault";
 import { getKnowledgeMetrics, KNOWLEDGE_PERIOD_DAYS } from "@/lib/metrics/knowledge";
+import { getContentViewMetrics, CONTENT_TYPE_LABELS, CONTENT_TYPE_HREF_PREFIX } from "@/lib/metrics/content-views";
 import { getAllConsultantContributionCounts } from "@/lib/team/contributions";
 import { getSecurityScore } from "@/lib/security/score";
 import {
@@ -196,7 +197,10 @@ export default async function AccountMetricsPage({
   }
 
   if (tab === "knowledge") {
-    const knowledgeMetrics = await getKnowledgeMetrics(supabase);
+    const [knowledgeMetrics, contentViewMetrics] = await Promise.all([
+      getKnowledgeMetrics(supabase),
+      getContentViewMetrics(supabase),
+    ]);
     return (
       <main className="mx-auto max-w-3xl px-4 py-10">
         <PageHeader title={PAGE_TITLE} description={PAGE_DESCRIPTION} />
@@ -229,6 +233,53 @@ export default async function AccountMetricsPage({
                 value: entry.referenceCount,
               }))}
             />
+          )}
+        </Card>
+
+        <Card className="mt-6 flex flex-col gap-3">
+          <h2 className="font-medium">Most viewed content</h2>
+          <p className="text-sm text-muted">
+            Lessons learned, incidents, scripts, SOPs, and playbooks your team has actually opened —
+            distinct from the cross-references above, which only count a link from other content, not
+            a person looking at it. Each open counts once per person per day.
+          </p>
+          {contentViewMetrics.mostViewed.length === 0 ? (
+            <p className="text-sm text-muted">No content has been opened yet.</p>
+          ) : (
+            <BarChart
+              rows={contentViewMetrics.mostViewed.map((entry) => ({
+                label: `${entry.title} (${CONTENT_TYPE_LABELS[entry.contentType]})`,
+                value: entry.viewCount,
+              }))}
+            />
+          )}
+        </Card>
+
+        <Card className="mt-6 flex flex-col gap-3">
+          <h2 className="font-medium">Never viewed</h2>
+          <p className="text-sm text-muted">
+            Content nobody on your team has opened yet — worth checking whether it&apos;s still
+            findable, or whether it&apos;s simply not relevant right now.
+          </p>
+          {contentViewMetrics.neverViewed.length === 0 ? (
+            <p className="text-sm text-muted">Everything has been opened at least once.</p>
+          ) : (
+            <ul className="flex flex-col gap-2 text-sm">
+              {contentViewMetrics.neverViewed.map((entry) => (
+                <li
+                  key={`${entry.contentType}-${entry.id}`}
+                  className="flex items-center justify-between gap-3 border-b border-border pb-2 last:border-0 last:pb-0"
+                >
+                  <Link
+                    href={`${CONTENT_TYPE_HREF_PREFIX[entry.contentType]}/${entry.id}`}
+                    className="truncate text-brand hover:underline"
+                  >
+                    {entry.title}
+                  </Link>
+                  <Badge tone="neutral">{CONTENT_TYPE_LABELS[entry.contentType]}</Badge>
+                </li>
+              ))}
+            </ul>
           )}
         </Card>
       </main>
