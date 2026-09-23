@@ -58,6 +58,62 @@ export async function generateCompletion(prompt: string): Promise<string> {
   return content;
 }
 
+// Same provider-isolation shape as generateCompletion, but yields text
+// deltas as they arrive instead of waiting for the full response — for
+// Code Creator's chalkboard view (src/app/api/automation/creator/stream/
+// route.ts), the one place in this app that shows an AI response being
+// written live rather than validating a complete JSON object first. No
+// response_format here: streamed output has to be plain text a viewer can
+// watch accumulate, not JSON assembled token-by-token (which would mean
+// displaying escaped quotes/newlines mid-stream) — see
+// src/lib/automation/stream-format.ts for how the plain-text response is
+// still split into content/notes/rollback via delimiter markers.
+export async function* streamCompletion(prompt: string): AsyncGenerator<string> {
+  const openaiApiKey = process.env.OPENAI_API_KEY;
+
+  if (openaiApiKey) {
+    const client = new OpenAI({ apiKey: openaiApiKey });
+    const model = process.env.OPENAI_MODEL || "gpt-4o";
+
+    const stream = await client.chat.completions.create({
+      model,
+      messages: [{ role: "system", content: prompt }],
+      temperature: 0.3,
+      stream: true,
+    });
+
+    for await (const chunk of stream) {
+      const delta = chunk.choices[0]?.delta?.content;
+      if (delta) yield delta;
+    }
+    return;
+  }
+
+  const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
+  const apiKey = process.env.AZURE_OPENAI_API_KEY;
+  const deployment = process.env.AZURE_OPENAI_DEPLOYMENT_NAME;
+  const apiVersion = process.env.AZURE_OPENAI_API_VERSION || "2024-10-21";
+
+  if (!endpoint || !apiKey || !deployment) {
+    throw new Error(
+      "No AI provider configured — set OPENAI_API_KEY, or AZURE_OPENAI_ENDPOINT/AZURE_OPENAI_API_KEY/AZURE_OPENAI_DEPLOYMENT_NAME",
+    );
+  }
+
+  const client = new AzureOpenAI({ endpoint, apiKey, deployment, apiVersion });
+
+  const stream = await client.chat.completions.create({
+    model: deployment,
+    messages: [{ role: "system", content: prompt }],
+    stream: true,
+  });
+
+  for await (const chunk of stream) {
+    const delta = chunk.choices[0]?.delta?.content;
+    if (delta) yield delta;
+  }
+}
+
 // Same provider-isolation shape as generateCompletion, for knowledge-base
 // semantic search (src/lib/generation/knowledge-base.ts). text-embedding-3-
 // small produces 1536-dimension vectors, matching the

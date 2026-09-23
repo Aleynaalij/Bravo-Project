@@ -1,16 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { generateCompletion } from "@/lib/ai/provider";
-import {
-  generatedScriptSchema,
-  type CodeCreatorRequestInput,
-  type GeneratedScript,
-  type OperatingSystem,
-  type AuthMethod,
-} from "@/lib/validation/automation";
+import type { CodeCreatorRequestInput, GeneratedScript, OperatingSystem, AuthMethod } from "@/lib/validation/automation";
 import { getCodingStandardByScriptType, type CodingStandardRow } from "./standards-service";
 import { searchVault } from "@/lib/vault/search";
 import { ENVIRONMENT_PROFILE_LABELS, ENVIRONMENT_PROFILE_META } from "@/lib/domain/environment-profiles";
 import type { VaultEntryRow } from "@/lib/vault/entries-service";
+import { parseStreamedScript, SCRIPT_MARKER, NOTES_MARKER, ROLLBACK_MARKER } from "./stream-format";
 
 export class CodeCreatorError extends Error {}
 
@@ -112,23 +106,31 @@ Output location: ${input.outputLocation || "not specified"}
 Additional context: ${input.additionalContext || "none"}
 </${tag}>
 
-Respond with a single JSON object matching exactly this shape:
-{"content": string, "notes": string, "rollback": string}
-"content" is the complete, runnable script. "notes" explains setup, prerequisites, or implementation decisions a consultant should know before running it. "rollback" describes how to undo what this script changes. No text outside the JSON object.`;
+Respond in exactly this format, in this order, with no text before the first marker or after the last section:
+${SCRIPT_MARKER}
+(the complete, runnable script — this exact text is shown live as you write it, so plain script content only: no markdown code fences, no JSON, nothing but the script itself)
+${NOTES_MARKER}
+(setup, prerequisites, or implementation decisions a consultant should know before running it)
+${ROLLBACK_MARKER}
+(how to undo what this script changes)`;
 }
 
-// Runs one Code Creator request end to end: pull the account's own coding
-// standard and its most relevant lessons-learned (via the existing
-// searchVault — no separate embedding index for this feature, per the MVP
-// plan), assemble the prompt, call the AI provider, and validate through
-// the same parse -> Zod pipeline runCodeAudit uses. Callers are expected
-// to have already checked assertUnderAutomationRateLimit.
-export async function runCodeCreator(
+// Split from runCodeCreator's old single call: prepareCodeCreatorRequest
+// does everything that has to happen before the AI call starts (coding
+// standard/lessons lookup, prompt assembly, the automation_requests
+// insert) and hands back the prompt plus the row id to update once the
+// streamed response is complete. The route handler
+// (src/app/api/automation/creator/stream/route.ts) calls this, then
+// streams src/lib/ai/provider.ts's streamCompletion(prompt) straight to
+// the client while accumulating the raw text, then calls
+// finalizeCodeCreatorRequest below once the stream ends. Callers are
+// expected to have already checked assertUnderAutomationRateLimit.
+export async function prepareCodeCreatorRequest(
   supabase: SupabaseClient,
   accountId: string,
   user: { id: string; email: string },
   input: CodeCreatorRequestInput,
-): Promise<{ requestId: string; result: GeneratedScript }> {
+): Promise<{ requestId: string; prompt: string }> {
   const [standard, lessonsResult] = await Promise.all([
     getCodingStandardByScriptType(supabase, input.scriptType),
     searchVault(supabase, input.description, { entryTypes: ["lesson_learned", "incident"] }),
@@ -152,28 +154,38 @@ export async function runCodeCreator(
     .single();
   if (insertError) throw insertError;
 
-  try {
-    const raw = await generateCompletion(prompt);
+  return { requestId: request.id as string, prompt };
+}
 
-    let parsedJson: unknown;
-    try {
-      parsedJson = JSON.parse(raw);
-    } catch {
-      throw new CodeCreatorError("The AI's generated-script response wasn't valid JSON — try again.");
-    }
-
-    const validated = generatedScriptSchema.safeParse(parsedJson);
-    if (!validated.success) {
-      throw new CodeCreatorError(
-        `The AI's generated-script response didn't match the expected shape: ${validated.error.issues[0]?.message ?? "validation failed"}`,
-      );
-    }
-
-    await supabase.from("automation_requests").update({ output: validated.data }).eq("id", request.id);
-    return { requestId: request.id as string, result: validated.data };
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    await supabase.from("automation_requests").update({ error_message: message }).eq("id", request.id);
-    throw err;
+// Called once the stream has ended (naturally or on error) with whatever
+// raw text was actually accumulated — parses it via stream-format.ts's
+// delimiter-based splitter (never JSON.parse; see buildCreatorPrompt
+// above for why), persists output on success or error_message on
+// failure, and throws CodeCreatorError in the failure case so the route
+// handler's response reflects it.
+export async function finalizeCodeCreatorRequest(
+  supabase: SupabaseClient,
+  requestId: string,
+  raw: string,
+): Promise<GeneratedScript> {
+  const parsed = parseStreamedScript(raw);
+  if (!parsed) {
+    const message = "The generated response wasn't in the expected format — try again.";
+    await supabase.from("automation_requests").update({ error_message: message }).eq("id", requestId);
+    throw new CodeCreatorError(message);
   }
+
+  await supabase.from("automation_requests").update({ output: parsed }).eq("id", requestId);
+  return parsed;
+}
+
+// For a stream that failed before producing any parseable output (the AI
+// provider call itself threw — network error, no provider configured,
+// etc.) rather than one that ended with malformed content.
+export async function recordCodeCreatorFailure(
+  supabase: SupabaseClient,
+  requestId: string,
+  message: string,
+): Promise<void> {
+  await supabase.from("automation_requests").update({ error_message: message }).eq("id", requestId);
 }
