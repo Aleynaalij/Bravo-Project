@@ -8,6 +8,7 @@ import { generatePlaybookAction, type GeneratePlaybookFormState } from "./action
 import type { ProjectRow } from "@/lib/projects/service";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
+import { GenerationProgress } from "@/components/ui/generation-progress";
 
 const initialState: GeneratePlaybookFormState = {};
 
@@ -92,6 +93,7 @@ export function GenerateForm({ projects }: { projects: ProjectRow[] }) {
       <Button type="submit" disabled={isPending} className="w-fit">
         {isPending ? "Generating…" : "Generate playbook"}
       </Button>
+      {isPending && <GenerationProgress />}
     </form>
   );
 }

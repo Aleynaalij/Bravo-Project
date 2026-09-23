@@ -5,6 +5,12 @@ import { GenerateForm } from "./generate-form";
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
 
+// Same reasoning as Code Creator's page.tsx: generateStructuredDoc calls
+// generateCompletion synchronously for a full 12-section playbook, no
+// maxDuration was set anywhere in the app, and this can exceed Vercel's
+// 10s default and get killed before the request can even record an error.
+export const maxDuration = 60;
+
 export default async function GeneratePlaybookPage() {
   const supabase = await createClient();
   const {

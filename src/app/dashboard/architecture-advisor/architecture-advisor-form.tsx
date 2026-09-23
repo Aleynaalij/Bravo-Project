@@ -7,6 +7,7 @@ import { SERVICE_LABELS } from "@/lib/domain/labels";
 import type { ProjectRow } from "@/lib/projects/service";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
+import { GenerationProgress } from "@/components/ui/generation-progress";
 import { Badge } from "@/components/ui/badge";
 import { ArchitectureDiagramView } from "@/components/architecture-diagram";
 
@@ -182,6 +183,7 @@ export function ArchitectureAdvisorForm({ project }: { project: ProjectRow | nul
         <Button type="submit" disabled={isPending} className="w-fit">
           {isPending ? "Designing…" : "Propose architecture"}
         </Button>
+        {isPending && <GenerationProgress label="Designing…" />}
       </form>
 
       {state.result && <ArchitectureAdvisorResultView result={state.result} />}

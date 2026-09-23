@@ -8,6 +8,7 @@ import { generateSopAction, type GenerateSopFormState } from "./actions";
 import type { ProjectRow } from "@/lib/projects/service";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
+import { GenerationProgress } from "@/components/ui/generation-progress";
 
 const initialState: GenerateSopFormState = {};
 
@@ -92,6 +93,7 @@ export function GenerateForm({ projects }: { projects: ProjectRow[] }) {
       <Button type="submit" disabled={isPending} className="w-fit">
         {isPending ? "Generating…" : "Generate SOP"}
       </Button>
+      {isPending && <GenerationProgress />}
     </form>
   );
 }

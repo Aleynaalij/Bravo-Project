@@ -9,6 +9,14 @@ import { PageHeader } from "@/components/page-header";
 // "what-if" run, or deep-linked from a project's page (?projectId=...)
 // with the form prefilled from that project's own intake fields
 // (industry, user count, licensing tier, compliance notes).
+//
+// Same reasoning as Code Creator's page.tsx: the advisor calls
+// generateCompletion synchronously for a response that also includes a
+// full architecture diagram, no maxDuration was set anywhere in the app,
+// and this can exceed Vercel's 10s default and get killed before the
+// request can even record an error.
+export const maxDuration = 60;
+
 export default async function ArchitectureAdvisorPage({
   searchParams,
 }: {
