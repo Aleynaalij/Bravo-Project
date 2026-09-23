@@ -2,10 +2,19 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 type SopState = { status: "idle" } | { status: "generating" } | { status: "done"; sopId: string; sopTitle: string };
+
+const PLACEHOLDER =
+  "Ask me anything — need help navigating the platform, troubleshooting a Microsoft application, or generating an SOP?";
+
+const SUGGESTED_TOPICS = [
+  "How do I close out a project?",
+  "How do I set up a DLP policy for Exchange?",
+  "Generate an SOP for a retention label rollout",
+  "How do I search across my Knowledge Vault?",
+];
 
 // Single-shot by design (revised down from an earlier multi-turn chat
 // design once its open-ended AI cost was flagged as a concern): one
@@ -20,6 +29,7 @@ export function AskQueBar() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sopState, setSopState] = useState<SopState>({ status: "idle" });
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   async function handleAsk(e: FormEvent) {
     e.preventDefault();
@@ -29,6 +39,7 @@ export function AskQueBar() {
     setError(null);
     setReply(null);
     setSopState({ status: "idle" });
+    setShowSuggestions(false);
     setLoading(true);
 
     try {
@@ -81,28 +92,63 @@ export function AskQueBar() {
   }
 
   return (
-    <Card className="flex flex-col gap-3">
-      <div>
-        <h2 className="font-medium">Ask Que</h2>
-        <p className="text-sm text-muted">
-          Ask a Microsoft Purview question and get step-by-step guidance, or ask how to do something in this
-          platform. Once you have an answer, you can turn it into a real, downloadable SOP.
-        </p>
+    <div className="flex flex-col gap-3">
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => setShowSuggestions((v) => !v)}
+          aria-expanded={showSuggestions}
+          aria-label="Suggested topics"
+          title="Suggested topics"
+          className="flex h-6 w-6 items-center justify-center rounded-full border border-border text-xs text-muted hover:border-brand hover:text-brand"
+        >
+          i
+        </button>
       </div>
 
-      <form className="flex gap-2" onSubmit={handleAsk}>
+      <form onSubmit={handleAsk} className="relative">
         <input
           type="text"
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
-          placeholder="Ask Que anything about Purview or this platform&hellip;"
+          placeholder={PLACEHOLDER}
           disabled={loading}
-          className="min-w-0 flex-1 rounded-md border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none disabled:opacity-60"
+          className="w-full rounded-3xl border border-border bg-surface px-6 py-5 pr-16 text-base focus:border-brand focus:outline-none disabled:opacity-60"
         />
-        <Button type="submit" size="sm" disabled={loading || !question.trim()}>
-          {loading ? "Asking…" : "Ask"}
-        </Button>
+        <button
+          type="submit"
+          disabled={loading || !question.trim()}
+          aria-label="Ask Que"
+          className="absolute right-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-brand text-white hover:bg-brand-dark disabled:opacity-40"
+        >
+          {loading ? (
+            <span className="text-xs">…</span>
+          ) : (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="19" x2="12" y2="5" />
+              <polyline points="6 11 12 5 18 11" />
+            </svg>
+          )}
+        </button>
       </form>
+
+      {showSuggestions && (
+        <div className="flex flex-wrap gap-2">
+          {SUGGESTED_TOPICS.map((topic) => (
+            <button
+              key={topic}
+              type="button"
+              onClick={() => {
+                setQuestion(topic);
+                setShowSuggestions(false);
+              }}
+              className="rounded-full border border-border px-4 py-2 text-sm text-foreground hover:border-brand hover:bg-surface-hover"
+            >
+              {topic}
+            </button>
+          ))}
+        </div>
+      )}
 
       {error && <p className="text-sm text-error-text">{error}</p>}
 
@@ -135,6 +181,6 @@ export function AskQueBar() {
           )}
         </div>
       )}
-    </Card>
+    </div>
   );
 }

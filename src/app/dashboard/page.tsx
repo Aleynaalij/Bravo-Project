@@ -105,7 +105,7 @@ export default async function DashboardPage() {
         <LinkButton href="/dashboard/new">New project</LinkButton>
       </div>
 
-      <div className="mb-10 mt-6">
+      <div className="mb-12 mt-16">
         <AskQueBar />
       </div>
 
