@@ -6,6 +6,7 @@ import { listRecentDeliverables } from "@/lib/vault/service";
 import { getEngagementHealthSummary, ENGAGEMENT_HEALTH_LABELS, type EngagementHealth } from "@/lib/metrics/engagement";
 import { summarizeDeliveryRisk, DELIVERY_RISK_LABELS, type DeliveryRisk } from "@/lib/metrics/delivery-risk";
 import { VaultEntryCard } from "./vault/vault-entry-card";
+import { AskQueBar } from "@/components/assistant/ask-que-bar";
 import { LinkButton } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
@@ -102,6 +103,10 @@ export default async function DashboardPage() {
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">Projects</h1>
         <LinkButton href="/dashboard/new">New project</LinkButton>
+      </div>
+
+      <div className="mb-10 mt-6">
+        <AskQueBar />
       </div>
 
       {projects.length > 0 && (
