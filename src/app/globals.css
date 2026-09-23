@@ -145,3 +145,30 @@ body {
   background: var(--background);
   color: var(--foreground);
 }
+
+/* Code Creator's chalkboard view (src/components/ui/chalkboard.tsx) —
+   the QuePilot robot mascot bobbing, blinking, and nudging its chalk
+   while a script streams in. Kept as plain keyframes + Tailwind's
+   motion-safe: arbitrary-value animate-[...] utility at each call site,
+   rather than a --theme registration, since these are used by exactly
+   one component. */
+@keyframes chalkbot-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+@keyframes chalkbot-blink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  96% { transform: scaleY(0.1); }
+}
+@keyframes chalkbot-nudge {
+  0%, 100% { transform: rotate(-6deg); }
+  50% { transform: rotate(10deg); }
+}
+@keyframes chalkbot-glow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+@keyframes chalkbot-caret {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}

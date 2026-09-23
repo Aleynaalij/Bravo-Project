@@ -11,12 +11,7 @@ import {
   type AuthMethod,
 } from "@/lib/validation/automation";
 import { ENVIRONMENT_PROFILES, ENVIRONMENT_PROFILE_LABELS, type EnvironmentProfile } from "@/lib/domain/environment-profiles";
-import {
-  runCodeCreatorAction,
-  promoteGeneratedScriptAction,
-  deleteCodeCreatorRequestAction,
-  type PromoteFormState,
-} from "./actions";
+import { promoteGeneratedScriptAction, deleteCodeCreatorRequestAction, type PromoteFormState } from "./actions";
 import {
   getAutomationRequestStatus,
   historyItemTitle,
@@ -24,10 +19,11 @@ import {
   type AutomationRequestRow,
   type AutomationRequestStatus,
 } from "@/lib/automation/history";
+import { extractStreamingScriptPreview, parseStreamedScript } from "@/lib/automation/stream-format";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { GenerationProgress } from "@/components/ui/generation-progress";
+import { Chalkboard } from "@/components/ui/chalkboard";
 
 const fieldClass = "rounded-md border border-border px-3 py-2 text-sm focus:border-brand focus:outline-none";
 const textareaClass = `${fieldClass} min-h-24`;
@@ -220,23 +216,62 @@ function PromoteForm({ request, result }: { request: CodeCreatorRequestInput; re
 
 export function CreatorForm({ history }: { history: AutomationRequestRow[] }) {
   const [state, setState] = useState<CreatorState>({ step: "describe" });
-  const [submitting, setSubmitting] = useState(false);
+  const [streaming, setStreaming] = useState(false);
+  const [streamedText, setStreamedText] = useState("");
 
   // Shared by the normal requirements-step submit and a history item's
   // "Rerun" — a rerun is just this same call against a stored input,
-  // never a new form-fill.
+  // never a new form-fill. Streams from the Route Handler (not a Server
+  // Action — those can't stream a response back) so the chalkboard can
+  // show the script arriving live; stream-format.ts's delimiter parser
+  // is what turns the raw streamed text into content/notes/rollback,
+  // both incrementally (extractStreamingScriptPreview, for what's shown
+  // while it's still arriving) and once the stream ends
+  // (parseStreamedScript, for the final result).
   async function submitRequest(input: CodeCreatorRequestInput) {
-    setSubmitting(true);
-    const response = await runCodeCreatorAction(input);
-    setSubmitting(false);
+    setStreaming(true);
+    setStreamedText("");
+    let raw = "";
 
-    if (response.error) {
-      setState({ step: "error", request: input, message: response.error });
+    try {
+      const response = await fetch("/api/automation/creator/stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
+
+      if (!response.ok || !response.body) {
+        const message = await response.text();
+        setStreaming(false);
+        setState({ step: "error", request: input, message: message || "Something went wrong." });
+        return;
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        raw += decoder.decode(value, { stream: true });
+        setStreamedText(raw);
+      }
+    } catch {
+      setStreaming(false);
+      setState({ step: "error", request: input, message: "Lost connection while generating — try again." });
       return;
     }
-    if (response.result) {
-      setState({ step: "result", request: input, result: response.result });
+
+    setStreaming(false);
+    const parsed = parseStreamedScript(raw);
+    if (!parsed) {
+      setState({
+        step: "error",
+        request: input,
+        message: "The generated response wasn't in the expected format — try again.",
+      });
+      return;
     }
+    setState({ step: "result", request: input, result: parsed });
   }
 
   function handleDescribeSubmit(e: FormEvent<HTMLFormElement>) {
@@ -311,13 +346,13 @@ export function CreatorForm({ history }: { history: AutomationRequestRow[] }) {
 
         <RequestHistory
           history={history}
-          disabled={submitting}
+          disabled={streaming}
           onRerun={(input) => void submitRequest(input)}
           onEdit={(input) =>
             setState({ step: "requirements", description: input.description, scriptType: input.scriptType, prefill: input })
           }
         />
-        {submitting && <GenerationProgress />}
+        {streaming && <Chalkboard text={extractStreamingScriptPreview(streamedText)} streaming={streaming} />}
       </div>
     );
   }
@@ -416,19 +451,19 @@ export function CreatorForm({ history }: { history: AutomationRequestRow[] }) {
         </div>
 
         <div className="flex gap-2">
-          <Button type="submit" disabled={submitting} className="w-fit">
-            {submitting ? "Generating…" : "Generate script"}
+          <Button type="submit" disabled={streaming} className="w-fit">
+            {streaming ? "Generating…" : "Generate script"}
           </Button>
           <Button
             type="button"
             variant="ghost"
-            disabled={submitting}
+            disabled={streaming}
             onClick={() => setState({ step: "describe", description: state.description, scriptType: state.scriptType })}
           >
             Back
           </Button>
         </div>
-        {submitting && <GenerationProgress />}
+        {streaming && <Chalkboard text={extractStreamingScriptPreview(streamedText)} streaming={streaming} />}
       </form>
     );
   }
