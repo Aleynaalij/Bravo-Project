@@ -2,9 +2,11 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getVaultEntry, getVaultEntryReferences } from "@/lib/vault/entries-service";
+import { listVaultEntryAttachments } from "@/lib/vault/attachments-service";
 import { listProjects } from "@/lib/projects/service";
 import { EntryForm } from "../entry-form";
 import { deleteVaultEntryAction } from "../actions";
+import { AttachmentsSection } from "../attachments-section";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
@@ -17,10 +19,11 @@ export default async function EditVaultEntryPage({ params }: { params: Promise<{
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const [entry, projects, references] = await Promise.all([
+  const [entry, projects, references, attachments] = await Promise.all([
     getVaultEntry(supabase, id),
     listProjects(supabase),
     getVaultEntryReferences(supabase, id),
+    listVaultEntryAttachments(supabase, id),
   ]);
   if (!entry) notFound();
 
@@ -93,6 +96,8 @@ export default async function EditVaultEntryPage({ params }: { params: Promise<{
           )}
         </Card>
       )}
+
+      <AttachmentsSection vaultEntryId={entry.id} attachments={attachments} />
 
       <Card>
         <EntryForm entry={entry} projects={projects} />
