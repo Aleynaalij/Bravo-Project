@@ -69,13 +69,12 @@ const PAGE_TITLE = "Dashboards";
 const PAGE_DESCRIPTION =
   "This account's own generation activity — every number below comes straight from your team's projects and deliverables, nothing estimated or industry-averaged.";
 
-// This account's own usage — the same aggregation the admin-only
-// cross-account page at src/app/admin/metrics uses, but handed a regular
-// session client instead of the admin client, so RLS restricts every
-// query to this account's own rows (see src/lib/metrics/usage.ts's
-// docstring). Any teammate can view it, not just the owner — same
-// "everything except team/billing/account-deletion is shared" model
-// every other page on this account already follows.
+// This account's own usage — src/lib/metrics/usage.ts's getUsageMetrics
+// handed a regular session client, so RLS restricts every query to this
+// account's own rows (see that file's docstring). Any teammate can view
+// it, not just the owner — same "everything except team/billing/
+// account-deletion is shared" model every other page on this account
+// already follows.
 export default async function AccountMetricsPage({
   searchParams,
 }: {

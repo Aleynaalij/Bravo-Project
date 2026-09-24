@@ -58,7 +58,6 @@ export function buildNavEntries(isPlatformAdmin: boolean): NavEntry[] {
       label: "Admin",
       items: [
         { href: "/admin/knowledge-base", label: "Knowledge Base" },
-        { href: "/admin/metrics", label: "Platform Metrics" },
         { href: "/admin/support", label: "Support Requests" },
       ],
     });

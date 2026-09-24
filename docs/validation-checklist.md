@@ -612,3 +612,12 @@ Direct follow-up: the full explanatory sentence in the input's placeholder trunc
 
 - ✅ **`src/components/assistant/ask-que-bar.tsx`** — `PLACEHOLDER` constant shortened to `"Ask me anything"`.
 - ✅ `npx tsc --noEmit` (via `npm run build`) / `eslint` / `npm run test` (231/231, unchanged) / `rm -rf .next && npm run build` all clean. No migration. One-line copy change — skipped a fresh screenshot pass given the prior pass already verified this component's layout at this size.
+
+## Removed the admin Platform Metrics page
+
+Live user-reported error on `/admin/metrics` ("This page hit an unexpected error"). Investigated but couldn't pull the exact stack trace — this session's Vercel logs/runtime-errors access and Sentry access both came back permission-denied, and outbound egress to the live production URL is blocked from this sandbox. Code review against the live database found no query/schema mismatch (the page's four data-fetching functions all checked out against real production data), leaving the service-role env var as the most likely culprit, unconfirmed. Rather than keep guessing at a page whose own data (platform-wide generation/billing/cross-sell aggregates) wasn't being used, the user asked to delete it outright.
+
+- ✅ **Deleted** `src/app/admin/metrics/page.tsx` (the whole route) and its two admin-only-caller lib files, `src/lib/metrics/billing.ts` (`getPlanDistribution`) and `src/lib/metrics/cross-sell.ts` (`computeCrossSellSummary`/`getCrossSellSummary`) plus its `cross-sell.test.ts` — confirmed via a repo-wide grep that nothing outside the deleted page imported either file. `src/lib/metrics/usage.ts`'s `getUsageMetrics` and `src/lib/metrics/quality.ts`'s `getEditSeverityBreakdown` stayed — both are still used by the per-account `/dashboard/metrics` page.
+- ✅ **Nav updated**: removed the "Platform Metrics" link from the Admin nav group (`src/lib/nav-config.ts`) — Admin now has just Knowledge Base and Support Requests.
+- ✅ **Comments updated** in `src/lib/metrics/usage.ts`, `src/lib/usage/service.ts`, and `src/app/dashboard/metrics/page.tsx` that referenced the now-deleted admin page's file path, so nothing in the codebase points at a route that no longer exists.
+- ✅ `npx tsc --noEmit` (via `rm -rf .next && npm run build`) / `eslint` / `npm run test` (223/223) all clean; `/admin/metrics` no longer appears in the production route list. No migration — no schema depended on this page.
