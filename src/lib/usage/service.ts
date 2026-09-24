@@ -3,8 +3,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 // Kept to a closed set rather than a free-text string — see
 // docs/validation-checklist.md's usage-analytics entry for why this is
 // the one genuinely new signal this project collects, versus everything
-// else on the admin Metrics page (src/app/admin/metrics), which is
-// aggregated directly from data already tracked elsewhere
+// else on the Dashboards metrics page (src/app/dashboard/metrics), which
+// is aggregated directly from data already tracked elsewhere
 // (generation_jobs, deliverable_versions.source, project_services,
 // deliverable_version_kb_entries) rather than re-logged here.
 export type UsageEventType = "deliverable.exported";

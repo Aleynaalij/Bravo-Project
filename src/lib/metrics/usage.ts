@@ -2,20 +2,16 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { DeliverableType, ServiceType } from "@/lib/domain/enums";
 import { PRACTICE_AREA_LABELS, SERVICE_PRACTICE_AREA, type PracticeArea } from "@/lib/domain/labels";
 
-// Shared by two very different callers, which is exactly why this file
-// does no auth/scoping of its own — every table it reads (generation_jobs,
+// Does no auth/scoping of its own — every table it reads (generation_jobs,
 // deliverable_versions, project_services, deliverable_version_kb_entries,
 // usage_events) already has RLS restricting rows to the caller's own
 // account (supabase/migrations/0002_rls.sql, 0023_usage_events.sql), so
-// this function's result is scoped entirely by which client it's handed:
-//   - src/app/admin/metrics/page.tsx passes the admin (service-role)
-//     client — RLS doesn't apply, so this becomes the cross-account,
-//     platform-wide aggregate (gated by requirePlatformAdmin at the
-//     /admin layout level before this ever runs).
-//   - src/app/dashboard/metrics/page.tsx passes a regular session
-//     client — RLS restricts every query to that user's own account, so
-//     the exact same queries become that one account's own dashboard,
-//     with zero extra account_id filtering needed here.
+// this function's result is scoped entirely by which client it's handed.
+// src/app/dashboard/metrics/page.tsx passes a regular session client —
+// RLS restricts every query to that user's own account, so the queries
+// become that one account's own dashboard, with zero extra account_id
+// filtering needed here. (The admin-only cross-account variant of this
+// page, which passed the service-role client, was removed.)
 //
 // Aggregation happens in application code, not a SQL function — the
 // project's data volume is genuinely small (an MVP with no real paying
