@@ -194,3 +194,19 @@ body {
   from { opacity: 1; }
   to { opacity: 0; }
 }
+
+/* QuePilot workspace: a clear overview with one strong visual anchor. */
+.qp-hero{background:radial-gradient(circle at 89% 10%,#22667f 0%,transparent 32%),linear-gradient(125deg,#101f39 0%,#14345a 64%,#12516a 100%);box-shadow:0 22px 48px -28px rgba(9,31,59,.65)}
+.qp-hero-orbit{position:absolute;width:370px;height:370px;right:-70px;bottom:-235px;border:1px solid rgba(167,237,246,.27);border-radius:50%;box-shadow:0 0 0 55px rgba(140,224,237,.055),0 0 0 110px rgba(140,224,237,.045);pointer-events:none}
+.qp-eyebrow{font-size:.69rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--brand)}
+.qp-snapshot{min-height:132px;padding:1.15rem 1.25rem!important}
+.qp-snapshot-label{font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.qp-snapshot-value{margin-top:.6rem;font-size:2rem;font-weight:750;line-height:1;letter-spacing:-.05em}
+.qp-snapshot-detail{margin-top:.55rem;font-size:.75rem;color:var(--muted)}
+.qp-project-card{box-shadow:0 5px 20px -16px rgba(15,38,69,.5)}
+.qp-que-card{background:linear-gradient(160deg,var(--surface),var(--brand-light))}
+.qp-quick-link{display:flex;justify-content:space-between;gap:1rem;padding:.85rem 0;color:var(--foreground);transition:color .15s}
+.qp-quick-link:hover{color:var(--brand)}
+.qp-sidebar{background:var(--surface);box-shadow:8px 0 32px -28px rgba(7,34,62,.35)}
+.qp-nav-active{background:var(--brand-light);color:var(--brand);box-shadow:inset 3px 0 0 var(--brand)}
+@media(max-width:640px){.qp-hero-orbit{right:-205px}.qp-snapshot{min-height:118px;padding:1rem!important}}
