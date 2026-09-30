@@ -77,21 +77,13 @@ export default async function DashboardPage() {
         <Card className="qp-snapshot"><p className="qp-snapshot-label">Recent files</p><p className="qp-snapshot-value">{recentDeliverables.length}</p><p className="qp-snapshot-detail">Latest activity shown</p></Card>
       </section>
 
-      <div className="mt-9 grid gap-8 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <section aria-labelledby="projects-heading" className="min-w-0">
+      <div className={`mt-9 grid gap-8 ${projects.length > 0 ? "xl:grid-cols-[minmax(0,1fr)_340px]" : ""}`}>
+        {projects.length > 0 && <section aria-labelledby="projects-heading" className="min-w-0">
           <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
             <div><p className="qp-eyebrow">Engagements</p><h2 id="projects-heading" className="mt-1 text-2xl font-semibold tracking-tight">Projects</h2></div>
             <Link href="/dashboard/new" className="text-sm font-semibold text-brand hover:underline">+ New project</Link>
           </div>
-          {projects.length === 0 ? (
-            <Card className="qp-empty flex min-h-56 flex-col items-start justify-center gap-3 p-7">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-light text-brand">↗</div>
-              <h3 className="text-lg font-semibold">Your workspace starts here</h3>
-              <p className="max-w-md text-sm leading-6 text-muted">Create an intake to capture the client context, add services, and draft your first deliverable.</p>
-              <LinkButton href="/dashboard/new" className="mt-2">Start an intake</LinkButton>
-            </Card>
-          ) : (
-            <ul className="grid gap-3">
+          <ul className="grid gap-3">
               {projects.map((project) => (
                 <li key={project.id}>
                   <Link href={`/dashboard/${project.id}`} className="group block rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
@@ -115,11 +107,10 @@ export default async function DashboardPage() {
                   </Link>
                 </li>
               ))}
-            </ul>
-          )}
-        </section>
+          </ul>
+        </section>}
 
-        <aside className="min-w-0 space-y-5" aria-label="Quick tools">
+        <aside className={`min-w-0 ${projects.length > 0 ? "space-y-5" : "grid gap-5 md:grid-cols-2"}` } aria-label="Quick tools">
           <Card className="qp-que-card p-5 sm:p-6">
             <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-brand-light text-lg font-semibold text-brand">Q</div>
             <p className="qp-eyebrow">Your copilot</p>
