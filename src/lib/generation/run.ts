@@ -160,10 +160,23 @@ export async function runGeneration(
       );
     }
 
-    await supabase
+    const { error: updateError } = await supabase
       .from("deliverables")
-      .update({ status: "ready", current_version_id: version.id })
+      .update({
+        status: "ready",
+        current_version_id: version.id,
+        // Approval belongs to content, not the deliverable's stable id.
+        review_status: "not_submitted",
+        submitted_by: null,
+        submitted_by_email: null,
+        submitted_at: null,
+        reviewed_by: null,
+        reviewed_by_email: null,
+        reviewed_at: null,
+        review_note: null,
+      })
       .eq("id", deliverableId);
+    if (updateError) throw updateError;
 
     return { deliverableId, versionId: version.id };
   } catch (err) {

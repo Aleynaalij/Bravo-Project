@@ -173,18 +173,30 @@ export async function setProjectServices(
   projectId: string,
   services: ServiceType[],
 ): Promise<ServiceType[]> {
-  const { error: deleteError } = await supabase
-    .from("project_services")
-    .delete()
-    .eq("project_id", projectId);
-  if (deleteError) throw deleteError;
-
-  if (services.length === 0) return [];
-
-  const { error: insertError } = await supabase
-    .from("project_services")
-    .insert(services.map((service_type) => ({ project_id: projectId, service_type })));
-  if (insertError) throw insertError;
-
+  const { error } = await supabase.rpc("replace_project_services", {
+    p_project_id: projectId,
+    p_services: services,
+  });
+  if (error) throw error;
   return services;
+}
+
+export async function createProjectWithServices(
+  supabase: SupabaseClient,
+  accountId: string,
+  input: ProjectCreateInput,
+  services: ServiceType[],
+): Promise<ProjectRow> {
+  const { data, error } = await supabase.rpc("create_project_with_services", {
+    p_account_id: accountId,
+    p_customer_name: input.customerName,
+    p_industry: input.industry,
+    p_user_count: input.userCount,
+    p_licensing_tier: input.licensingTier,
+    p_geographic_locations: input.geographicLocations ?? [],
+    p_compliance_notes: input.complianceNotes ?? null,
+    p_services: services,
+  });
+  if (error) throw error;
+  return data as ProjectRow;
 }

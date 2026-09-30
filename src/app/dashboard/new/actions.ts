@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireAccountId } from "@/lib/auth/session";
-import { createProject, setProjectServices } from "@/lib/projects/service";
+import { createProjectWithServices } from "@/lib/projects/service";
 import { projectCreateSchema, projectServicesSchema } from "@/lib/validation/project";
 
 export interface IntakeFormState {
@@ -54,8 +54,12 @@ export async function createProjectAction(
     return { error: "Select at least one service in scope" };
   }
 
-  const project = await createProject(supabase, accountId, parsed.data);
-  await setProjectServices(supabase, project.id, parsedServices.data.services);
+  let project;
+  try {
+    project = await createProjectWithServices(supabase, accountId, parsed.data, parsedServices.data.services);
+  } catch {
+    return { error: "Could not create the project. Please try again." };
+  }
 
   redirect(`/dashboard/${project.id}`);
 }

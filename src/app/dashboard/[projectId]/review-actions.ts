@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireAccountId, UnauthorizedError } from "@/lib/auth/session";
 import { writeAuditLog } from "@/lib/audit/service";
 import { getDeliverableWithContent } from "@/lib/generation/deliverables";
+import { getProject } from "@/lib/projects/service";
 import { canSubmitForReview, canDecideReview } from "@/lib/generation/review";
 
 export interface ReviewActionState {
@@ -28,6 +29,19 @@ async function requireUserAndAccount(
   }
 }
 
+async function reviewableDeliverable(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  projectId: string,
+  deliverableId: string,
+) {
+  const [project, deliverable] = await Promise.all([
+    getProject(supabase, projectId),
+    getDeliverableWithContent(supabase, deliverableId),
+  ]);
+  if (!project || project.status === "closed" || !deliverable || deliverable.projectId !== projectId) return null;
+  return deliverable;
+}
+
 // Moves a ready deliverable into review — the first step of the approval
 // workflow. Flat RBAC means no "reviewer" role exists to assign this to;
 // any teammate submits, any teammate (including the same person) decides.
@@ -42,7 +56,7 @@ export async function submitForReviewAction(
   const auth = await requireUserAndAccount(supabase);
   if ("error" in auth) return auth;
 
-  const deliverable = await getDeliverableWithContent(supabase, deliverableId);
+  const deliverable = await reviewableDeliverable(supabase, projectId, deliverableId);
   if (!deliverable) return { error: "Deliverable not found." };
   if (!canSubmitForReview(deliverable.status, deliverable.reviewStatus)) {
     return { error: "This deliverable can't be submitted for review right now." };
@@ -84,7 +98,7 @@ export async function approveDeliverableAction(
   const auth = await requireUserAndAccount(supabase);
   if ("error" in auth) return auth;
 
-  const deliverable = await getDeliverableWithContent(supabase, deliverableId);
+  const deliverable = await reviewableDeliverable(supabase, projectId, deliverableId);
   if (!deliverable) return { error: "Deliverable not found." };
   if (!canDecideReview(deliverable.reviewStatus)) {
     return { error: "This deliverable isn't awaiting a review decision." };
@@ -130,7 +144,7 @@ export async function requestChangesAction(
   const auth = await requireUserAndAccount(supabase);
   if ("error" in auth) return auth;
 
-  const deliverable = await getDeliverableWithContent(supabase, deliverableId);
+  const deliverable = await reviewableDeliverable(supabase, projectId, deliverableId);
   if (!deliverable) return { error: "Deliverable not found." };
   if (!canDecideReview(deliverable.reviewStatus)) {
     return { error: "This deliverable isn't awaiting a review decision." };

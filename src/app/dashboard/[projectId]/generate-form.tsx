@@ -116,7 +116,8 @@ export function GenerateForm({
     return !requiredService || services.includes(requiredService);
   });
 
-  const [selected, setSelected] = useState<Set<DeliverableType>>(new Set(availableTypes));
+  // Require an intentional choice. Large projects can unlock 20+ types.
+  const [selected, setSelected] = useState<Set<DeliverableType>>(new Set());
 
   function toggle(type: DeliverableType) {
     setSelected((prev) => {

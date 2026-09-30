@@ -72,9 +72,8 @@ export default function PrivacyPage() {
       <p>
         Data is isolated per account at the database layer, and access to your account is scoped to
         the teammates you&apos;ve explicitly invited. Data is encrypted in transit. We do not
-        currently offer multi-factor authentication as a user-facing feature. Security is an ongoing
-        program, not a finished state — see our security page [link once published] for current
-        practices.
+        offer optional authenticator-app multi-factor authentication in Settings. Security is an ongoing
+        program, not a finished state.
       </p>
 
       <h2>7. Your Rights</h2>

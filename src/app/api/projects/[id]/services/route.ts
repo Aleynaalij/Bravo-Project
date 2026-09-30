@@ -23,6 +23,9 @@ export async function PUT(request: Request, { params }: Params) {
   if (!existing) {
     return NextResponse.json({ code: "not_found", message: "Project not found" }, { status: 404 });
   }
+  if (existing.status === "closed") {
+    return NextResponse.json({ code: "project_closed", message: "Project is closed" }, { status: 409 });
+  }
 
   const body = await request.json().catch(() => null);
   const parsed = projectServicesSchema.safeParse(body);

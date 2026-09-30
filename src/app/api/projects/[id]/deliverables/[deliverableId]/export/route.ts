@@ -50,7 +50,7 @@ export async function GET(request: Request, { params }: Params) {
   }
 
   const deliverable = await getDeliverableWithContent(supabase, deliverableId);
-  if (!deliverable || !deliverable.content) {
+  if (!deliverable || deliverable.projectId !== projectId || !deliverable.content) {
     return NextResponse.json(
       { code: "not_found", message: "Deliverable not found or not yet generated" },
       { status: 404 },
@@ -63,7 +63,7 @@ export async function GET(request: Request, { params }: Params) {
   // (vault-entry-card.tsx) and this same UI's pre-approval review view —
   // a reviewer has to be able to see a draft to approve it, so that path
   // stays open regardless of review_status.
-  if (disposition === "attachment" && !canExportForClient(deliverable.reviewStatus)) {
+  if (disposition === "attachment" && (deliverable.status !== "ready" || !canExportForClient(deliverable.reviewStatus))) {
     return NextResponse.json(
       {
         code: "not_approved",

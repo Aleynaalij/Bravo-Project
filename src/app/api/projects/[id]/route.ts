@@ -46,6 +46,13 @@ export async function PATCH(request: Request, { params }: Params) {
     return NextResponse.json({ code: "not_found", message: "Project not found" }, { status: 404 });
   }
 
+  if (existing.status === "closed") {
+    return NextResponse.json(
+      { code: "project_closed", message: "This project is closed and read-only." },
+      { status: 409 },
+    );
+  }
+
   const body = await request.json().catch(() => null);
   const parsed = projectUpdateSchema.safeParse(body);
   if (!parsed.success) {
