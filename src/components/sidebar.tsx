@@ -11,8 +11,8 @@ function NavRow({ item, isActive }: { item: { href: string; label: string }; isA
     <Link
       href={item.href}
       aria-current={isActive ? "page" : undefined}
-      className={`flex items-center rounded-md px-3 py-2 text-sm transition-colors ${
-        isActive ? "bg-brand-light font-medium text-brand" : "text-muted hover:bg-surface-hover hover:text-foreground"
+      className={`flex items-center rounded-lg px-3 py-2.5 text-sm transition-colors ${
+        isActive ? "qp-nav-active font-semibold" : "text-muted hover:bg-surface-hover hover:text-foreground"
       }`}
     >
       {item.label}
@@ -38,12 +38,12 @@ export function Sidebar({
   const activeHref = getActiveHref(pathname, flattenNavEntries(entries));
 
   return (
-    <aside className="hidden w-60 shrink-0 flex-col border-r border-border bg-surface md:flex">
-      <div className="px-4 py-4">
+    <aside className="qp-sidebar sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-border md:flex">
+      <div className="border-b border-border px-5 py-6">
         <Logo />
       </div>
 
-      <nav className="flex flex-1 flex-col gap-4 overflow-y-auto px-3 pb-4">
+      <nav className="flex flex-1 flex-col gap-5 overflow-y-auto px-3 py-5">
         {entries.map((entry) =>
           isNavGroup(entry) ? (
             <div key={entry.label} className="flex flex-col gap-0.5">
@@ -58,7 +58,7 @@ export function Sidebar({
         )}
       </nav>
 
-      <div className="flex flex-col gap-2 border-t border-border px-4 py-3">
+      <div className="flex flex-col gap-3 border-t border-border px-5 py-4">
         <span className="truncate text-xs text-muted">{email}</span>
         <form action={signOutAction}>
           <Button type="submit" variant="secondary" size="sm" className="w-full">
