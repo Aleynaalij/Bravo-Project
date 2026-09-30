@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { deliverableContentSchema } from "@/lib/validation/deliverable";
 import { getDeliverableWithContent } from "@/lib/generation/deliverables";
+import { getProject } from "@/lib/projects/service";
 
 export interface EditFormState {
   error?: string;
@@ -30,6 +31,10 @@ export async function saveEditedVersionAction(
   }));
 
   const supabase = await createClient();
+  const project = await getProject(supabase, projectId);
+  if (!project || project.status === "closed") {
+    return { error: "This project is unavailable or closed for editing." };
+  }
 
   // The edit form has no diagram inputs (the diagram isn't inline-editable
   // yet — see docs/validation-checklist.md), so without this a save would
@@ -37,6 +42,9 @@ export async function saveEditedVersionAction(
   // diagram forward unchanged, same as every other field this form doesn't
   // expose.
   const current = await getDeliverableWithContent(supabase, deliverableId);
+  if (!current || current.projectId !== projectId || current.status !== "ready") {
+    return { error: "Deliverable not found or not ready for editing." };
+  }
   const diagram = current?.content?.diagram;
 
   const parsed = deliverableContentSchema.safeParse({ sections, ...(diagram ? { diagram } : {}) });

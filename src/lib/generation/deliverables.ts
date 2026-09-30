@@ -8,6 +8,7 @@ const REVIEW_COLUMNS =
 
 export interface DeliverableWithContent {
   id: string;
+  projectId: string;
   type: DeliverableType;
   status: "pending" | "generating" | "ready" | "failed";
   content: DeliverableContent | null;
@@ -28,7 +29,7 @@ export async function listDeliverablesWithContent(
 ): Promise<DeliverableWithContent[]> {
   const { data: deliverables, error } = await supabase
     .from("deliverables")
-    .select(`id, type, status, current_version_id, ${REVIEW_COLUMNS}`)
+    .select(`id, project_id, type, status, current_version_id, ${REVIEW_COLUMNS}`)
     .eq("project_id", projectId);
   if (error) throw error;
   if (!deliverables || deliverables.length === 0) return [];
@@ -51,6 +52,7 @@ export async function listDeliverablesWithContent(
     const version = d.current_version_id ? versionsById.get(d.current_version_id) : undefined;
     return {
       id: d.id,
+      projectId: d.project_id,
       type: d.type,
       status: d.status,
       content: version?.content ?? null,
@@ -71,7 +73,7 @@ export async function getDeliverableWithContent(
 ): Promise<DeliverableWithContent | null> {
   const { data: deliverable, error } = await supabase
     .from("deliverables")
-    .select(`id, type, status, current_version_id, ${REVIEW_COLUMNS}`)
+    .select(`id, project_id, type, status, current_version_id, ${REVIEW_COLUMNS}`)
     .eq("id", deliverableId)
     .maybeSingle();
   if (error) throw error;
@@ -87,7 +89,7 @@ export async function getDeliverableWithContent(
   };
 
   if (!deliverable.current_version_id) {
-    return { id: deliverable.id, type: deliverable.type, status: deliverable.status, content: null, versionNumber: null, ...review };
+    return { id: deliverable.id, projectId: deliverable.project_id, type: deliverable.type, status: deliverable.status, content: null, versionNumber: null, ...review };
   }
 
   const { data: version, error: versionError } = await supabase
@@ -99,6 +101,7 @@ export async function getDeliverableWithContent(
 
   return {
     id: deliverable.id,
+    projectId: deliverable.project_id,
     type: deliverable.type,
     status: deliverable.status,
     content: version?.content ?? null,

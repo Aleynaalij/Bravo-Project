@@ -77,6 +77,12 @@ export default async function ProjectDetailPage({
         <ServicesForm projectId={project.id} currentServices={project.services} isClosed={isClosed} />
       </Card>
 
+      <Card className="mt-6 flex flex-col gap-3">
+        <h2 className="font-medium">Purview project workspace</h2>
+        <p className="text-sm text-muted">Define a baseline, organize tasks and milestones, track decisions and risks, and record evidence.</p>
+        <LinkButton href={`/dashboard/${project.id}/purview`} variant="secondary" className="w-fit">Open workspace</LinkButton>
+      </Card>
+
       <h2 className="mb-3 mt-10 text-lg font-semibold">Deliverables</h2>
       <Card>
         <GenerateForm projectId={project.id} services={project.services} isClosed={isClosed} />
